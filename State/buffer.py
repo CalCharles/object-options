@@ -14,7 +14,7 @@ class ParamReplayBuffer(ReplayBuffer):
     # option_terminate is for temporal extension, stating if the last object terminated
     _reserved_keys = ("obs", "act", "rew", "done", "obs_next", "info", "policy", "param", 
         "mask", "target", "next_target", "target_diff", "terminate", "true_reward", "true_done", "option_resample", 
-        "mapped_act", "inter", "trace", "inter_state", "parent_state", "additional_state", "time")
+        "mapped_act", "inter", "trace", "inter_state", "parent_state", "additional_state", "time", "weight_binary")
 
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
         """Return a data batch: self[index].
@@ -58,6 +58,7 @@ class ParamReplayBuffer(ReplayBuffer):
             inter_state = self.inter_state[indice],
             parent_state = self.parent_state[indice],
             additional_state = self.additional_state[indice],
+            weight_binary = self.weight_binary[indice],
             time = self.time[indice]
         )
 
@@ -109,7 +110,7 @@ class ParamWeightedReplayBuffer(ParamReplayBuffer):
 class ParamPriorityReplayBuffer(PrioritizedReplayBuffer): # not using double inheritance so exactly the same as above.
     _reserved_keys = ("obs", "act", "rew", "done", "obs_next", "info", "policy", "param", 
         "mask", "target", "next_target", "target_diff", "terminate", "true_reward", "true_done", "option_resample", 
-        "mapped_act", "inter", "inter_state", "parent_state", "additional_state", "time")
+        "mapped_act", "inter", "inter_state", "parent_state", "additional_state", "time", "weight_binary")
 
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
         """Return a data batch: self[index].
@@ -153,5 +154,6 @@ class ParamPriorityReplayBuffer(PrioritizedReplayBuffer): # not using double inh
             inter_state = self.inter_state[indice],
             parent_state = self.parent_state[indice],
             additional_state = self.additional_state[indice],
+            weight_binary = self.weight_binary[indice],
             time = self.time[indice]
         )

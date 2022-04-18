@@ -14,14 +14,14 @@ from DistributionalModels.InteractionModels.InteractionTraining.train_utils impo
 def train_interaction(full_model, rollouts, train_args, batchvals, trace, trace_targets, interaction_optimizer):
     outputs = list()
     inter_loss = nn.BCELoss()
-    if train_args.interaction_iters > 0:
+    if train_args.pretrain_interaction_iters > 0:
         # in the multi-instanced case, if ANY interaction occurs, we want to upweight that state
         # trw encodes binaries of where interactions occur, which are converted into normalized weights
         trw = torch.max(trace, dim=1)[0].squeeze() if full_model.multi_instanced else trace
-        weights = get_weights(ratio_lambda=train_args.interaction_weight, binaries=trw)
+        weights = get_weights(ratio_lambda=train_args.weighting[2], binaries=trw)
 
         # weights the values
-        for i in range(train_args.interaction_iters):
+        for i in range(train_args.pretrain_interaction_iters):
             # get the input and target values
             batch, idxes = rollouts.sample(train_args.batch_size, weights=weights)
             target = trace_targets[idxes]# if full_model.multi_instanced else trace[idxes]
@@ -35,7 +35,7 @@ def train_interaction(full_model, rollouts, train_args, batchvals, trace, trace_
             run_optimizer(interaction_optimizer, full_model.interaction_model, trace_loss)
             
             # logging
-            interaction_logging(full_model, train_args, batchvals, i, trace_loss, trw, trace, interaction_likelihood, target)
+            interaction_logging(full_model, train_args, batchvals, i, trace_loss, trace, interaction_likelihood, target)
             
             # change the weighting if necesary
             weights = reweighting(i, train_args, trw)

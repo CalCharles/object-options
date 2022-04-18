@@ -1,8 +1,9 @@
     
 class InteractionTesting:
-    def __init__(self, interaction_binary_epsilons, )
+    def __init__(self, interaction_params)
+        self.interaction_prediction, self.forward_threshold, self.passive_threshold, self.difference_threshold = interaction_params
 
-    def compute_interaction(self, forward, passive):
+    def compute_binary(self, forward, passive):
         '''computes an interaction binary, which defines if the active prediction is high likelihood enough
         the passive is low likelihood enough, and the difference is sufficiently large
         TODO: there should probably be a mechanism that incorporates variance explicitly
@@ -15,3 +16,5 @@ class InteractionTesting:
         difference = forward - passive < self.difference_threshold # the difference between the two must be large enough
         return ((not_passive) * (active_prediction) * (difference)).float() #(active_prediction+not_passive > 1).float()
 
+    def __call__(self, interactions):
+        return interactions > self.interaction_prediction

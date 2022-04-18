@@ -26,7 +26,7 @@ def initialize_optimizer(model, train_args, lr):
 
 
 def load_intermediate(train_args, full_model)
-    if train_args.compare_trace or train_args.interaction_iters > 0:
+    if train_args.compare_trace or train_args.pretrain_interaction_iters > 0:
         trace = load_from_pickle("data/temp/trace.pkl").cpu().cuda()
         if train_args.max_distance_epsilon > 0:
             nonproximal_trace = pytorch_model.unwrap(trace)-proximal
@@ -42,7 +42,7 @@ def load_intermediate(train_args, full_model)
 
     # load models, skip if not using a certain model
     passive_model = load_model("data/temp/passive_model.pt")
-    interaction_model = load_model("data/temp/interaction_model.pt") if train_args.interaction_iters > 0 else full_model.interaction_model
+    interaction_model = load_model("data/temp/interaction_model.pt") if train_args.pretrain_interaction_iters > 0 else full_model.interaction_model
     forward_model = load_model("data/temp/active_model.pt") if train_args.pretrain_active else full_model.forward_model
     return trace, nonproximal_trace, passive_model, forward_model, interaction_model
 
@@ -76,7 +76,7 @@ def train_full(full_model, rollouts, test_rollout, train_args, object_names, env
 
     # generate the trace
     trace = None
-    if train_args.interaction_iters > 0 or train_args.compare_trace:
+    if train_args.pretrain_interaction_iters > 0 or train_args.compare_trace:
         if train_args.env != "RoboPushing":
             if train_args.load_intermediate: trace = load_from_pickle("data/temp/trace.pkl").cpu().cuda()
             else: trace = generate_interaction_trace(full_model, rollouts, [control_name], [target_name]) # if target is multi-instanced, trace is per-instance
@@ -86,39 +86,14 @@ def train_full(full_model, rollouts, test_rollout, train_args, object_names, env
     # train the interaction model with true interaction "trace" values
     train_interaction(full_model, rollouts, train_args, trace, interaction_optimizer)
 
-    if train_args.save_intermediate and train_args.interaction_iters > 0:
+    if train_args.save_intermediate and train_args.pretrain_interaction_iters > 0:
         torch.save(full_model.interaction_model, "data/temp/interaction_model.pt")
 
     if args.load_intermediate: trace, nonproximal_trace, passive_model, forward_model, interaction_model = load_intermediate(train_args, full_model)
 
     # sampling weights, either wit hthe passive error or if we can upweight the true interactions
-    if train_args.passive_weighting > 0:
-        passive_error_all = get_prediction_error(full_model, rollouts)
-        # passive_error_all = full_model.interaction_model(full_model.gamma(rollouts.get_values("state")))
-        # passive_error = pytorch_model.wrap(trace)
-        weights, use_weights, total_live, total_dead, ratio_lambda = get_weights(passive_error_all, ratio_lambda = train_args.passive_weighting, 
-            passive_error_cutoff=train_args.passive_error_cutoff, temporal_local=train_args.interaction_local, use_proximity=proximal)
-        print(use_weights[:100])
-        print(use_weights[100:200])
-        print(use_weights[200:300])
-    elif train_args.interaction_iters > 0:
-        print("compute values")
-        passive_error_all = trace.clone()
-        trw = torch.max(trace, dim=1)[0].squeeze() if full_model.multi_instanced else trace
-        print(trw.sum())
-        weights, use_weights, total_live, total_dead, ratio_lambda = get_weights(ratio_lambda=train_args.interaction_weight, weights=trw, temporal_local=train_args.interaction_local, use_proximity=proximal)
-        use_weights =  copy.deepcopy(use_weights)
-        print(use_weights.shape)
-    elif train_args.change_weighting > 0:
-        target_mag = get_target_mag(get_targets, full_model.predict_dynamics, rollouts)
-        weights, use_weights, total_live, total_dead, ratio_lambda = get_weights(target_mag, ratio_lambda = train_args.change_weighting, passive_error_cutoff=train_args.passive_error_cutoff)
-
-    else: # no weighting o nthe samples
-        passive_error_all = torch.ones(rollouts.filled)
-        weights, use_weights = np.ones(rollouts.filled) / rollouts.filled, np.ones(rollouts.filled) / rollouts.filled
-        print(rollouts.filled, weights.shape, weights)
-        total_live, total_dead = 0, 0
-        ratio_lambda = 1
+    active_weights = separate_weights(train_args, full_model, rollouts, proximity, trace)
+    interaction_weights = get_weights(train_args.interaction_weight_lambda, rollouts.weight_binary)
 
     # handling boosting the passive operator to work with upweighted states
     # boosted_passive_operator = copy.deepcopy(full_model.passive_model)
@@ -127,10 +102,7 @@ def train_full(full_model, rollouts, test_rollout, train_args, object_names, env
     passive_optimizer = optim.Adam(full_model.passive_model.parameters(), train_args.lr, eps=train_args.eps, betas=train_args.betas, weight_decay=train_args.weight_decay)
     print("combined", psutil.Process().memory_info().rss / (1024 * 1024 * 1024))
 
-    train_combined(full_model, rollouts, test_rollout, train_args, batchvals, half_batchvals, 
-        trace, weights, use_weights, passive_error_all, interaction_schedule, ratio_lambda,
-        active_optimizer, passive_optimizer, interaction_optimizer, proximal=proximal)        # if args.save_intermediate:
+    train_combined(full_model, rollouts, test_rollout, train_args,
+                        trace, active_weights, interaction_weights,
+                        active_optimizer, passive_optimizer, interaction_optimizer)        # if args.save_intermediate:
     full_model.save(train_args.save_dir)
-    if train_args.interaction_iters > 0:
-        compute_interaction_stats(rollouts, trace = trace, passive_error_cutoff=train_args.passive_error_cutoff)
-    del full_model.nf, full_model.rv

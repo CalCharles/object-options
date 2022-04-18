@@ -64,6 +64,9 @@ class NeuralInteractionForwardModel(nn.Module):
         self.target_state = kwargs['target_state']
         self.parent_states = kwargs['parent_states']
         self.controllable = kwargs['controllable']
+
+        # if we are predicting the dynamics
+        self.predict_dynamics = kwargs["predict_dynamics"]
         
         # construct the active model
         self.first_obj_dim = kwargs['first_obj_dim']
@@ -77,7 +80,7 @@ class NeuralInteractionForwardModel(nn.Module):
         self.interaction_model = interaction_nets[kwargs['interaction_class']](**kwargs['interaction_model_args'])
 
         # set the testing module
-        self.testing_module = TestingModule(kwargs)
+        self.test = TestingModule(kwargs)
 
         # set the normalization function
         self.norm = NormalizationModule(kwargs)
@@ -95,7 +98,7 @@ class NeuralInteractionForwardModel(nn.Module):
         self.interaction_model.cpu()
         self.passive_model.cpu()
         self.norm.cpu()
-        self.testing_module.cpu()
+        self.test.cpu()
         self.iscuda = False
         return self
 
@@ -105,7 +108,7 @@ class NeuralInteractionForwardModel(nn.Module):
         self.interaction_model.cuda()
         self.passive_model.cuda()
         self.norm.cuda()
-        self.testing_module.cuda()
+        self.test.cuda()
         self.iscuda = True
         return self
 
@@ -133,7 +136,7 @@ class NeuralInteractionForwardModel(nn.Module):
 
         rv = self.output_normalization_function.reverse
         inter = pytorch_model.unwrap(self.interaction_model(inp_state))
-        inter_bin = self.testing_module(inter)
+        inter_bin = self.test(inter)
 
         # if predicting dynamics, add the mean of the model to the target state
         if self.predict_dynamics:
@@ -162,9 +165,44 @@ class NeuralInteractionForwardModel(nn.Module):
             (rv(pmu_inter), rv(pvar_inter)))
 
     def check_interaction(self, inter):
-        return self.testing_module(inter)
+        return self.test(inter)
 
     def get_active_mask(self):
-        return self.testing_module.selection_binary
+        return self.test.selection_binary
+
+    def interaction(self, batch):
+        return self.interaction_model(pytorch_model.wrap(batch.inter_state, cuda=self.iscuda))
+
+    def _target_dists(self, batch, params):
+        target = batch.target_diff if self.predict_dynamics else batch.next_target
+        target = pytorch_model.wrap(target, cuda=self.iscuda)
+        dist = self.dist(*params)
+        log_probs = dist.log_prob(target)
+        return target, dist, log_probs
+
+    # likelihood functions (below) get the gaussian distributions output by the active and passive models
+    def likelihoods(self, batch):
+        active_params = self.active_model(pytorch_model.wrap(batch.inter_state, cuda=self.iscuda))
+        passive_params = self.passive_model(pytorch_model.wrap(batch.target, cuda=self.iscuda))
+        inter = self.interaction_model(pytorch_model.wrap(batch.inter_state, cuda=self.iscuda))
+        target, active_dist, active_log_probs = self._target_dists(batch, active_params)
+        target, passive_dist, passive_log_probs = self._target_dists(batch, passive_params)
+        return active_params, passive_params, inter, target, active_dist, passive_dist, active_log_probs, passive_log_probs        
+
+    def weighted_likelihoods(self, batch):
+        active_params = self.active_model(pytorch_model.wrap(batch.inter_state, cuda=self.iscuda))
+        inter = self.interaction_model(pytorch_model.wrap(batch.inter_state, cuda=self.iscuda))
+        target, dist, log_probs = self._target_dists(batch, active_params)
+        return active_params, inter, dist, log_probs + torch.log(inter + 1e-6)
+    
+    def passive_likelihoods(self, batch):
+        passive_params = self.passive_model(pytorch_model.wrap(batch.target, cuda=self.iscuda))
+        target, dist, log_probs = self._target_dists(batch, passive_params)
+        return passive_params, dist, log_probs
+
+    def active_likelihoods(self, batch):
+        active_params = self.active_model(pytorch_model.wrap(batch.inter_state, cuda=self.iscuda))
+        target, dist, log_probs = self._target_dists(batch, passive_params)
+        return active_params, dist, log_probs
 
 interaction_models = {'neural': NeuralInteractionForwardModel, 'dummy': DummyModel}
