@@ -20,36 +20,6 @@ from Networks.input_norm import InterInputNorm, PointwiseNorm
 from Rollouts.rollouts import ObjDict, merge_rollouts
 from tianshou.data import Collector, Batch, ReplayBuffer
 
-# def nflen(x):
-#     return ConstantNorm(mean= pytorch_model.wrap(sum([[84//2,84//2,0,0,0] for i in range(x // 5)], list())), variance = pytorch_model.wrap(sum([[84,84, 5, 5, 1] for i in range(x // 5)], list())), invvariance = pytorch_model.wrap(sum([[1/84,1/84, 1/5, 1/5, 1] for i in range(x // 5)], list())))
-
-# nf5 = ConstantNorm(mean=0, variance=5, invvariance=.2)
-
-# def default_model_args(predict_dynamics, model_class, norm_fn=None, delta_norm_fn=None):    
-#     model_args = ObjDict({ 'model_type': 'neural',
-#      'dist': "Gaussian",
-#      'passive_class': model_class,
-#      "forward_class": model_class,
-#      'interaction_class': model_class,
-#      'init_form': 'xnorm',
-#      'activation': 'relu',
-#      'factor': 8,
-#      'num_layers': 2,
-#      'use_layer_norm': False,
-#      'normalization_function': norm_fn,
-#      'delta_normalization_function': delta_norm_fn,
-#      'interaction_binary': [],
-#      'active_epsilon': .5,
-#      'base_variance': .0001 # TODO: this parameter is extremely sensitive, and that is a problem
-#      })
-#     return model_args
-
-# def load_hypothesis_model(pth):
-#     for root, dirs, files in os.walk(pth):
-#         for file in files:
-#             if file.find(".pt") != -1: # return the first pytorch file
-#                 return torch.load(os.path.join(pth, file))
-
 def assign_distribution(dist):
         if kwargs['dist'] == "Discrete": return Categorical(kwargs['num_outputs'], kwargs['num_outputs'])
         elif kwargs['dist'] == "Gaussian": return torch.distributions.normal.Normal
@@ -60,21 +30,22 @@ class NeuralInteractionForwardModel(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         # set input and output
-        self.inter_state = kwargs['inter_state']
-        self.target_state = kwargs['target_state']
-        self.parent_states = kwargs['parent_states']
+        self.inter_select = kwargs['inter_select']
+        self.target_select = kwargs['target_select']
+        self.parent_selectors = kwargs['parent_selectors']
+        self.parent_select = kwargs['parent_select']
         self.controllable = kwargs['controllable']
 
         # if we are predicting the dynamics
         self.predict_dynamics = kwargs["predict_dynamics"]
         
         # construct the active model
-        self.first_obj_dim = kwargs['first_obj_dim']
-        forward_args = kwargs['forward_model_args'] 
-        self.forward_model = forward_nets[kwargs['forward_class']](**kwargs['passive_model_args'])
+        self.first_obj_dim = [ps.output_size() for ps in self.parent_selectors] # the first object dim is the combined length of the parents
+        self.obj_dim = self.target_select.output_size() # the selector gets the size of a single instance
+        self.forward_model = forward_nets[kwargs['active_class']](**kwargs['active_model_args'])
 
         # set the passive model
-        self.passive_model = forward_nets[kwargs['passive_class']](**kwargs['forward_model_args'])
+        self.passive_model = forward_nets[kwargs['passive_class']](**kwargs['passive_model_args'])
 
         # construct the interaction model        
         self.interaction_model = interaction_nets[kwargs['interaction_class']](**kwargs['interaction_model_args'])

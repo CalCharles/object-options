@@ -66,11 +66,15 @@ def train_combined(full_model, rollouts, test_rollout, train_args,
         passive_nlikelihood = - passive_log_probs.sum(dim=-1).unsqueeze(-1)
 
         # weighted values against actual likelihood TODO: 0 is used to ignore values, does it?...
-        inter_weighted_nlikelihood = active_nlikelihood * interaction_likelihood.clone().detach()
+        detached_interaction_likelihood = interaction_likelihood.clone().detach()
+        inter_weighted_nlikelihood = active_nlikelihood * detached_interaction_likelihood
 
         # assign done flags
         done_flags = 1-batchvals.values.done
 
+        # reduce with mean to a single value for the batch
+        active_mean_nlikelihood, passive_mean_nlikelihood, inter_mean_nlikelihood = active_nlikelihood.mean(dim=0).squeeze(), passive_nlikelihood.mean(dim=0).squeeze(), inter_weighted_nlikelihood.squeeze() / (detached_interaction_likelihood.sum() + 1e-6)
+        
         # train a combined loss to minimize the (negative) active likelihood without interaction weighting, and the interaction regulairized values (ignoring dones)
         # TODO: we used a combined interaction of binaries, proximal high error and interaction before, but with resampling it isn't clear this is necessary
         loss = (active_nlikelihood * interaction_schedule(i) + inter_weighted_nlikelihood * (1-interaction_schedule(i))) * done_flags

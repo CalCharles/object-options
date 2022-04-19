@@ -8,6 +8,8 @@ error_types.PASSIVE_LIKELIHOOD = 3
 error_types.ACTIVE_LIKELIHOOD = 4
 error_types.INTERACTION = 5
 error_types.INTERACTION_BINARIES = 6
+error_types.PASSIVE_RAW = 7 # mean of passive
+error_types.ACTIVE_RAW = 8 # mean of active
 
 def compute_error(full_model, error_type, part, normalized = False):
     # computes the value for 
@@ -17,18 +19,18 @@ def compute_error(full_model, error_type, part, normalized = False):
     num_batch = mean.shape[0]
 
     # handles 3 different targets, predicting the trace, predicting the dynamics, or predicting the next target
-    if not predict_target: target_state = batch.trace
-    elif full_model.predict_dynamics: target_state = batch.target_diff
-    else: target_state = batch.next_target
+    if error_type = error_types.INTERACTION: target = batch.trace
+    elif full_model.predict_dynamics: target = batch.target_diff
+    else: target = batch.next_target
     
-    if error_type == error_types.PASSIVE:
+    if error_type == error_types.PASSIVE or error_type == error_types.PASSIVE_RAW:
         output = full_model.passive_model(pytorch_model.wrap(part.target, cuda=full_model.iscuda))[0]
-    elif error_type == error_types.ACTIVE:
+    elif error_type == error_types.ACTIVE or error_type == error_types.ACTIVE_RAW:
         output = full_model.active_model(pytorch_model.wrap(part.inter_state, cuda=full_model.iscuda))[0]
     if error_type < error_type.ACTIVE:
         if not normalized: # this can only be the case for PASSIVE and ACTIVE
-            return np.expand_dims(np.linalg.norm(rv(pytorch_model.unwrap(output)) - rv(target_state), ord=1), axis=-1)
-        return np.expand_dims(np.linalg.norm(pytorch_model.unwrap(output) - target_state, ord=1), axis=-1)
+            return np.expand_dims(np.linalg.norm(rv(pytorch_model.unwrap(output)) - rv(target), ord=1), axis=-1)
+        return np.expand_dims(np.linalg.norm(pytorch_model.unwrap(output) - target, ord=1), axis=-1)
 
     # likelihood type error computation
     if error_type == error_types.LIKELIHOOD:
@@ -43,12 +45,17 @@ def compute_error(full_model, error_type, part, normalized = False):
     # interaction type errors
     if error_type == error_types.INTERACTION:
         output = full_model.interaction(part)
-        return np.abs(pytorch_model.unwrap(output)-target_state) # should probably use CE loss
+        return np.abs(pytorch_model.unwrap(output)-target) # should probably use CE loss
     elif error_type == error_types.INTERACTION_BINARIES:
         _, _, _, _, _, _, active_log_probs, passive_log_probs = full_model.likelihoods(part)
         binaries = full_model.testing_module.compute_binary(pytorch_model.unwrap(active_log_probs.sum(dim=-1)),
                                                 pytorch_model.unwrap(passive_log_probs.sum(dim=-1)))
         return binaries
+
+    if error_type < error_type.ACTIVE_RAW:
+        return pytorch_model.unwrap(torch.stack(output))
+
+
     raise Error("invalid error type")
 
 

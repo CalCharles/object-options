@@ -157,3 +157,46 @@ class ParamPriorityReplayBuffer(PrioritizedReplayBuffer): # not using double inh
             weight_binary = self.weight_binary[indice],
             time = self.time[indice]
         )
+
+class ParamPriorityWeightedReplayBuffer(ParamPriorityReplayBuffer):
+    def sample_indices(self, batch_size: int, weights: ndarray = None) -> np.ndarray:
+        # this branch of the conditional is for the priority weights
+        if batch_size > 0 and len(self) > 0 and weights is None:
+            scalar = np.random.rand(batch_size) * self.weight.reduce()
+            return self.weight.get_prefix_sum_idx(scalar)  # type: ignore
+        else: # below is copied from weighted Replay Buffer, samples with the given weights
+            if self.stack_num == 1 or not self._sample_avail:  # most often case
+                if batch_size > 0:
+                    return np.random.choice(self._size, batch_size, p=weights)
+                elif batch_size == 0:  # construct current available indices
+                    return np.concatenate(
+                        [np.arange(self._index, self._size),
+                         np.arange(self._index)]
+                    )
+                else:
+                    return np.array([], int)
+            else:
+                if batch_size < 0:
+                    return np.array([], int)
+                all_indices = prev_indices = np.concatenate(
+                    [np.arange(self._index, self._size),
+                     np.arange(self._index)]
+                )
+                for _ in range(self.stack_num - 2):
+                    prev_indices = self.prev(prev_indices)
+                all_indices = all_indices[prev_indices != self.prev(prev_indices)]
+                if batch_size > 0:
+                    return np.random.choice(all_indices, batch_size, p=weights)
+                else:
+                    return all_indices
+
+
+    def sample(self, batch_size: int, weights: np.ndarray) -> Tuple[Batch, np.ndarray]:
+        """Get a random sample from buffer with size = batch_size.
+
+        Return all the data in the buffer if batch_size is 0.
+
+        :return: Sample data and its corresponding index inside the buffer.
+        """
+        indices = self.sample_indices(batch_size, weights)
+        return self[indices], indices

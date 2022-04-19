@@ -55,10 +55,6 @@ class FeatureSelector():
     def output_size(self):
         return len(hash(self)) - len(self.names)
 
-    def clean_factored_features(self): # only cleaned once at the start
-        for name in self.names:
-            self.factored_features[name] = np.array(self.factored_features[name]).astype("int")
-
     def __call__(self, states):
         '''
         states are dict[name] -> nparray
@@ -72,15 +68,17 @@ class FeatureSelector():
         '''
         assigns the relavant values of insert_state to delta_state
         '''
+        drng = 0
         for name in self.names:
             idxes = self.factored_features[name]
-            insert_state[name][idxes] = delta_state
+            insert_state[name][idxes] = delta_state[drng:drng+len(idxes)]
+            drng += len(idxes)
 
-    def assign_feature(self, states, assignment, edit=False, clipped=None):
-        # assigns the values of states to assignment
-        # assignment is a tuple assignment keys (tuples of (name, indexes)), and assignment values
-        # edit means that the assignment is added
-        # clipped is a tuple of the clipping range
-        if type(states) is dict or type(states) == OrderedDict or type(states) == Batch: # factored features, assumes that shapes for assignment[0][1] and assignment[1] match
-            states[assignment[0][0]][...,assignment[0][1]] = assignment[1] if not edit else states[assignment[0][0]][...,assignment[0][1]] + assignment[1]
-            if clipped is not None: states[assignment[0][0]][...,assignment[0][1]] = states[assignment[0][0]][...,assignment[0][1]].clip(clipped[0], clipped[1])
+def assign_feature(self, states, assignment, edit=False, clipped=None):
+    # assigns the values of states to assignment
+    # assignment is a tuple assignment keys (tuples of (name, indexes)), and assignment values
+    # edit means that the assignment is added
+    # clipped is a tuple of the clipping range
+    if type(states) is dict or type(states) == OrderedDict or type(states) == Batch: # factored features, assumes that shapes for assignment[0][1] and assignment[1] match
+        states[assignment[0][0]][...,assignment[0][1]] = assignment[1] if not edit else states[assignment[0][0]][...,assignment[0][1]] + assignment[1]
+        if clipped is not None: states[assignment[0][0]][...,assignment[0][1]] = states[assignment[0][0]][...,assignment[0][1]].clip(clipped[0], clipped[1])

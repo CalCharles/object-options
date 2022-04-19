@@ -63,7 +63,7 @@ def _dump_from_line(line, time_dict):
             name = split[0]
             vals = split[1].split(" ")
             state = [float(i) for i in vals]
-            time_dict[name] = state
+            time_dict[name] = np.array(state)
     return time_dict
 
 def state_to_dump(full_state, name_order):
