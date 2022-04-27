@@ -26,10 +26,17 @@ def assign_distribution(dist):
         elif kwargs['dist'] == "MultiBinary": return Bernoulli(kwargs['num_outputs'], kwargs['num_outputs'])
         else: raise NotImplementedError
 
+def load_interaction(pth):
+    for name in os.listdir(pth):
+        if "inter_model.pt" in name:
+            break
+    return torch.load(os.path.join(pth, name))
+
 class NeuralInteractionForwardModel(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         # set input and output
+        self.names = kwargs["object_names"]
         self.inter_select = kwargs['inter_select']
         self.target_select = kwargs['target_select']
         self.parent_selectors = kwargs['parent_selectors']
@@ -51,17 +58,20 @@ class NeuralInteractionForwardModel(nn.Module):
         self.interaction_model = interaction_nets[kwargs['interaction_class']](**kwargs['interaction_model_args'])
 
         # set the testing module
-        self.test = TestingModule(kwargs)
+        self.test = InteractionTesting(kwargs)
 
         # set the normalization function
         self.norm = NormalizationModule(kwargs)
+
+        # set the masking module to None as a placeholder
+        self.mask = ActiveMasking(kwargs)
 
     def save(self, pth):
         try:
             os.mkdir(pth)
         except OSError as e:
             pass
-        torch.save(self, os.path.join(pth, self.name + "_model.pt"))
+        torch.save(self, os.path.join(pth, self.name + "inter_model.pt"))
 
     def cpu(self):
         super().cpu()
@@ -105,7 +115,7 @@ class NeuralInteractionForwardModel(nn.Module):
         # state is either a single flattened state, or batch x state size, or factored_state with sufficient keys
         inp_state, tar_state = self._wrap_state(state)
 
-        rv = self.output_normalization_function.reverse
+        rv = self.norm.reverse
         inter = pytorch_model.unwrap(self.interaction_model(inp_state))
         inter_bin = self.test(inter)
 
@@ -116,13 +126,14 @@ class NeuralInteractionForwardModel(nn.Module):
             fpred, ppred = rv(self.forward_model(inp_state)[0]), rv(self.passive_model(tar_state)[0])
         
         # TODO: remove this conditional with appropriate slicing
+        # select active or passive based on inter value
         if len(state.shape) == 1:
             return (inter, fpred) if pytorch_model.unwrap(inter) > self.interaction_prediction else (inter, ppred)
         else:
             pred = torch.stack((ppred, fpred), dim=1)
             intera = pytorch_model.wrap(intera.squeeze().long(), cuda=self.iscuda)
             pred = pred[torch.arange(pred.shape[0]).long(), intera]
-        return inter, pred
+        return pytorch_model.unwrap(inter), pytorch_model.unwrap(pred)
 
     def hypothesize(self, state):
         # takes in a full state (dict with raw_state, factored_state) or tuple of ndarray of input_state, target_state 

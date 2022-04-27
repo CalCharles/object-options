@@ -6,6 +6,10 @@ from Rollouts.rollouts import Rollouts, ObjDict
 from tianshou.data import Batch
 from Networks.network import ConstantNorm, pytorch_model
 
+def broadcast(arr, size, cat=True):
+    if cat: return np.concatentate([arr.copy() for i in range(size)])
+    return np.stack([arr.copy() for i in range(size)], axis=-1)
+
 def sample_feature(feature_range, step, idx, states):
     all_states = [] # states to return
     num = int((feature_range[1] - feature_range[0] ) / step)
@@ -64,15 +68,18 @@ class FeatureSelector():
         state = np.concatenate(cut_state, axis=0)
         return state
 
-    def reverse(self, delta_state, insert_state):
+    def reverse(self, delta_state, insert_state, names=None):
         '''
         assigns the relavant values of insert_state to delta_state
+        if names is not None, then only assigns the components of names in names, in the order of names
         '''
         drng = 0
-        for name in self.names:
+        if names is None: names = self.names
+        for name in names:
             idxes = self.factored_features[name]
-            insert_state[name][idxes] = delta_state[drng:drng+len(idxes)]
+            delta_state[name][idxes] = insert_state[drng:drng+len(idxes)]
             drng += len(idxes)
+        return delta_state
 
 def assign_feature(self, states, assignment, edit=False, clipped=None):
     # assigns the values of states to assignment

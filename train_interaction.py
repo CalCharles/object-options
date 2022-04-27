@@ -31,12 +31,14 @@ import numpy as np
 import sys
 import psutil
 
-def generate_buffers(args):
+def generate_buffers(args, train=True):
     # load data
     data = read_obj_dumps(args.record_rollouts, i=-1, rng = args.num_frames, filename='object_dumps.txt')
 
     # get the buffers
     buffer = fill_buffer(data, args)
+
+    if not train: return buffer
 
     # fill the train/test buffer
     train_indices = np.random.choice(int(len(buffer) * args.train_ratio), replace=False)
@@ -60,6 +62,7 @@ if __name__ == '__main__':
     object_names.target = args.train_edge[-1]
     object_names.primary_parent = args.train_edge[0]
     object_names.parents = args.train_edge[:-1]
+    args.object_names = object_names
 
     # build the selectors for the passive (target), interaction or active (parent + target), parent (just parent) states
     args.target_select = construct_object_selector([object_names.target], environment)
