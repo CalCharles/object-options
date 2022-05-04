@@ -88,6 +88,7 @@ Active passive model rewrite:
 		sample
 
 Code run:
+	generate random data
 	Train Interaction: WRITTEN
 	fill active model: WRITTEN
 	args
