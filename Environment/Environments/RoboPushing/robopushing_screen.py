@@ -27,7 +27,7 @@ DEFAULT = 0
 JOINT_MODE = 1
 PLANAR_MODE = 2
 
-class RoboPushingEnvironment(RawEnvironment):
+class RoboPushing(RawEnvironment):
     def __init__(self, variant="default", horizon=30, renderable=False):
         super().__init__()
         self.variant=variant

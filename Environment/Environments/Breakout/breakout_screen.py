@@ -13,9 +13,9 @@ from gym import spaces
 # default settings for normal variants, args in order: 
 # target_mode (1)/edges(2)/center(3), scatter (4), num rows, num_columns, no_breakout (value for hit_reset), negative mode, bounce_count
 
-class Screen(RawEnvironment):
+class Breakout(RawEnvironment):
     def __init__(self, frameskip = 1, breakout_variant=""):
-        super(Screen, self).__init__()
+        super(Breakout, self).__init__()
         # breakout specialized parameters are stored in the variant
         self.variant = breakout_variant
 

@@ -1,23 +1,25 @@
 
-    def set_save(self, itr, save_dir, recycle, save_raw, all_dir=""):
-        self.save_path=save_dir
-        print(save_dir)
-        self.itr = itr
-        self.recycle = recycle
-        self.all_dir = all_dir
-        self.save_raw = save_raw
-        try:
-            os.makedirs(save_dir)
-            os.makedirs(os.path.join(save_dir, "logs"))
-        except OSError as e:
-            print(e)
-            pass
-        object_dumps = open(os.path.join(self.save_path, "object_dumps.txt"), 'w') # create file if it does not exist
+class FullRecord():
+    def __init__(self, itr, save_dir, recycle, save_raw, all_dir=""):
+        '''
+        starting iteration number
+        '''
+        self.save_path, self.itr, self.recycle, self.save_raw = itr, save_dir, recycle, save_raw
+        
+        # create directories and initialize files to be appended to
+        create_directory(os.path.join(save_dir, "logs"))
+        object_dumps = open(os.path.join(self.save_path, "object_dumps.txt"), 'w') # create file if it does not exist, clears out existing files
         action_dumps = open(os.path.join(self.save_path, "action_dumps.txt"), 'w')
-        object_dumps.close()
-        action_dumps.close()
+        option_dumps = open(os.path.join(self.save_path, "option_dumps.txt"), 'w')
+        param_dumps = open(os.path.join(self.save_path, "param_dumps.txt"), 'w')
+        object_dumps.close(), action_dumps.close(), option_dumps.close(), param_dumps.close()
 
-    def write_objects(self, entity_state, frame): # TODO: put into parent class
+    def write_objects(self, entity_state, frame, toString): # TODO: put into parent class
+        '''
+        entity state is the factored state
+        frame is the raw image
+        toString is a function from the Environment
+        '''
         if self.recycle > 0:
             state_path = os.path.join(self.save_path, str((self.itr % self.recycle)//2000))
             count = self.itr % self.recycle
@@ -29,21 +31,10 @@
         except OSError:
             pass
 
-        if entity_state is not None:
-            action_dumps = open(os.path.join(self.save_path, "action_dumps.txt"), 'a')
-            action_dumps.write(action_toString(entity_state["Action"]) + "\t")
-            action_dumps.close()
-            object_dumps = open(os.path.join(self.save_path, "object_dumps.txt"), 'a')
-            object_dumps.write(self.toString(entity_state) + "\n") # TODO: recycling does not stop object dumping
-            object_dumps.close()
-        if self.save_raw:
-            imio.imsave(os.path.join(state_path, "state" + str(count % 2000) + ".png"), frame)
+        append_string(os.path.join(self.save_path, "action_dumps.txt"), action_toString(entity_state["Action"]) + "\t")
+        append_string(os.path.join(self.save_path, "object_dumps.txt"), toString(entity_state) + "\n")
+        if self.save_raw: imio.imsave(os.path.join(state_path, "state" + str(count % 2000) + ".png"), frame)
 
     def _save_mapped_action(self, mapped_act, param, resampled, term):
-        option_dumps = open(os.path.join(self.save_path, "option_dumps.txt"), 'a')
-        option_dumps.write(str(self.environment_model.environment.get_itr() - 1) + ":" + action_toString(mapped_act) + "\t")
-        option_dumps.close()
-        param_dumps = open(os.path.join(self.save_path, "param_dumps.txt"), 'a')
-        # print("param itr", self.environment_model.environment.get_itr(), action_toString(param), term)
-        param_dumps.write(str(self.environment_model.environment.get_itr() - 1) + ":" + action_toString(param) + "|" + str(int(resampled)) + "," + str(int(term)) + "\t") # action_toString handles numpy vectors
-        param_dumps.close()
+        append_string(os.path.join(self.save_path, "option_dumps.txt"), str(self.environment_model.environment.get_itr() - 1) + ":" + action_toString(mapped_act) + "\t")
+        append_string(os.path.join(self.save_path, "param_dumps.txt"), str(self.environment_model.environment.get_itr() - 1) + ":" + action_toString(param) + "|" + str(int(resampled)) + "," + str(int(term)) + "\t")

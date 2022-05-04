@@ -43,6 +43,11 @@ def construct_object_selector(names, environment):
         factored[name] = np.arange(sze)
     return factored
 
+def numpy_factored(factored_state):
+    for n in factored_state.keys():
+        factored_state[n] = np.array(factored_state[n])
+    return factored_state
+
 class FeatureSelector():
     def __init__(self, factored_features, names):
         '''
