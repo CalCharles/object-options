@@ -12,7 +12,6 @@ class TSNet(nn.Module):
         self.use_input_norm = False # set these to true
         self.continuous_critic = False if "continuous_critic" not in kwargs else kwargs["continuous_critic"]
         self.action_dim = 0 if "action_dim" not in kwargs else kwargs["action_dim"]
-        self.bound_output = kwargs["bound_output"] # if 0, then not used, otherwise, bound the output to [-bound_output, bound_output]
 
     def cuda(self):
         super().cuda()
@@ -30,10 +29,7 @@ class TSNet(nn.Module):
         if not isinstance(obs, torch.Tensor):
             obs = pytorch_model.wrap(obs, dtype=torch.float, cuda=self.iscuda)
         logits = self.model(obs.reshape(obs.shape[0], -1))
-        if self.bound_output != 0:
-            logits = torch.tanh(logits) * self.bound_output
         return logits, state
-
 
 class BasicNetwork(TSNet):
     def __init__(self, **kwargs):

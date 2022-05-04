@@ -12,6 +12,7 @@ class ParamReplayBuffer(ReplayBuffer):
     # target, next target is the state of the target object, used for reward and termination
     # true_reward, true_done are the actual dones and rewards
     # option_terminate is for temporal extension, stating if the last object terminated
+    # TODO: parent is the action that specifies which parent to use
     _reserved_keys = ("obs", "act", "rew", "done", "obs_next", "info", "policy", "param", 
         "mask", "target", "next_target", "target_diff", "terminate", "true_reward", "true_done", "option_resample", 
         "mapped_act", "inter", "trace", "inter_state", "parent_state", "additional_state", "time", "weight_binary")

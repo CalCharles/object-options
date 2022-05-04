@@ -14,6 +14,7 @@ class ActiveMasking():
         self.min_variance = min_variance
         self.active_mask = self.determine_active_set(rollouts, interaction_model, parent_limits)
         self.active_set = self.collect_samples(rollouts, interaction_model, active_mask)
+        self.filtered_active_set = self.filter_active()
 
     def compute_var_cutoffs(self, rollouts):
         return np.std(rollouts.target_diff[interaction_model.test(rollouts.inter)], axis=-1)
@@ -45,3 +46,19 @@ class ActiveMasking():
         # generate a full sampling over the values the object can take on post-interaction
         # allows redundant values
         return rollouts.next_target[interaction_model.test(rollouts.inter)] * active_mask
+
+    def filter_active(self):
+        '''
+        filters self.masking.active_set based on the active mask
+        if states are the same after masking, they are only counted once
+        '''
+        active_filtered = list()
+        for state in self.active_set:
+            masked_state = state * self.active_mask
+            failed = False
+            for val in active_filtered:
+                if np.linalg.norm(masked_state - val, ord=1) > self.min_variance:
+                    failed = True
+            if not failed:
+                active_filtered.append(masked_state)
+        return active_filtered

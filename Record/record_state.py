@@ -38,3 +38,12 @@
             object_dumps.close()
         if self.save_raw:
             imio.imsave(os.path.join(state_path, "state" + str(count % 2000) + ".png"), frame)
+
+    def _save_mapped_action(self, mapped_act, param, resampled, term):
+        option_dumps = open(os.path.join(self.save_path, "option_dumps.txt"), 'a')
+        option_dumps.write(str(self.environment_model.environment.get_itr() - 1) + ":" + action_toString(mapped_act) + "\t")
+        option_dumps.close()
+        param_dumps = open(os.path.join(self.save_path, "param_dumps.txt"), 'a')
+        # print("param itr", self.environment_model.environment.get_itr(), action_toString(param), term)
+        param_dumps.write(str(self.environment_model.environment.get_itr() - 1) + ":" + action_toString(param) + "|" + str(int(resampled)) + "," + str(int(term)) + "\t") # action_toString handles numpy vectors
+        param_dumps.close()

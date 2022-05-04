@@ -6,6 +6,12 @@ from Rollouts.rollouts import Rollouts, ObjDict
 from tianshou.data import Batch
 from Networks.network import ConstantNorm, pytorch_model
 
+def tensor_state(factored_state, cuda=False):
+    fs = copy.deepcopy(factored_state)
+    for k in factored_state.keys():
+        fs[k] = pytorch_model.wrap(fs[k], cuda=cuda)
+    return fs
+
 def broadcast(arr, size, cat=True):
     if cat: return np.concatentate([arr.copy() for i in range(size)])
     return np.stack([arr.copy() for i in range(size)], axis=-1)

@@ -1,18 +1,20 @@
 HOOD rewrite:
 
 Options:
-	Reward, termination, done
-	option temporal extension
-		Tianshou interface
+	Reward, termination, done: WRITTEN
+	option temporal extension: WRITTEN
+	Action map: WRITTEN
+	policy tianshou interface: WRITTEN
 
-	Networks:
-		Policy
+	Networks: WRITTEN
+		Policy:
 
 	RL
 	collector
-		aggregator
-		collect
-		train
+		aggregator: WRITTEN
+		collect: WRITTEN
+
+	train: WRITTEN
 
 	hindsight management
 		hindsight collector
