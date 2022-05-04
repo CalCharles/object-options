@@ -16,7 +16,7 @@ Options:
 
 	train: WRITTEN
 
-	hindsight management
+	hindsight management: WRITTEN
 		hindsight collector
 
 Shared components:
