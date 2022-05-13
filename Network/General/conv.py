@@ -1,11 +1,11 @@
-from Networks.network import Network
+from Network.network import Network
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 
-class BasicConvNetwork(Network): # basic 1d conv network 
+class ConvNetwork(Network): # basic 1d conv network 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.object_dim = kwargs["object_dim"]

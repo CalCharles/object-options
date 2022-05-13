@@ -1,4 +1,24 @@
-HOOD rewrite:
+Implementation of HOOD
+
+# Installation creating conda environment 
+conda create -n rbt python=3.8
+conda activate rbt
+conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
+pip install tianshou / pip install git+https://github.com/thu-ml/tianshou.git@master --upgrade
+conda install imageio
+pip install opencv-python
+conda install psutil
+pip install pyyaml
+
+# Installing Robosuite with pushing domain (from source)
+git clone https://github.com/kvablack/robosuite.git
+conda activate rbt
+cd robosuite
+copy mujoco download to: ~/.mujoco/mujoco200
+copy mujoco key to ~/.mujoco/mjkey.txt
+pip install -r requirements.txt
+https://robosuite.ai/docs/installation.html
+
 
 Options:
 	Reward, termination, done: WRITTEN

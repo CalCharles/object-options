@@ -19,7 +19,7 @@ class ActiveMasking():
     def compute_var_cutoffs(self, rollouts):
         return np.std(rollouts.target_diff[interaction_model.test(rollouts.inter)], axis=-1)
 
-    def determine_active_set(self, rollouts, interaction model, parent_limits):
+    def determine_active_set(self, rollouts, interaction_model, parent_limits):
         # generates a mask over which components of state change with different values of the parent object
         diffs = list()
         for batch in rollouts.sample(0):
@@ -51,13 +51,14 @@ class ActiveMasking():
         '''
         filters self.masking.active_set based on the active mask
         if states are the same after masking, they are only counted once
+        this removes duplicates of the state
         '''
         active_filtered = list()
         for state in self.active_set:
             masked_state = state * self.active_mask
             failed = False
             for val in active_filtered:
-                if np.linalg.norm(masked_state - val, ord=1) > self.min_variance:
+                if np.linalg.norm(masked_state - val, ord=1) < self.min_variance:
                     failed = True
             if not failed:
                 active_filtered.append(masked_state)

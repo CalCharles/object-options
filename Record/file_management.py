@@ -28,11 +28,12 @@ def create_directory(pth):
         os.makedirs(pth)
     except OSError as e:
         pass
+    return pth
 
-def append_str(pth, strv):
+def append_string(pth, strv):
     filev = open(pth, 'a')
-    action_dumps.write(strv)
-    action_dumps.close()
+    filev.write(strv)
+    filev.close()
 
 def _dump_from_line(line, time_dict):
     '''

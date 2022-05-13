@@ -3,18 +3,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
+from Network.network_utils import get_acti
 
 ## end of normalization functions
 class Network(nn.Module):
-    def __init__(self, **kwargs):
+    def __init__(self, args):
         super().__init__()
-        self.num_inputs, self.num_outputs = kwargs["num_inputs"], kwargs["num_outputs"]
-        self.use_layer_norm = kwargs["use_layer_norm"]
-        self.hs = kwargs["hidden_sizes"]
-        self.init_form = kwargs["init_form"]
+        self.num_inputs, self.num_outputs = args.num_inputs, args.num_outputs
+        self.use_layer_norm = args.use_layer_norm
+        self.hs = [int(h) for h in args.hidden_sizes]
+        self.init_form = args.init_form
         self.layers = []
-        self.acti = self.get_acti(kwargs["activation"])
-        self.activation_final = self.get_acti(kwargs["activation_final"])
+        self.acti = get_acti(args.activation)
+        self.activation_final = get_acti(args.activation_final)
         self.iscuda = False
 
     def cuda(self):
@@ -104,3 +105,7 @@ class Network(nn.Module):
         all should have a forward function, but not all forward functions have the same signature
         '''
         return
+
+from Network.General.mlp import MLPNetwork
+from Network.General.pair import PairNetwork
+network_type = {"mlp": MLPNetwork, "pair": PairNetwork}

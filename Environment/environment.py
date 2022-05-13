@@ -1,3 +1,5 @@
+import numpy as np
+
 class Environment():
     def __init__(self):
         ''' required attributes:
@@ -33,13 +35,15 @@ class Environment():
         # running values
         self.itr = 0
 
-        # saving component
-        self.save_module = save_module
-
         # factorized state properties
         self.object_names = [] # must be initialized, a list of names that controls the ordering of things
         self.object_sizes = dict() # must be initialized, a dictionary of name to length of the state
         self.object_range = dict() # the minimum and maximum values for a given feature of an object
+        self.object_dynamics = dict() # the most that an object can change in a single time step
+        self.object_instanced = dict() # name of object to boolean if instanced
+
+        # proximity state components
+        self.position_masks = dict() 
 
     def step(self, action):
         '''
@@ -122,3 +126,9 @@ class Environment():
         defaults to returning [1] (list because the target/parent object might have multiple instances TODO: multiple instances of both target and parent)
         '''
         return [1]
+
+    def demonstrate(self):
+        '''
+        gives an image and gets a keystroke action
+        '''
+        return 0

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from Networks.network import pytorch_model, BasicMLPNetwork, PointNetwork, PairNetwork
+from Network.network import pytorch_model, BasicMLPNetwork, PointNetwork, PairNetwork
 import torch.nn.functional as F
 
 class TSNet(nn.Module):

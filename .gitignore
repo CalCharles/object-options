@@ -1,0 +1,7 @@
+*.txt~
+*__*__
+data/*
+*.py~
+*.txt
+logs/*
+log/*

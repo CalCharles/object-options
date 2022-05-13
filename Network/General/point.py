@@ -1,4 +1,4 @@
-from Networks.network import Network
+from Network.network import Network
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

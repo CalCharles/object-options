@@ -159,12 +159,59 @@ class ParamPriorityReplayBuffer(PrioritizedReplayBuffer): # not using double inh
             time = self.time[indice]
         )
 
-class ParamPriorityWeightedReplayBuffer(ParamPriorityReplayBuffer):
-    def sample_indices(self, batch_size: int, weights: ndarray = None) -> np.ndarray:
+class InterWeightedReplayBuffer(ReplayBuffer):
+    # A buffer used for the active-passive models.
+    # obs, act, rew, done are required by tianshou, but are not very useful for the models
+    # mask is the active mask, which is most useful when using complete states (for end to end)
+    # target, next target, target_diff is the state of the target object, used for reward and termination
+    # inter, trace record the interaction values in various forms
+    # inter_state, parent_state, additional_state record:
+    #   inter = parent+additional+target, parent=primary parent, additional=other state
+    # TODO: parent is the action that specifies which parent to use
+    _reserved_keys = ("obs", "act", "rew", "done", 
+        "mask", "target", "next_target", "target_diff",
+        "inter", "trace", "inter_state", "parent_state", "additional_state", "weight_binary")
+
+    def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
+        """Return a data batch: self[index].
+
+        If stack_num is larger than 1, return the stacked obs and obs_next with shape
+        (batch, len, ...).
+        """
+        if isinstance(index, slice):  # change slice to np array
+            # buffer[:] will get all available data
+            indice = self.sample_index(0) if index == slice(None) \
+                else self._indices[:len(self)][index]
+        else:
+            indice = index
+        # raise KeyError first instead of AttributeError,
+        # to support np.array([ReplayBuffer()])
+        obs = self.get(indice, "obs")
+        if self._save_obs_next:
+            obs_next = self.get(indice, "obs_next", Batch())
+        else:
+            obs_next = self.get(self.next(indice), "obs", Batch())
+        return Batch(
+            obs=obs,
+            act=self.act[indice],
+            rew=self.rew[indice],
+            done=self.done[indice],
+            mask = self.mask[indice], 
+            target = self.target[indice], 
+            next_target=self.next_target[indice], 
+            target_diff=self.target_diff[indice], 
+            inter = self.inter[indice],
+            trace = self.trace[indice],
+            inter_state = self.inter_state[indice],
+            parent_state = self.parent_state[indice],
+            additional_state = self.additional_state[indice],
+            weight_binary = self.weight_binary[indice],
+        )
+
+    def sample_indices(self, batch_size: int, weights: np.ndarray = None) -> np.ndarray:
         # this branch of the conditional is for the priority weights
         if batch_size > 0 and len(self) > 0 and weights is None:
-            scalar = np.random.rand(batch_size) * self.weight.reduce()
-            return self.weight.get_prefix_sum_idx(scalar)  # type: ignore
+            return np.random.choice(self._size, batch_size)
         else: # below is copied from weighted Replay Buffer, samples with the given weights
             if self.stack_num == 1 or not self._sample_avail:  # most often case
                 if batch_size > 0:
@@ -192,7 +239,7 @@ class ParamPriorityWeightedReplayBuffer(ParamPriorityReplayBuffer):
                     return all_indices
 
 
-    def sample(self, batch_size: int, weights: np.ndarray) -> Tuple[Batch, np.ndarray]:
+    def sample(self, batch_size: int, weights: np.ndarray = None) -> Tuple[Batch, np.ndarray]:
         """Get a random sample from buffer with size = batch_size.
 
         Return all the data in the buffer if batch_size is 0.

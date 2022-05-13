@@ -2,9 +2,8 @@ import numpy as np
 import os, cv2, time, copy, itertools
 import torch
 from collections import OrderedDict
-from Rollouts.rollouts import Rollouts, ObjDict
 from tianshou.data import Batch
-from Networks.network import ConstantNorm, pytorch_model
+from Network.network_utils import pytorch_model
 
 def tensor_state(factored_state, cuda=False):
     fs = copy.deepcopy(factored_state)
@@ -13,7 +12,7 @@ def tensor_state(factored_state, cuda=False):
     return fs
 
 def broadcast(arr, size, cat=True):
-    if cat: return np.concatentate([arr.copy() for i in range(size)])
+    if cat: return np.concatenate([arr.copy() for i in range(size)])
     return np.stack([arr.copy() for i in range(size)], axis=-1)
 
 def sample_feature(feature_range, step, idx, states):
@@ -41,7 +40,7 @@ def construct_object_selector(names, environment):
     for name in names:
         sze = environment.object_sizes[name]
         factored[name] = np.arange(sze)
-    return factored
+    return FeatureSelector(factored, names)
 
 def numpy_factored(factored_state):
     for n in factored_state.keys():
@@ -59,7 +58,11 @@ class FeatureSelector():
 
     def __hash__(self):
         # hash is tuple of string names followed by corresponding features
-        return tuple(sum([[n], self.factored_features[n].tolist() for n in self.names] ))
+        total = list()
+        for n in self.names:
+            total.append(str(hash(n)))
+            total.append(self.factored_features[n])
+        return tuple(total)
 
     def __eq__(self, other):
         return hash(self) == hash(other)
@@ -68,7 +71,7 @@ class FeatureSelector():
         return self.names
 
     def output_size(self):
-        return len(hash(self)) - len(self.names)
+        return sum([len(self.factored_features[n]) for n in self.names])
 
     def __call__(self, states):
         '''

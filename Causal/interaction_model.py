@@ -5,25 +5,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from collections import Counter
-from EnvironmentModels.environment_model import get_selection_list, FeatureSelector, ControllableFeature, sample_multiple
-from EnvironmentModels.environment_normalization import hardcode_norm
-from Counterfactual.counterfactual_dataset import counterfactual_mask
-from DistributionalModels.distributional_model import DistributionalModel
-from DistributionalModels.InteractionModels.dummy_models import DummyModel
-from DistributionalModels.InteractionModels.state_management import StateSet
-from file_management import save_to_pickle, load_from_pickle
-from Networks.distributions import Bernoulli, Categorical, DiagGaussian
-from Networks.DistributionalNetworks.forward_network import forward_nets
-from Networks.DistributionalNetworks.interaction_network import interaction_nets
-from Networks.network import ConstantNorm, pytorch_model
-from Networks.input_norm import InterInputNorm, PointwiseNorm
-from Rollouts.rollouts import ObjDict, merge_rollouts
 from tianshou.data import Collector, Batch, ReplayBuffer
+from State.object_dict import ObjDict
+from Network.distributional_network import DiagGaussianForwardNetwork, InteractionNetwork
+from Network.network_utils import pytorch_model
+from Causal.interaction_test import InteractionTesting
+from Causal.active_mask import ActiveMasking
+from Environment.Normalization.norm import NormalizationModule
+
 
 def assign_distribution(dist):
-        if kwargs['dist'] == "Discrete": return Categorical(kwargs['num_outputs'], kwargs['num_outputs'])
-        elif kwargs['dist'] == "Gaussian": return torch.distributions.normal.Normal
-        elif kwargs['dist'] == "MultiBinary": return Bernoulli(kwargs['num_outputs'], kwargs['num_outputs'])
+        if dist == "Gaussian": return torch.distributions.normal.Normal
+        # elif dist == "Discrete": return Categorical(kwargs['num_outputs'], kwargs['num_outputs'])
+        # elif dist == "MultiBinary": return Bernoulli(kwargs['num_outputs'], kwargs['num_outputs'])
         else: raise NotImplementedError
 
 def load_interaction(pth):
@@ -32,69 +26,101 @@ def load_interaction(pth):
             break
     return torch.load(os.path.join(pth, name))
 
+def get_params(model, full_args, is_pair):
+    active_model_args = copy.deepcopy(full_args.network)
+    active_model_args.num_inputs = model.inter_select.output_size()
+    active_model_args.num_outputs = model.target_select.output_size()
+
+    passive_model_args = copy.deepcopy(full_args.network)
+    passive_model_args.num_inputs = model.target_select.output_size()
+    passive_model_args.num_outputs = model.target_select.output_size()
+
+    interaction_model_args = copy.deepcopy(full_args.network)
+    interaction_model_args.num_inputs = model.inter_select.output_size()
+    interaction_model_args.num_outputs = 1
+    
+    if is_pair:
+        pair = copy.deepcopy(full_args.network.pair)
+        pair.object_dim = model.obj_dim
+        pair.first_obj_dim = model.first_obj_dim
+        pair.post_dim = -1
+        pair.aggregate_final = False
+        active_model_args.pair, passive_model_args.pair, interaction_model_args.pair = copy.deepcopy(pair), copy.deepcopy(pair), copy.deepcopy(pair)
+    return active_model_args, passive_model_args, interaction_model_args
+
 class NeuralInteractionForwardModel(nn.Module):
-    def __init__(self, **kwargs):
+    def __init__(self, args, environment):
         super().__init__()
         # set input and output
-        self.names = kwargs["object_names"]
-        self.inter_select = kwargs['inter_select']
-        self.target_select = kwargs['target_select']
-        self.parent_selectors = kwargs['parent_selectors']
-        self.parent_select = kwargs['parent_select']
-        self.controllable = kwargs['controllable']
+        self.name = args.object_names.primary_parent + "->" + args.object_names.target
+        self.names = args.object_names
+        self.inter_select = args.inter_select
+        self.target_select = args.target_select
+        self.parent_selectors = args.parent_selectors
+        self.parent_select = args.parent_select
+        self.controllable = args.controllable
 
         # if we are predicting the dynamics
-        self.predict_dynamics = kwargs["predict_dynamics"]
+        self.predict_dynamics = args.inter.predict_dynamics
         
         # construct the active model
-        self.first_obj_dim = [ps.output_size() for ps in self.parent_selectors] # the first object dim is the combined length of the parents
+        self.first_obj_dim = [self.parent_selectors[p].output_size() for p in self.names.parents] # the first object dim is the combined length of the parents
         self.obj_dim = self.target_select.output_size() # the selector gets the size of a single instance
-        self.forward_model = forward_nets[kwargs['active_class']](**kwargs['active_model_args'])
+        active_model_args, passive_model_args, interaction_model_args = get_params(self, args, args.network.net_type == "pair")
+        self.multi_instanced = environment.object_instanced[self.names.target]
+
+        # set the distributions
+        self.dist = assign_distribution("Gaussian") # TODO: only one kind of dist at the moment
+
+        # set the forward model
+        self.active_model = DiagGaussianForwardNetwork(active_model_args)
 
         # set the passive model
-        self.passive_model = forward_nets[kwargs['passive_class']](**kwargs['passive_model_args'])
+        self.passive_model = DiagGaussianForwardNetwork(passive_model_args)
 
         # construct the interaction model        
-        self.interaction_model = interaction_nets[kwargs['interaction_class']](**kwargs['interaction_model_args'])
+        self.interaction_model = InteractionNetwork(interaction_model_args)
 
         # set the testing module
-        self.test = InteractionTesting(kwargs)
+        self.test = InteractionTesting(args.inter.interaction_testing)
 
         # set the normalization function
-        self.norm = NormalizationModule(kwargs)
+        self.norm = NormalizationModule(environment.object_range, environment.object_dynamics, args.object_names)
 
         # set the masking module to None as a placeholder
-        self.mask = ActiveMasking(kwargs)
+        self.mask = None
+
+        # set values for proximity calculations
+        self.proximity_epsilon, self.position_masks = args.inter.proximity_epsilon, environment.position_masks
+
+        # set up cuda
+        self.cuda() if args.torch.cuda else self.cpu()
 
     def save(self, pth):
         try:
             os.mkdir(pth)
         except OSError as e:
             pass
-        torch.save(self, os.path.join(pth, self.name + "inter_model.pt"))
+        torch.save(self, os.path.join(pth, self.name + "_inter_model.pt"))
 
     def cpu(self):
         super().cpu()
-        self.forward_model.cpu()
+        self.active_model.cpu()
         self.interaction_model.cpu()
         self.passive_model.cpu()
-        self.norm.cpu()
-        self.test.cpu()
         self.iscuda = False
         return self
 
     def cuda(self):
         super().cuda()
-        self.forward_model.cuda()
+        self.active_model.cuda()
         self.interaction_model.cuda()
         self.passive_model.cuda()
-        self.norm.cuda()
-        self.test.cuda()
         self.iscuda = True
         return self
 
     def reset_parameters(self):
-        self.forward_model.reset_parameters()
+        self.active_model.reset_parameters()
         self.interaction_model.reset_parameters()
         self.passive_model.reset_parameters()
 
@@ -121,9 +147,9 @@ class NeuralInteractionForwardModel(nn.Module):
 
         # if predicting dynamics, add the mean of the model to the target state
         if self.predict_dynamics:
-            fpred, ppred = tar_state + rv(self.forward_model(inp_state)[0]), tar_state + rv(self.passive_model(tar_state)[0])
+            fpred, ppred = tar_state + rv(self.active_model(inp_state)[0]), tar_state + rv(self.passive_model(tar_state)[0])
         else:
-            fpred, ppred = rv(self.forward_model(inp_state)[0]), rv(self.passive_model(tar_state)[0])
+            fpred, ppred = rv(self.active_model(inp_state)[0]), rv(self.passive_model(tar_state)[0])
         
         # TODO: remove this conditional with appropriate slicing
         # select active or passive based on inter value
@@ -140,7 +166,7 @@ class NeuralInteractionForwardModel(nn.Module):
         # computes the interaction value, the mean, var of forward model, the mean, var of the passive model
         inter_state, tar_state = self._wrap_state(state)
         rv = self.norm.reverse
-        mu_inter, var_inter = self.forward_model(inter_state)
+        mu_inter, var_inter = self.active_model(inter_state)
         pmu_inter, pvar_inter = self.passive_model(target_state)
         return (pytorch_model.unwrap(self.interaction_model(inp_state)),
             (rv(mu_inter), rv(var_inter)), 
@@ -187,4 +213,4 @@ class NeuralInteractionForwardModel(nn.Module):
         target, dist, log_probs = self._target_dists(batch, passive_params)
         return active_params, dist, log_probs
 
-interaction_models = {'neural': NeuralInteractionForwardModel, 'dummy': DummyModel}
+interaction_models = {'neural': NeuralInteractionForwardModel}

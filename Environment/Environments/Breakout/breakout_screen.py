@@ -1,19 +1,18 @@
 # Screen
 import sys, cv2
 import numpy as np
-from Environments.SelfBreakout.breakout_objects import *
-# from breakout_objects import *
+from Environment.Environments.Breakout.breakout_objects import *
 import imageio as imio
 import os, copy
-from Environments.environment_specification import RawEnvironment
-from Environment.Environments.Breakout.breakout_specs import ranges, breakout_variants
+from Environment.environment import Environment
+from Environment.Environments.Breakout.breakout_specs import *
 from gym import spaces
 
 
 # default settings for normal variants, args in order: 
 # target_mode (1)/edges(2)/center(3), scatter (4), num rows, num_columns, no_breakout (value for hit_reset), negative mode, bounce_count
 
-class Breakout(RawEnvironment):
+class Breakout(Environment):
     def __init__(self, frameskip = 1, breakout_variant=""):
         super(Breakout, self).__init__()
         # breakout specialized parameters are stored in the variant
@@ -42,14 +41,16 @@ class Breakout(RawEnvironment):
         self.itr = 0
         self.total_score = 0
 
-        # saving component
-        self.save_module = save_module
+        # proximity components
+        self.position_masks = position_masks
 
         # factorized state properties
         self.object_names = ["Action", "Paddle", "Ball", "Block", 'Done', "Reward"]
         self.object_sizes = {"Action": 5, "Paddle": 5, "Ball": 5, "Block": 5, 'Done': 1, "Reward": 1}
         self.object_name_dict = dict() # initialized in reset
         self.object_range = ranges
+        self.object_dynamics = dynamics
+        self.object_instanced = instanced
 
         # asign variant values
         var_form, num_rows, num_columns, max_block_height, hit_reset, negative_mode, random_exist, bounce_cost, bounce_reset, completion_reward, timeout_penalty, drop_stopping = breakout_variants[breakout_variant]
@@ -63,6 +64,7 @@ class Breakout(RawEnvironment):
         self.completion_reward = completion_reward
         self.assessment_stat = 0 if self.variant != "proximity" else (0,0)# a measure of performance specific to the variant
         self.drop_stopping = drop_stopping
+        self.top_dropping = self.variant == "big_block"
         self.bounce_cost = bounce_cost
         self.bounce_reset = bounce_reset
         self.num_rows = num_rows # must be a factor of 10
@@ -215,7 +217,7 @@ class Breakout(RawEnvironment):
     def reset(self):
         vel= np.array([np.random.randint(1,2), np.random.choice([-1,1])])
         self.ball = Ball(np.array([np.random.randint(38, 45), np.random.randint(14, 70)]), 1, vel, top_reset=self.target_mode and self.bounce_cost == 0, hard_mode=self.hard_mode)
-        self.ball.reset_pos(self.target_mode)
+        self.ball.reset_pos()
         self.paddle = Paddle(np.array([71, 84//2]), 1, np.zeros((2,), dtype = np.int64))
         self.actions = Action(np.zeros((2,), dtype = np.int64), 0)
         self.animate = [self.paddle, self.ball]
@@ -290,6 +292,7 @@ class Breakout(RawEnvironment):
         '''
         preattr = obj2.attribute
         obj1.interact(obj2)
+        hit = False
         if preattr != obj2.attribute:
             if self.variant == "proximity":
                 rew = self.compute_proximity_reward(self.sampler.param, np.concatenate([np.array(obj2.getMidpoint()), np.array([0,0,0])]))
@@ -298,7 +301,7 @@ class Breakout(RawEnvironment):
                 self.reward += preattr * self.default_reward
                 self.total_score += preattr * self.default_reward
             hit = True
-        return rew, hit
+        return hit
 
     def step(self, action, render=True, angle=-1): # TODO: remove render as an input variable
         self.done = False
@@ -316,7 +319,7 @@ class Breakout(RawEnvironment):
                     if obj1.name == obj2.name:
                         continue
                     else:
-                        rew, hit = self.interaction_effects(obj1, obj2)
+                        hit += self.interaction_effects(obj1, obj2)
             for ani_obj in self.animate:
                 ani_obj.move()
 
@@ -347,7 +350,8 @@ class Breakout(RawEnvironment):
                 self.hit_counter += 1
                 # end of episode by hitting
                 if (self.get_num(True) == self.num_remove # removed as many blocks as necessary (all the positive blocks in negative/hard block domains, all the blocks in other domains)
-                    or (self.no_breakout and self.hit_reset > 0 and self.hit_counter == self.hit_reset)): # reset after a fixed number of hits
+                    or (self.no_breakout and self.hit_reset > 0 and self.hit_counter == self.hit_reset) # reset after a fixed number of hits
+                    or self.target_mode): # only one block to hit
                     needs_reset = True
                     self.reward += self.completion_reward * self.default_reward
                     self.done = True
@@ -379,14 +383,11 @@ class Breakout(RawEnvironment):
         self.assign_assessment_stat() # TODO: bugs may occur if using frame skipping
         assessment_stat = self.assessment_stat
         info = {"lives": lives, "TimeLimit.truncated": False, "assessment": self.assessment_stat, "total_score": self.total_score}
-
-        # save module
-        self.save_module.save(self.itr, full_state, info)
         
         # perform resets
         if needs_ball_reset: self.ball.reset_pos()
         if needs_reset: self.reset()
-        return {"raw_state": frame, "factored_state": extracted_state}, self.reward, self.done, info
+        return full_state, self.reward, self.done, info
 
 
     def toString(self, extracted_state):
@@ -435,11 +436,28 @@ class Breakout(RawEnvironment):
         targets = [self.object_name_dict[names.target]] if type(self.object_name_dict[names.target]) != list else self.object_name_dict[names.target]
         traces = list()
         for target in targets:
-            if targets.name in self.object_name_dict[names.primary_parent].interaction_trace:
+            if target.name in self.object_name_dict[names.primary_parent].interaction_trace:
                 traces.append(1)
             else:
                 traces.append(0)
         return traces
+
+    def demonstrate(self):
+        action = 0
+        frame = self.render()
+        cv2.imshow('frame',frame)
+        key = cv2.waitKey(500)
+        if key == ord('q'):
+            action = -1
+        elif key == ord('a'):
+            action = 2
+        elif key == ord('w'):
+            action = 1
+        elif key == ord('s'):
+            action = 0
+        elif key == ord('d'):
+            action = 3
+        return action
 
 if __name__ == '__main__':
     screen = Screen()

@@ -1,10 +1,12 @@
+import os
+from Record.file_management import append_string, create_directory, action_toString
 
 class FullRecord():
     def __init__(self, itr, save_dir, recycle, save_raw, all_dir=""):
         '''
         starting iteration number
         '''
-        self.save_path, self.itr, self.recycle, self.save_raw = itr, save_dir, recycle, save_raw
+        self.itr, self.save_path, self.recycle, self.save_raw = itr, save_dir, recycle, save_raw
         
         # create directories and initialize files to be appended to
         create_directory(os.path.join(save_dir, "logs"))
@@ -14,7 +16,7 @@ class FullRecord():
         param_dumps = open(os.path.join(self.save_path, "param_dumps.txt"), 'w')
         object_dumps.close(), action_dumps.close(), option_dumps.close(), param_dumps.close()
 
-    def write_objects(self, entity_state, frame, toString): # TODO: put into parent class
+    def save(self, entity_state, frame, toString): # TODO: put into parent class
         '''
         entity state is the factored state
         frame is the raw image
@@ -26,10 +28,7 @@ class FullRecord():
         else:
             state_path = os.path.join(self.save_path, str(self.itr//2000))
             count = self.itr
-        try:
-            os.makedirs(state_path)
-        except OSError:
-            pass
+        create_directory(state_path)
 
         append_string(os.path.join(self.save_path, "action_dumps.txt"), action_toString(entity_state["Action"]) + "\t")
         append_string(os.path.join(self.save_path, "object_dumps.txt"), toString(entity_state) + "\n")

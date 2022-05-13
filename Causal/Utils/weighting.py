@@ -1,10 +1,12 @@
+import torch
+import numpy as np
+from Causal.Utils.get_error import get_error, error_types
 
-
-def separate_weights(train_args, full_model, rollouts, proximity, trace):
-    passive_error = assign_prediction_error(full_model, rollouts)
-    if train_args.weighting[0] > 0:
+def separate_weights(weighting, full_model, rollouts, proximity, trace):
+    passive_error = get_error(full_model, rollouts, error_type = error_types.PASSIVE)
+    passive_error_cutoff, passive_error_upper, weighting_ratio, weighting_schedule = weighting
+    if weighting[2] > 0:
         # weighting hyperparameters, if passive_error_cutoff > 0 then using passive weighting
-        passive_error_cutoff, passive_error_upper, weighting_ratio = train_args.weighting
         
         # make passive error weights binary
         binaries = passive_error
@@ -13,14 +15,15 @@ def separate_weights(train_args, full_model, rollouts, proximity, trace):
         binaries[binaries>passive_error_cutoff] = 1
 
         # use proximity to narrow the range of weights
-        if train_args.proximity_epsilon > 0: weights = (weights.astype(int) * proximity.astype(int)).astype(np.float128)
+        if args.inter.proximity_epsilon > 0: weights = (weights.astype(int) * proximity.astype(int)).astype(np.float128)
         weights = get_weights(weighting_ratio, weights)
-    elif train_args.pretrain_interaction_iters > 0:
+    elif trace is not None:
         passive_error = trace.copy()
-        trw = torch.max(trace, dim=1)[0].squeeze() if full_model.multi_instanced else trace
-        weights = get_weights(weighting_ratio, trw)
+        binaries = torch.max(trace, dim=1)[0].squeeze() if full_model.multi_instanced else trace
+        weights = get_weights(weighting_ratio, binaries)
     else: # no special weighting on the samples
         passive_error = torch.ones(len(rollouts))
+        binaries = np.ones(len(rollouts))
         weights = np.ones(len(rollouts)) / len(rollouts)
     rollouts.weight_binary[:len(rollouts)] = binaries
     return passive_error, weights, binaries

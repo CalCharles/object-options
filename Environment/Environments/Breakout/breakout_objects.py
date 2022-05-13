@@ -178,6 +178,7 @@ class Paddle(animateObject):
     def interact(self, other):
         if other.name == "Action":
             self.interaction_trace.append(other.name)
+            other.interaction_trace.append(self.name) # action.interaction(paddle) will never be called because action is not an animateobject
             if other.attribute == 0 or other.attribute == 1:
                 self.vel = np.array([0,0], dtype=np.int64)
             elif other.attribute == 2:
@@ -245,4 +246,4 @@ class Action(Object):
         self.attribute = action
 
     def interact (self, other):
-        pass
+        if other.name == "Paddle": self.interaction_trace.append(other.name)

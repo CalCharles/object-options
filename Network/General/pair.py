@@ -1,49 +1,51 @@
-from Networks.network import Network
+from Network.network import Network
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 import copy
-
+from Network.network_utils import reduce_function
+from Network.General.mlp import MLPNetwork
+from Network.General.conv import ConvNetwork
 
 class PairNetwork(Network):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, args):
+        super().__init__(args)
         # assumes the input is flattened list of input space sized values
         # needs an object dim
         # does NOT require a fixed number of objects, because it collects through a max operator
-        self.object_dim = kwargs['object_dim']
-        self.first_obj_dim = kwargs["first_obj_dim"]
-        self.post_dim = kwargs['post_dim']
-        self.drop_first = kwargs['drop_first'] if 'drop_first' in kwargs else False
-        self.reduce_fn = kwargs["reduce_function"]
+        self.object_dim = args.object_dim
+        self.first_obj_dim = args.first_obj_dim
+        self.post_dim = args.post_dim
+        self.drop_first = args.drop_first if 'drop_first' in args else False
+        self.reduce_fn = args.reduce_function
         
-        conv_args = copy.deepcopy(kwargs)
-        conv_args["object_dim"] += max(0, self.first_obj_dim * int(not self.drop_first))
-        self.conv_dim = self.hs[-1] if len(self.hs) > 0 else kwargs['output_dim']    
-        if kwargs["aggregate_final"]: conv_args["output_dim"] = self.hs[-1] + max(0, self.post_dim) 
-        conv_args["include_last"] = kwargs["aggregate_final"]
+        conv_args = copy.deepcopy(args)
+        conv_args.object_dim += max(0, self.first_obj_dim * int(not self.drop_first))
+        self.conv_dim = self.hs[-1] if len(self.hs) > 0 else args.output_dim    
+        if args.aggregate_final: conv_args.output_dim = self.hs[-1] + max(0, self.post_dim) 
+        conv_args.include_last = args.aggregate_final
 
         layers = list()
-        self.conv = BasicConvNetwork(**conv_args)
+        self.conv = ConvNetwork(conv_args)
         layers.append(self.conv)
 
         post_mlp_args = copy.deepcopy(kargs) 
-        if kwargs['post_dim'] > 0:
-            kwargs["num_inputs"] = kwargs['post_dim'] + kwargs['first_obj_dim']
-            kwargs["num_outputs"] = self.hs[-1]
-            self.post_channel = BasicMLPNetwork(**kwargs)
+        if args.post_dim > 0:
+            args.num_inputs = args.post_dim + args.first_obj_dim
+            args.num_outputs = self.hs[-1]
+            self.post_channel = MLPNetwork(args)
             layers.append(self.post_channel)
-        self.aggregate_final = kwargs["aggregate_final"]
-        self.activation_final = kwargs["activation_final"] if "activation_final" in kwargs else ""
+        self.aggregate_final = args.aggregate_final
+        self.activation_final = args.activation_final if "activation_final" in args else ""
         self.softmax = nn.Softmax(-1)
-        if kwargs["aggregate_final"]: # does not work with a post-channel
-            kwargs["include_last"] = True
-            kwargs["num_inputs"] = conv_args["output_dim"]
-            kwargs["num_outputs"] = self.num_outputs
-            kwargs["hidden_sizes"] = [256] # TODO: hardcoded final hidden sizes for now
-            self.MLP = BasicMLPNetwork(**kwargs)
+        if args.aggregate_final: # does not work with a post-channel
+            args.include_last = True
+            args.num_inputs = conv_args.output_dim
+            args.num_outputs = self.num_outputs
+            args.hidden_sizes = [256] # TODO: hardcoded final hidden sizes for now
+            self.MLP = MLPNetwork(args)
             layers.append(self.MLP)
         self.model = layers
         self.train()

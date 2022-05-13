@@ -4,6 +4,12 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 
+def run_optimizer(optimizer, model, loss):
+    optimizer.zero_grad()
+    (loss.mean()).backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
+    optimizer.step()
+
 class pytorch_model():
     def __init__(self, combiner=None, loss=None, reducer=None, cuda=True):
         # should have customizable combiner and loss, but I dont.

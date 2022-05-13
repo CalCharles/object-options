@@ -1,13 +1,14 @@
-from Networks.network import Network
+from Network.network import Network
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 
-class BasicMLPNetwork(Network):    
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+class MLPNetwork(Network):    
+    def __init__(self, args):
+        super().__init__(args)
+        print(self.num_inputs)
         if len(self.hs) == 0:
             if self.use_layer_norm:
                 layers = [nn.LayerNorm(self.num_inputs), nn.Linear(self.num_inputs, self.num_outputs)]

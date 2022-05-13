@@ -6,27 +6,29 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from collections import Counter
-from file_management import save_to_pickle, load_from_pickle
-from Networks.network import ConstantNorm, pytorch_model
-from tianshou.data import Collector, Batch, ReplayBuffer
-from DistributionalModels.InteractionModels.InteractionTraining.train_utils import run_optimizer, get_weights, get_targets
-from DistributionalModels.InteractionModels.InteractionTraining.compute_errors import assess_losses, get_interaction_vals
-from DistributionalModels.InteractionModels.InteractionTraining.assessment_functions import assess_error
-from Rollouts.rollouts import ObjDict, merge_rollouts
+from Causal.Training.loggers.forward_logger import forward_logger
+from Causal.Training.loggers.interaction_logger import interaction_logger
+from Causal.Utils.weighting import get_weights
+from Network.network_utils import pytorch_model, run_optimizer
+from Record.file_management import create_directory
 
-def _train_combined_interaction(full_model, train_args, rollouts, weights, inter_loss, interaction_optimizer):
+def _train_combined_interaction(full_model, args, rollouts, weights, proximal, inter_loss, interaction_optimizer):
     # resamples because the interaction weights are different from the normal weights
-    batch, idxes = rollouts.sample(train_args.batch_size, weights=weights)
+    batch, idxes = rollouts.sample(args.train.batch_size, weights=weights)
 
     # run the networks and get both the active and passive outputs (passive for interaction binaries)
     active_params, passive_params, interaction_likelihood, target, active_dist, passive_dist, active_log_probs, passive_log_probs = full_model.likelihoods(batch)     
 
+    # done flags
+    done_flags = pytorch_model.wrap(1-batch.done, cuda = full_model.iscuda)
+
     # combine likelihoods to get a single likelihood for computing binaries TODO: a per-element binary?
-    active_likelihood = - active_log_probs.sum(dim=-1).unsqueeze(-1)
-    passive_likelihood = - active_log_probs.sum(dim=-1).unsqueeze(-1)
+    active_likelihood = - active_log_probs.sum(dim=-1).unsqueeze(-1) * done_flags
+    passive_likelihood = - passive_log_probs.sum(dim=-1).unsqueeze(-1) * done_flags
 
     # get the interaction binaries
     interaction_binaries = full_model.test.compute_binary(active_likelihood, passive_likelihood)
+
 
     # for proximity, don't allow interactions that are not also proximal
     if proximal is not None: interaction_binaries *= pytorch_model.wrap(proximal[idxes], cuda=full_model.iscuda).unsqueeze(1)
@@ -36,25 +38,31 @@ def _train_combined_interaction(full_model, train_args, rollouts, weights, inter
     run_optimizer(interaction_optimizer, full_model.interaction_model, interaction_loss)
     return interaction_loss, interaction_likelihood, interaction_binaries
 
-def train_combined(full_model, rollouts, test_rollout, train_args,
-    trace, active_weights, interaction_weights,
+def train_combined(full_model, rollouts, test_rollout, args,
+    trace, active_weights, interaction_weights, proximal,
     active_optimizer, passive_optimizer, interaction_optimizer):    
-    
+
+    passive_logger = forward_logger("passive", args.inter.active.active_log_interval, full_model)
+    logger = forward_logger("active", args.inter.active.active_log_interval, full_model)
+    inter_logger = interaction_logger("interaction", args.inter.active.active_log_interval, full_model)
     # initialize loss function
     inter_loss = nn.BCELoss()
 
     # initialize interaction schedule, computes the weight to allow the active model to ignore certain values
-    interaction_schedule = lambda i: np.power(0.5, (i/train_args.interaction_schedule))
-    inline_iter_schedule = lambda i: max(train_args.inline_iters[2],
-                                         train_args.inline_iters[0] * np.power(2, (i/train_args.inline_iters[1])))
+    interaction_schedule = (lambda i: np.power(0.5, (i/args.inter.active.interaction_schedule))) if args.inter.active.interaction_schedule > 0 else (lambda i: 0.5)
+    inline_iter_schedule = lambda i: min(1, args.inter.active.inline_iters[0],
+                                         args.inter.active.inline_iters[1] * np.power(2, (i/args.inter.active.inline_iters[2])))
+    inline_iters = inline_iter_schedule(0)
 
     # initialize weighting schedules, by which the sampling weights change (shrink) over training
-    active_weighting_schedule = lambda i: train_args.active_weight_lambda * np.power(0.5, (i/train_args.active_weight_schedule))
-    interaction_weighting_schedule = lambda i: train_args.interaction_weight_lambda * np.power(0.5, (i/train_args.interaction_weight_schedule))
+    _,_,awl,aws = args.inter.active.weighting 
+    iwl, iws = args.inter.active.interaction_weighting
+    active_weighting_schedule = (lambda i: awl * np.power(0.5, (i/aws))) if awl > 0 else (lambda i: awl)
+    interaction_weighting_schedule = (lambda i: iwl * np.power(0.5, (i/iws))) if iws > 0 else (lambda i: iwl)
 
-    for i in range(train_args.num_iters):
+    for i in range(args.train.num_iters):
         # get data, weighting by active weights (generally more likely to sample high "value" states)
-        batch, idxes = rollouts.sample(train_args.batch_size, weights=active_weights)
+        batch, idxes = rollouts.sample(args.train.batch_size, weights=active_weights)
 
         # run the networks and get both the active and passive outputs (passive for interaction binaries)
         active_params, passive_params, interaction_likelihood,\
@@ -70,34 +78,36 @@ def train_combined(full_model, rollouts, test_rollout, train_args,
         inter_weighted_nlikelihood = active_nlikelihood * detached_interaction_likelihood
 
         # assign done flags
-        done_flags = 1-batchvals.values.done
+        done_flags = pytorch_model.wrap(1-batch.done, cuda = full_model.iscuda)
 
         # reduce with mean to a single value for the batch
         active_mean_nlikelihood, passive_mean_nlikelihood, inter_mean_nlikelihood = active_nlikelihood.mean(dim=0).squeeze(), passive_nlikelihood.mean(dim=0).squeeze(), inter_weighted_nlikelihood.squeeze() / (detached_interaction_likelihood.sum() + 1e-6)
-        
+
         # train a combined loss to minimize the (negative) active likelihood without interaction weighting, and the interaction regulairized values (ignoring dones)
         # TODO: we used a combined interaction of binaries, proximal high error and interaction before, but with resampling it isn't clear this is necessary
         loss = (active_nlikelihood * interaction_schedule(i) + inter_weighted_nlikelihood * (1-interaction_schedule(i))) * done_flags
-        run_optimizer(active_optimizer, full_model.forward_model, loss)
+        run_optimizer(active_optimizer, full_model.active_model, loss)
         
+        log_interval = logger.log(i, loss, active_nlikelihood * done_flags, inter_weighted_nlikelihood * done_flags, 
+                    active_log_probs * done_flags, trace[idxes],
+                    active_params, target, interaction_likelihood, full_model)
+
         # training the passive model with the weighted states, which is dangerous and not advisable
-        if train_args.intrain_passive: run_optimizer(passive_optimizer, full_model.passive_model, passive_nlikelihood)
+        if args.inter.active.intrain_passive: run_optimizer(passive_optimizer, full_model.passive_model, passive_nlikelihood)
 
         # run the interaction model training if the interaction model is not already trained
-        if train_args.pretrain_interaction_iters <= 0:
-            for ii in range(inline_iters):
+        if args.inter.interaction.interaction_pretrain <= 0:
+            for ii in range(int(inline_iters)):
                 interaction_loss, interaction_likelihood,\
-                 interaction_binaries = _train_combined_interaction(full_model, train_args, rollouts,
-                                                                     weights, inter_loss, interaction_optimizer)
+                 interaction_binaries = _train_combined_interaction(full_model, args, rollouts,
+                                                                     interaction_weights, proximal,
+                                                                     inter_loss, interaction_optimizer)
         
-        # reweight only when logging TODO: probably should not link  these two
-        if i % train_args.log_interval == 0:
-            combined_logging(full_model, train_args, rollouts, test_rollout, i, idxes, batchvals,
-                     interaction_likelihood, interaction_binaries, true_binaries,
-                     prediction_params, passive_prediction_params,
-                     target, active_l2, passive_l2, done_flags, interaction_schedule,
-                     forward_error, forward_loss, passive_error, trace)
-            
+                # reweight only when logging TODO: probably should not link  these two
+                inter_logger.log(i, interaction_loss, interaction_likelihood, interaction_binaries, batch.done,
+                    trace=None if trace is None else trace[idxes], no_print=ii != 0)
+        
+        if i % args.inter.active.active_log_interval == 0:
             # change the lambdas for reweighting, and generate new sampling weights
             inline_iters = inline_iter_schedule(i)
             active_weighting_lambda = active_weighting_schedule(i)
