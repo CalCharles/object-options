@@ -10,6 +10,11 @@ def run_optimizer(optimizer, model, loss):
     torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
     optimizer.step()
 
+def cuda_string(device):
+    if device < 0: device = "cpu"
+    else: device = "cuda:" + str(device) 
+
+
 class pytorch_model():
     def __init__(self, combiner=None, loss=None, reducer=None, cuda=True):
         # should have customizable combiner and loss, but I dont.

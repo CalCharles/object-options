@@ -184,7 +184,7 @@ class Paddle(animateObject):
             elif other.attribute == 2:
                 if self.pos[1] == 4:
                     if self.nowall:
-                        self.pos = np.array([0,68])
+                        self.pos = np.array([0,72])
                     self.vel = np.array([0,0])
                     self.interaction_trace.append("LeftSideWall")
                 else:
@@ -241,9 +241,13 @@ class Action(Object):
         self.width = 0
         self.height = 0
         self.name = "Action"
+        self.vel = np.array([])
 
     def take_action(self, action):
         self.attribute = action
+
+    def getMidpoint(self):
+        return [] # empty midpoint
 
     def interact (self, other):
         if other.name == "Paddle": self.interaction_trace.append(other.name)

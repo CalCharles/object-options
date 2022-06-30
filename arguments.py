@@ -34,6 +34,8 @@ def get_command_args():
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='no cuda')
     # shared train args
+    parser.add_argument('--train', action ='store_true', default=False,
+                        help='usually included, trains the network')
     parser.add_argument('--num-frames', type=int, default=1000,
                         help='number of frames to run')
     parser.add_argument('--train-edge', type=str, nargs='+', default=list(),
@@ -44,6 +46,13 @@ def get_command_args():
                         help='number of iterations (shared for inter vs option)')
     parser.add_argument('--batch-size', type=int, default=128,
                         help='the number of values to sample in a batch')
+    # masking hyperparameters
+    parser.add_argument('--min-sample-difference', type=float, default=1.0,
+                help='samples with less than this value will be considered the same')
+    parser.add_argument('--var-cutoff', type=float, nargs='+', default=list(),
+                        help='the normalized cutoff variance for an attribute to be considered active')
+    parser.add_argument('--num-samples', type=int, default=0,
+                        help='number of samples to take for identifying active components')
 
     # peripheral arguments
     parser.add_argument('--load-intermediate', action ='store_true', default=False,
@@ -52,12 +61,16 @@ def get_command_args():
                         help='save the passive model to skip training later')
     parser.add_argument('--load-rollouts', default = "",
                         help='load data from here')
+    parser.add_argument('--load-dir', default = "",
+                        help='load saved values from here')
+    parser.add_argument('--refresh', action='store_true', default=False,
+                        help='creates a new graph from scratch in masking')
 
     # active passive args
     parser.add_argument('--predict-dynamics', action='store_true', default=False,
                         help='predicts the change in state instead of the state itself')
     parser.add_argument('--interaction-testing', type=float, nargs='+', default=list(),
-                        help='interaction value, difference between P,A, Active greater than, passive less than  (default: empty list)')
+                        help='interaction binary cutoff, Active greater than, passive less than, difference between P-A  (default: empty list)')
     parser.add_argument('--proximity-epsilon', type=float, default=-1,
                         help='the minimum distance for two objects to be considered "close"')
     parser.add_argument('--passive-iters', type=int, default=0,
@@ -82,7 +95,7 @@ def get_command_args():
     parser.add_argument('--inline-iters', type=int, nargs='+', default=list(),
                         help='3-tuple of max number, starting number, doubling n for interaction training iterations per active model step')
     parser.add_argument('--interaction-weighting', type=float, nargs='+', default=list(),
-                        help='2-tuple of starting interaction weighting lambda, schedule to double')
+                        help='2-tuple of starting interaction weighting (for passive error) lambda, schedule to double')
     parser.add_argument('--intrain-passive', action ='store_true', default=False,
                         help='trains the passive model during the active model training')
     # network arguments 
@@ -120,6 +133,9 @@ def get_command_args():
                         help='Adam optimizer betas (default: (0.9, 0.999))')
     parser.add_argument('--weight-decay', type=float, default=0.00,
                         help='Adam optimizer l2 norm constant (default: 0.01)')
+    # state setting
+    parser.add_argument('--obs-setting', type=int, nargs='+', default=[0,0,0,0,0,0,0,0],
+                        help='7-tuple of param, additional, inter, parent, relative, target, param_relative, diff')
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda

@@ -1,4 +1,23 @@
 
+class RTD():
+    def __init__(self, **kwargs): 
+        self.compute_done = OptionControl(**kwargs)
+
+    def update(self):
+        self.compute_done.update()
+
+    def compute_rew_term_done(self, full_state, next_full_state, param, mask, true_done, true_reward):
+        return True, 0.0, True
+
+    def __call__(self, full_state, next_full_state, param, mask, true_done, true_reward):
+        term, rew, inter = self.compute_rew_term_done(full_state, next_full_state, param, mask, true_done, true_reward)
+        term, rew, inter = term.squeeze(), rew.squeeze(), inter.squeeze()
+        cutoff = self.compute_done.check_timer()
+        ret_term = term or cutoff
+        done = self.compute_done(term, true_done)
+        done = done.squeeze()
+        if ret_term: self.compute_done.reset()
+        return ret_term, rew, done, inter, cutoff and not term
 
 class OptionControl():
     def __init__(self, **kwargs):
@@ -15,13 +34,7 @@ class OptionControl():
         self.timer = 0
 
     def check_timer(self):
-        return self.timer >= self.time_cutoff
+        return self.timer >= self.time_cutoff and self.time_cutoff > 0
 
-    def compute_done(self, term, true_done):
+    def __call__(self, term, true_done):
         return term * self.term_as_done + true_done * self.true_done
-
-    def __call__(self, full_state, next_full_state, param, mask, true_done, true_reward):
-        '''
-        defined in subclass, outputs reward, termination and done and time cutoff computation
-        '''
-        return 0,0,0,0,0

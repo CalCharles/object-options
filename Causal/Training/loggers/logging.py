@@ -1,0 +1,15 @@
+from Causal.Utils.get_error import get_error, error_names
+import numpy as np
+
+def print_errors(full_model, rollouts, error_types=[0], sample_num=50):
+	sample_list = [full_model.norm.reverse(rollouts.inter_state, form="inter")[:sample_num], full_model.norm.reverse(rollouts.next_target)[:sample_num]]
+	for error_type in error_types:
+		print(error_names[error_type])
+		err_vals = get_error(full_model, rollouts, error_type, reduced=False, normalized=False)
+		print("error total", error_names[error_type], np.mean(err_vals, axis=0), np.sum(err_vals, axis=0))
+		if len(err_vals.shape) == 1: err_vals = np.expand_dims(err_vals, axis=-1)
+		sample_list.append(err_vals[:sample_num])
+		print(err_vals[:sample_num].shape)
+	np.set_printoptions(threshold=100000, linewidth=300, precision=4, suppress=True)
+	print("error values", "Inter", "Next Target", [error_names[et] for et in error_types], np.concatenate(sample_list, axis=-1))
+	np.set_printoptions(threshold=3000, linewidth=120, precision=4, suppress=True)

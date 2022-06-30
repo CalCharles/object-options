@@ -6,23 +6,21 @@ import torch
 import warnings
 import cv2
 import copy
-import psutil
-import numpy as np
 from typing import Any, Dict, List, Union, Optional, Callable
 from argparse import Namespace
 from collections import deque
-from file_management import printframe, saveframe, action_toString
-from Networks.network import pytorch_model
+from Record.file_management import action_chain_string
+from Network.network_utils import pytorch_model
+from Collect.aggregator import TemporalAggregator
+from Record.file_management import save_to_pickle, create_directory
+from State.instances import split_instances
 
-from Rollouts.param_buffer import ParamReplayBuffer
 from tianshou.policy import BasePolicy
 from tianshou.data.batch import _alloc_by_keys_diff
 from tianshou.env import BaseVectorEnv, DummyVectorEnv
 from tianshou.data import Collector, Batch, ReplayBuffer
-from Options.option import Option
 from typing import Any, Dict, Tuple, Union, Optional, Callable
 from tianshou.data import Batch, ReplayBuffer, to_torch_as, to_numpy
-from visualizer import visualize
 
 def print_shape(batch, prefix=""):
     print(prefix, {n: batch[n].shape for n in batch.keys() if type(batch[n]) == np.ndarray})
@@ -34,48 +32,75 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         env: Union[gym.Env, BaseVectorEnv],
         buffer: Optional[ReplayBuffer] = None,
         exploration_noise: bool = False,
-        option: Option = None,
+        option = None,
+        hindsight = None,
         test: bool = False,
-        environment_model = None,
+        multi_instanced: bool = False,
+        record: None = None, # a record object to save states
         args: Namespace = None,
     ) -> None:
-        self.param_recycle = args.param_recycle # repeat a parameter
+        self.param_recycle = args.sample.param_recycle # repeat a parameter
         self.option = option
         self.at = 0
-        self.env_reset = args.env_reset # if true, then the environment handles resetting
         self.full_at = 0 # the pointer for the buffer without temporal extension
+        self.her_at = 0
+        self.env_reset = args.collect.env_reset # if true, then the environment handles resetting
         self.test = test
-        self.print_test = args.print_test
         self.full_buffer = copy.deepcopy(buffer) # TODO: make this conditional on usage?
+        self.her_buffer = copy.deepcopy(buffer)
         self.hit_miss_queue = deque(maxlen=2000) # not sure if this is the best way to record hits, but this records when a target position is reached
-        self.true_interaction = args.true_interaction
-        self.source, self.target = self.option.next_option.name, self.option.name
-        self.environment_model = environment_model
-        self.save_action = args.save_action # saves the option level action at each time step in option_action.txt in environment.save_dir
-        self.save_path = self.environment_model.environment.save_path
-        self._keep_proximity = args.keep_proximity
-        self.terminate_reset = args.terminate_reset
-        self.env_name = args.env
+        self.save_action = args.record.save_action # saves the option level action at each time step in option_action.txt in environment.save_dir
+        self.save_path = args.record.record_rollouts 
+        self.record = record
+        self.terminate_reset = args.collect.terminate_reset
+        self.env_name = env.name
         self.counter = 0
-        self.terminate_cutoff = args.terminate_cutoff
-        self.no_truncate = args.no_truncate # ignores all timelimit truncated
-        option_dumps = open(os.path.join(self.save_path, "option_dumps.txt"), 'w')
-        param_dumps = open(os.path.join(self.save_path, "param_dumps.txt"), 'w')
-        option_dumps.close()
-        param_dumps.close()
+        self.multi_instanced = multi_instanced
+        self.names = args.object_names
+        if self.save_action:
+            option_dumps = open(os.path.join(self.save_path, "option_dumps.txt"), 'w')
+            param_dumps = open(os.path.join(self.save_path, "param_dumps.txt"), 'w')
+            term_dumps = open(os.path.join(self.save_path, "term_dumps.txt"), 'w')
+            option_dumps.close()
+            param_dumps.close()
+            term_dumps.close()
         
         # shortcut calling option attributes through option
         self.state_extractor = self.option.state_extractor
-        self.sampler = sampler # sampler manages either recalling the param, or getting a new one
-        self.exploration_noise = self.option.policy.exploration_noise
-        self.temporal_aggregator = TemporalAggregator(sum_reward=args.sum_rewards, only_termination=args.only_termination)
+        self.sampler = self.option.sampler # sampler manages either recalling the param, or getting a new one
+        self.exploration_noise = exploration_noise
+        self.temporal_aggregator = TemporalAggregator(sum_reward=args.collect.aggregator.sum_rewards, only_termination=args.collect.aggregator.only_termination)
         self.ext_reset = self.option.temporal_extension_manager.reset
         self._aggregate = self.temporal_aggregator.aggregate
-        self.policy_collect = self.option.policy.collect
-        self._done_check = self.option.done_model.done_check
+        self.hindsight = hindsight
+        if hindsight is not None:
+            self.her_collect = hindsight.record_state
         
+        self.environment = env
         env = DummyVectorEnv([lambda: env])
-        super().__init__(policy, env, buffer, preprocess_fn, exploration_noise)
+        super().__init__(policy, env, buffer, None, exploration_noise)
+
+    def save(self, save_path, filename):
+        save_to_pickle(os.path.join(create_directory(save_path), filename), self.get_components())
+
+    def load(self, load_path):
+        self.restore_components(*load_from_pickle(load_path))
+
+    def restore_components(self, full_buffer, her_buffer, buffer, at, full_at, her_at):
+        self.full_buffer = full_buffer
+        self.her_buffer = her_buffer
+        self.buffer = buffer
+        self.at = at
+        self.full_at = full_at
+        self.her_at = her_at
+
+    def get_components(self):
+        return self.full_buffer, self.her_buffer, self.buffer, self.at, self.full_at, self.her_at
+
+    def _save_action(self, action_chain, term_chain, param): # this is handled here because action chains are option dependent
+        write_string(os.path.join(self.save_path, "option_dumps.txt"), str(self.environment_model.environment.get_itr() - 1) + ":" + action_chain_string(action_chain) + "\n")
+        write_string(os.path.join(self.save_path, "term_dumps.txt"), str(self.environment_model.environment.get_itr() - 1) + ":" + action_chain_string([term_chain]) + "\n")
+        write_string(os.path.join(self.save_path, "param_dumps.txt"), str(self.environment_model.environment.get_itr() - 1) + ":" + action_chain_string([param[0]]) + "\n")
 
     def reset_env(self, keep_statistics: bool = False):
         full_state = self.env.reset()
@@ -86,23 +111,28 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         self._reset_state(0)
         self.option.reset(full_state)
         param, mask = self._reset_data(full_state)
-        self.data.update(obs=[self.state_extractor.get_obs(full_state, full_state, param, mask)]) # self.option.get_state(obs, setting=self.option.input_setting, param=self.param if self.param is not None else None)
+        if self.hindsight is not None: self.hindsight.reset(self.data)
         self.temporal_aggregator.reset(self.data)
+
+    def sample(self, full_state):
+        param, mask = self.sampler.sample(full_state)
+        param, mask = np.array([param]), np.array([mask])
+        return param, mask
 
     def _reset_data(self, full_state):
         # ensure that data has the correct: param, obs, obs_next, full_state, option_resample
         # will always sample a new param
         self.data.update(last_full_state=[full_state], full_state=[full_state])
-        param, mask = self.sampler.get_param(full_state, True)
+        param, mask = self.sample(full_state)
         self.data.update(target=self.state_extractor.get_target(self.data.full_state),
-            obs=[self.state_extractor.get_obs(self.data.last_full_state, self.data.full_state, param, mask)],
-            obs_next=[self.state_extractor.get_obs(self.data.full_state, self.data.full_state, param, mask)],
-            param=[param], mask = [mask], option_resample=[[True]])
+            obs=self.state_extractor.get_obs(self.data.last_full_state, self.data.full_state, param, mask),
+            obs_next=self.state_extractor.get_obs(self.data.full_state, self.data.full_state, param, mask),
+            param=param, mask = mask, option_resample=[[True]])
         term_chain = self.option.reset(full_state)
         act, chain, policy_batch, state, masks, resampled = self.option.extended_action_sample(self.data, None, term_chain, term_chain[:-1], random=False)
         self.data.update(terminate=[term_chain[-1]], terminations=term_chain, ext_term=[term_chain[-2]], ext_terms=term_chain[:-1])
         self.data.update(done=[False], true_done=[False])
-        self.option.update(self.data["full_state"], act, chain, term_chain, masks, not self.test)
+        self.option.update(act, chain, term_chain, masks, not self.test)
         self.temporal_aggregator.update(self.data)
         return param, mask
 
@@ -112,36 +142,47 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         self.data.update(terminate=[True])
         self.ext_reset()
 
-    def adjust_param(self):
+    def adjust_param(self, force=False):
         # either get a new param or recycle the same param as before
         new_param = False
-        if np.random.rand() > self.param_recycle: # get a new param
-            param, mask = self.sampler.get_param(self.data.full_state[0], self.data.terminate[0])
-            self.data.update(param=[param], mask=[mask])
+        param, mask = self.data.param, self.data.mask
+        if np.any(self.data.terminate) or force:
             new_param = True
-        else: # use the same param as before
-            param, mask = self.data.param.squeeze(), self.data.mask.squeeze()
-        self.data.obs = self.state_extractor.assign_param(self.data.full_state, self.data.obs, param, mask)
-        self.data.obs_next = self.state_extractor.assign_param(self.data.full_state, self.data.obs_next, param, mask)
+            if np.random.rand() > self.param_recycle: # get a new param
+                param, mask = self.sample(self.data.full_state[0])
+                self.data.update(param=param, mask=mask)
+
+            # Otherwise, already uses the same param as before
+            # assign the param in the observation
+            if self.data.obs is not None: # otherwise these have not been initialized yet and will be later
+                self.data.obs = self.state_extractor.assign_param(self.data.full_state, self.data.obs, param, mask)
+                self.data.obs_next = self.state_extractor.assign_param(self.data.full_state, self.data.obs_next, param, mask)
         return param, mask, new_param
 
-    def update_statistics(self):
-        if self.option.dataset_model.multi_instanced:
-            nt = self.option.dataset_model.split_instances(next_target)
-            ct = self.option.dataset_model.split_instances(target)
+    def update_statistics(self, hit_count, miss_count):
+        reward_check =  (self.data.done[0] and self.data.rew[0] > 0)
+        if self.multi_instanced:
+            nt = split_instances(next_target)
+            ct = split_instances(target)
             hit_idx = np.nonzero((nt[...,-1] - ct[...,-1]).flatten())
             inst_hit = nt[hit_idx]
             close = self.option.terminate_reward.epsilon_close
-            if self._keep_proximity: close = self.option.policy.learning_algorithm.dist
             hit = ((np.linalg.norm((param-inst_hit), ord=1) <= close and not true_done)
                         or reward_check)
-            # print(reward_check, param, next_target, inst_hit, mask)
         else:
-            hit = ((np.linalg.norm((param-next_target) * mask) <= self.option.terminate_reward.epsilon_close and not true_done)
+            hit = ((np.linalg.norm((self.data.param-self.data.next_target) * self.data.mask) <= self.option.terminate_reward.epsilon_close and not self.data.true_done[0])
                         or reward_check)
-        reward_check =  (done and rew > 0)
         hit_count += int(hit)
         miss_count += int(not hit)
+        return hit_count, miss_count
+
+    def _policy_state_update(self, result):
+        # update state / act / policy into self.data
+        policy = result.get("policy", Batch())
+        state = result.get("state", None)
+        if state is not None:
+            policy.hidden_state = state  # save state into buffer
+            self.data.update(state_chain=state_chain, policy=policy)
 
 
     def collect(
@@ -151,24 +192,23 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         n_term: Optional[int] = None,
         random: bool = False,
         render: Optional[float] = None,
-        visualize_param: str = "",
         no_grad: bool = True,
         force: [np.array, int] = None,
-        no_fulls: bool = False,
+        new_param: bool = False
     ) -> Dict[str, Any]:
         """
-
+        collects the data from the option, or random actions at the top level of the hierarchy
         """
-
         step_count, term_count, episode_count, true_episode_count = 0,0,0,0
-        rews = np.float64(0.0)
-        term = False
-        info = dict()
-
+        ready_env_ids = np.arange(1) # env_num is used in ts for multi-threaded environments, which are not used 
+        rews, term, info = np.float64(0.0), False, dict()
+        hit_count, miss_count = 0,0
+        start_time = time.time()
+        param, mask, new_param = self.adjust_param(new_param)
         while True:
             # set parameter for this run, if necessary
             param, mask, new_param = self.adjust_param()
-            if self.test and self.print_test and new_param: print("new param", param)
+            if self.test and new_param: print("new param", param)
 
             # get the action chain
             state_chain = self.data.state_chain if hasattr(self.data, "state_chain") else None
@@ -176,9 +216,6 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             self._policy_state_update(result)
             self.data.update(true_action=[action_chain[0]], act=[act], mapped_act=[action_chain[-1]], option_resample=[resampled])
             
-            # step the environment
-            # if resampled: print("resampling", act, since_last, action_chain[-1], self.data[0].target[:10], param, self.data[0].obs[:10], pytorch_model.unwrap(self.option.policy.compute_Q(self.data, nxt=False).squeeze()))
-            since_last = (since_last) * int(not resampled) + 1
             # step in env
             action_remap = self.data.true_action
             obs_next, rew, done, info = self.env.step(action_remap, id=ready_env_ids)
@@ -186,31 +223,34 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             true_done, true_reward = done, rew
 
             # update the target, next target, obs, next_obs pair, state components
-            obs = self.state_extractor.get_obs(self.data.full_state[0], param, mask) # one environment reliance
-            obs_next = self.state_extractor.get_obs(next_full_state, param, mask) # one environment reliance
+            obs = self.state_extractor.get_obs(self.data.last_full_state[0], self.data.full_state[0], param[0], mask[0]) # one environment reliance
+            obs_next = self.state_extractor.get_obs(self.data.full_state[0], next_full_state, param[0], mask[0]) # one environment reliance
             target = self.state_extractor.get_target(self.data.full_state[0])
             next_target = self.state_extractor.get_target(next_full_state)
             inter_state = self.state_extractor.get_inter(self.data.full_state[0])
-            self.data.update(next_target=[next_target], target=[target], obs_next=[obs_next], obs = [obs])
+            parent_state = self.state_extractor.get_parent(self.data.full_state[0])
+            target_diff = self.state_extractor.get_diff(self.data.full_state[0], next_full_state)
+            additional_state = self.state_extractor.get_additional(self.data.full_state[0])
+            self.data.update(next_target=[next_target], target=[target], target_diff=[target_diff], parent_state = [parent_state], additional_state=[additional_state], obs_next=[obs_next], obs = [obs])
 
             # get the dones, rewards, terminations and temporal extension terminations
-            done, rewards, terminations, ext_terms, inter, time_cutoff = self.option.terminate_reward_chain(self.data.full_state[0], next_full_state, param, action_chain, mask, masks, environment_model=self.environment_model)
-            done, rew, term, ext_term = done, rewards[-1], terminations[-1], ext_terms[-1]
-            if self.save_action is not None: self.save_action(action_chain[-1], param, resampled, term)
+            done, rewards, terminations, inter, cutoff = self.option.terminate_reward_chain(self.data.full_state[0], next_full_state, param, action_chain, mask, masks, true_done, true_reward)
+            done, rew, term, ext_term = done, rewards[-1], terminations[-1], terminations[-2]
+            if self.save_action: self._save_action(action_chain, param, resampled, term)
             info[0]["TimeLimit.truncated"] = bool(cutoff + info[0]["TimeLimit.truncated"]) # environment might send truncated itself
-            self.option.update(self.buffer, done, self.data.full_state[0], act, action_chain, terminations, param, masks, not self.test)
+            self.option.update(act, action_chain, terminations, masks, update_policy=not self.test)
 
             # update hit-miss values
             rews += rew
-            if term: self.update_statistics()
+            if term: hit_count, miss_count = self.update_statistics(hit_count, miss_count)
 
             # update the current values
             self.data.update(inter_state=[inter_state], next_full_state=[next_full_state], true_done=true_done, true_reward=true_reward, 
-                param=[param], mask = [mask], info = info, inter = [inter], time=[1],
+                param=param, mask = mask, info = info, inter = [inter], time=[1], trace = [np.any(self.environment.current_trace(self.names))], weight_binary=[1],
                 rew=[rew], done=[done], terminate=[term], ext_term = [ext_term], # all prior are stored, after are not 
-                terminations= terminations, rewards=rewards, masks=masks, ext_terms=ext_terms)
+                terminations= terminations, rewards=rewards, masks=masks, ext_terms=terminations[:len(terminations) - 1])
             # print("post update", psutil.Process().memory_info().rss / (1024 * 1024 * 1024))
-
+            if self.test: print(self.state_extractor.reverse_obs_norm(obs))
             # print (self.data) # FDO
             if self.preprocess_fn:
                 self.data.update(self.preprocess_fn(
@@ -226,13 +266,16 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
                 if render > 0 and not np.isclose(render, 0):
                     time.sleep(render)
 
+            # Record the state
+            if self.record is not None: self.record.save(self.data[0].full_state['factored_state'], self.data[0].full_state["raw_state"], self.environment.toString)
+
             # we keep a buffer with all of the values
             full_ptr, ep_rew, ep_len, ep_idx = self.full_buffer.add(
                 self.data, buffer_ids=ready_env_ids)
 
             # add to the main buffer
             next_data, skipped, added, self.at = self._aggregate(self.data, self.buffer, full_ptr, ready_env_ids)
-            if not self.test and self.her_collect is not None: self.her_collect(next_data, self.data, skipped, added)
+            if not self.test and self.hindsight is not None: self.her_at = self.her_collect(self.her_buffer, next_data, self.data, added)
 
             # collect statistics
             step_count += len(ready_env_ids)
@@ -244,7 +287,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             if np.any(true_done) or (np.any(term) and self.terminate_reset):
                 # if we have a true done, reset the environments and self.data
                 if self.env_reset: # the environment might handle resets for us
-                    full_state = self.environment_model.get_state()
+                    full_state = self.environment.get_state()
                     self._reset_components(full_state)
                 else:
                     self.reset_env()
@@ -262,7 +305,6 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
                 break
             if (n_term and term_count >= n_term):
                 break
-
         # generate statistics
         self.collect_step += step_count
         self.collect_episode += episode_count
@@ -274,9 +316,8 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             "n/st": step_count,
             "n/h": hit_count,
             "n/m": miss_count,
+            "n/tim": self.collect_time, 
             "rews": rews,
-            "terminate": term_end,
-            "saved_fulls": saved_fulls,
-            "assessment": assessments,
+            "terminate": (not np.any(true_done)) and np.any(term) and self.terminate_reset,
             "info": info,
         }

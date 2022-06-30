@@ -3,41 +3,45 @@ import numpy as np
 import copy
 import gym
 from tianshou.data import Batch, ReplayBuffer, to_torch_as, to_numpy
-from EnvironmentModels.environment_model import discretize_space
+from Network.network_utils import pytorch_model
 
 # Base action space handling
 class PrimitiveActionMap():
-    def __init__(self, args):
+    def __init__(self, args, filtered_active_set):
         self.action_space = args.environment.action_space
         self.discrete_actions = args.environment.discrete_actions
         self.discrete_control = np.arange(args.environment.action_space.n) if args.environment.discrete_actions else None
         self.control_max = args.environment.action_space.high if not args.environment.discrete_actions else args.environment.action_space.n
         self.control_min = args.environment.action_space.low if not args.environment.discrete_actions else 0
+        self.filtered_active_set = filtered_active_set
 
     def sample(self):
         self.action_space.sample()
 
 class ActionMap():
-    def __init__(self, args, masking, mapped_norm, mapped_select):
+    def __init__(self, args, filtered_active_set, mapped_norm, mapped_select, discrete_primitive):
         ''' ActionMap manages the mapped space, relative mapped space and the policy space
         The policy space is always [-1,1] for continuous, (1,) for discrete
-        The mapped space covers the space of behaviors'''
-
+        The mapped space covers the space of behaviors
+        discrete_primitive is ONLY > 0 if the action space is the primitive space, and the primitive space is discrete,
+            Then discrete primitive is the number of actions
+        '''
         # parameters for the action mapping
         self.use_relative_action = args.use_relative_action
         self.relative_action_ratio = args.relative_action_ratio
 
         # input variables
         self.min_active_size = args.min_active_size
-        self.filtered_active_set = args.masking.filtered_active_set
+        self.filtered_active_set = filtered_active_set
         self.mapped_norm = mapped_norm
         self.mapped_select = mapped_select
-        self.discrete_actions, self.mapped_space = self.param_space()
+        self.discrete_primitive = discrete_primitive
+        self.discrete_actions, self.action_space = self.param_space(discrete_primitive)
         self.discrete_control = args.discrete_params # if the parameter is sampled from a discrete dict
 
         # initialize the policy space
         if self.discrete_actions:
-            self.policy_action_space = gym.spaces.Discrete(args.num_actions)
+            self.policy_action_space = gym.spaces.Discrete(discrete_primitive if discrete_primitive != 0 else len(filtered_active_set))
             self.relative_action_space, self.relative_scaling = None, 1 # can't be relative and discrete
         else:
             policy_action_shape = (self.mapped_select.output_size(), )
@@ -46,20 +50,22 @@ class ActionMap():
             self.policy_action_space = gym.spaces.Box(policy_min, policy_max)
 
             # initialize the relative space
-            self.relative_scaling = self.mapped_norm.target_norm[1] * self.relative_action_ratio
-            self.relative_action_space = gym.spaces.Box(-self.mapped_norm.target_norm[1] * self.relative_action_ratio, self.mapped_norm.target_norm[1] * self.relative_action_ratio)
+            self.relative_scaling = self.mapped_norm.mapped_norm[1] * self.relative_action_ratio
+            self.relative_action_space = gym.spaces.Box(-self.mapped_norm.mapped_norm[1] * self.relative_action_ratio, self.mapped_norm.mapped_norm[1] * self.relative_action_ratio)
 
-    def param_space(self):
+    def param_space(self, discrete_primitive):
         ''' This runs on initialization, deciding whether the parameter space should be discrete or continuous
         selection is based on if |active set| > args.min_active_size
         '''
-        if len(self.filtered_active_set) > self.min_active_size:
-            return False, gym.spaces.Box(*self.mapped_norm.target_lim)
+        if discrete_primitive != 0:
+            return True, gym.spaces.Discrete(discrete_primitive)
+        elif len(self.filtered_active_set) < self.min_active_size:
+            return True, gym.spaces.Box(*self.mapped_norm.mapped_lim)
         else:
-            return True, gym.spaces.Box(*self.mapped_norm.target_lim)
+            return False, gym.spaces.Box(*self.mapped_norm.mapped_lim)
 
     def _convert_relative_action(self, state, act):
-        return self.mapped_norm.clip(self.mapped_select(state) + act)
+        return self.mapped_norm.clip(self.mapped_select(state['factored_state']) + act)
 
     def _reverse_relative_action(self, state, act):
         return self.mapped_select(state) - act
@@ -70,11 +76,11 @@ class ActionMap():
         it does not apply exploration noise
         the action should be a vector, even if discrete
         '''
-        mapped_act = self._get_cont(act)
-        if self.use_relative_action:
-            mapped_act = act * self.relative_scaling
+        mapped_act = self._get_cont(pytorch_model.unwrap(act))
+        if self.use_relative_action: # mapped_act = act if relative actions are used
+            mapped_act = mapped_act * self.relative_scaling
             mapped_act = self._convert_relative_action(batch.full_state, mapped_act)
-        return act, mapped_act
+        return mapped_act
 
     def reverse_map_action(self, mapped_act, batch):
         '''
@@ -86,7 +92,7 @@ class ActionMap():
         return act
 
     def _get_cont(self, act):
-        if self.discrete_actions: return self.filtered_active_set[int(act.squeeze())].copy()
+        if self.discrete_actions and not self.discrete_primitive: return self.filtered_active_set[int(act.squeeze())].copy()
         return act
 
     def _get_discrete(self, act):
@@ -104,7 +110,7 @@ class ActionMap():
         '''
         samples the policy action space
         '''
-        return self.policy_action_space.sample()
+        return np.array(self.policy_action_space.sample()).squeeze()
 
     def sample(self):
         '''

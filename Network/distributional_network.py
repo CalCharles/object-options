@@ -38,12 +38,6 @@ class InteractionNetwork(Network):
         self.train()
         self.reset_parameters()
         
-    def cuda(self):
-        super().cuda()
-
-    def cpu(self):
-        super().cpu()
-
     def forward(self, x):
         x = pytorch_model.wrap(x, cuda=self.iscuda)
         v = self.inter.forward(x)

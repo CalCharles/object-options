@@ -36,10 +36,10 @@ position_masks = {
 }
 
 instanced = {
-    "Action": False,
-    "Gripper":False,
-    "Block": False,
-    "Obstacle": True,
-    "Done": False,
-    "Reward": False
+    "Action": 1,
+    "Gripper":1,
+    "Block": 1,
+    "Obstacle": 20,
+    "Done": 1,
+    "Reward": 1
 }

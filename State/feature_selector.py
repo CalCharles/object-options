@@ -11,9 +11,9 @@ def tensor_state(factored_state, cuda=False):
         fs[k] = pytorch_model.wrap(fs[k], cuda=cuda)
     return fs
 
-def broadcast(arr, size, cat=True):
-    if cat: return np.concatenate([arr.copy() for i in range(size)])
-    return np.stack([arr.copy() for i in range(size)], axis=-1)
+def broadcast(arr, size, cat=True): # always broadcasts on axis 0
+    if cat: return np.concatenate([arr.copy() for i in range(size)], axis= 0)
+    return np.stack([arr.copy() for i in range(size)], axis=0)
 
 def sample_feature(feature_range, step, idx, states):
     all_states = [] # states to return
@@ -32,14 +32,16 @@ def sample_feature(feature_range, step, idx, states):
         return np.concatenate(all_states, axis=0) # if there are no batches, then this is the 0th dim
     return np.concatenate(all_states, axis=1) # if we have a batch of states, then this is the 1st dim
 
-def construct_object_selector(names, environment):
+def construct_object_selector(names, environment, masks=None):
     '''
-    constructs a selector to select the elements of all the objects in names
+    constructs a selector to select the elements of all the objects in names\
+    masks will select particular features from that object, one mask for each object
     '''
     factored = dict()
-    for name in names:
+    if masks is None: masks = [np.ones(environment.object_sizes[name]) for name in names] # if no masks select all features
+    for mask, name in zip(masks, names):
         sze = environment.object_sizes[name]
-        factored[name] = np.arange(sze)
+        factored[name] = np.arange(sze)[np.array(mask).astype(bool)]
     return FeatureSelector(factored, names)
 
 def numpy_factored(factored_state):
@@ -79,20 +81,29 @@ class FeatureSelector():
         target shape can be [batchlen, factored feature shape], or [factored feature shape] 
         '''
         cut_state = [states[name][...,self.factored_features[name]] for name in self.names]
-        state = np.concatenate(cut_state, axis=0)
+        state = np.concatenate(cut_state, axis=-1)
         return state
 
-    def reverse(self, delta_state, insert_state, names=None):
+    def reverse(self, delta_state, insert_state, names=None, mask=None):
         '''
         assigns the relavant values of insert_state to delta_state
         if names is not None, then only assigns the components of names in names, in the order of names
         '''
-        drng = 0
+        drng, frng = 0, 0
         if names is None: names = self.names
+        if type(delta_state) == list: delta_state = np.array(delta_state) # needs advanced slicing
         for name in names:
-            idxes = self.factored_features[name]
-            delta_state[name][idxes] = insert_state[drng:drng+len(idxes)]
+            # only use the component of the mask corresponding to this name
+            num_features_name = len(self.factored_features[name])
+            mask_comp = np.ones(num_features_name).astype(bool) if mask is None else mask[frng:frng + num_features_name].astype(bool)
+            # get the masked components
+            idxes = self.factored_features[name][mask_comp]
+            idxes += frng
+            # assign
+            delta_state[...,idxes] = insert_state[...,drng:drng+len(idxes)]
+            # increment index indicators in insert state and delta state
             drng += len(idxes)
+            frng += len(self.factored_features[name])
         return delta_state
 
 def assign_feature(self, states, assignment, edit=False, clipped=None):

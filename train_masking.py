@@ -3,25 +3,58 @@ import os, torch
 from arguments import get_args
 from Environment.Environments.initialize_environment import initialize_environment
 from Record.file_management import read_obj_dumps, load_from_pickle, save_to_pickle
-from train_interaction import generate_buffers
+from train_interaction import generate_buffers, init_names
 from Causal.Utils.get_error import get_error, error_types
 from Causal.active_mask import ActiveMasking
+from Causal.interaction_model import make_name
+from Causal.dummy_interaction import ActionDummyInteraction
+from Causal.Training.test_full import test_full
+from Graph.graph import Graph, load_graph
+from Option.primitive_option import PrimitiveOption
+from State.feature_selector import construct_object_selector
+
 
 if __name__ == '__main__':
     args = get_args()
-    torch.cuda.set_device(args.gpu)
+    torch.cuda.set_device(args.torch.gpu)
     np.set_printoptions(threshold=3000, linewidth=120, precision=4, suppress=True)
     torch.set_printoptions(precision=4, sci_mode=False)
 
-    environment = initialize_environment(args, set_save=False)
+    environment, record = initialize_environment(args.environment, args.record)
 
-    full_model = torch.load(os.path.join(args.record.load_dir, full_model.name + "_inter_model.pt"))
+    object_names = init_names(args)
 
-    if args.load_intermediate: buffer = load_from_pickle("/hdd/datasets/counterfactual_data/temp/full_rollouts.pkl")
+    # initializes the graph or loads it from args.record.load_dir
+    action_dummy = ActionDummyInteraction(environment.action_shape, environment.discrete_actions, environment.num_actions)
+    action_option = PrimitiveOption(args, None, environment)
+    graph = Graph(environment.object_names, action_dummy, action_option) if "graph.gm" not in os.listdir(args.record.load_dir) or args.record.refresh else load_graph(args.record.load_dir, args.torch.gpu)
+
+    full_model = torch.load(os.path.join(args.record.load_dir, make_name(object_names) + "_inter_model.pt"))
+    args.inter_select = full_model.inter_select
+    args.target_select = full_model.target_select
+    args.parent_selectors = full_model.parent_selectors
+    args.parent_select = full_model.parent_select
+
+    if args.inter.load_intermediate: buffer = load_from_pickle("/hdd/datasets/object_data/temp/rollouts.pkl")
     else: buffer = generate_buffers(environment, args, object_names, full_model, train=False)
-    if args.inter.save_intermediate: save_to_pickle("/hdd/datasets/object_data/temp/rollouts.pkl", (train_buffer, test_buffer))
+    if args.inter.save_intermediate: save_to_pickle("/hdd/datasets/object_data/temp/rollouts.pkl", buffer)
 
+    buffer.inter[:len(buffer)] = get_error(full_model, buffer, error_type=error_types.INTERACTION_RAW).squeeze()
+    print(get_error(full_model, buffer, error_type=error_types.INTERACTION_RAW)[:10], buffer.inter[:10], len(buffer), len(get_error(full_model, buffer, error_type=error_types.INTERACTION_RAW)))
 
-    buffer.inter = get_error(full_model, buffer, error_type=error_types.INTERACTION)
+    test_full(full_model, buffer, args, object_names, environment)
 
-    model.masking = ActiveMasking(buffer, model, args.min_variance, args.num_samples)
+    full_model.mask = ActiveMasking(buffer, full_model, args.mask.min_sample_difference, args.mask.var_cutoff, 
+        graph.nodes[object_names.primary_parent].interaction.active_mask, 
+        parent_max_num= environment.num_actions if (environment.discrete_actions and object_names.primary_parent == "Action") else 10000,
+        num_samples=args.mask.num_samples)
+    full_model.active_mask = full_model.mask.active_mask
+    full_model.active_select = construct_object_selector([object_names.target], environment, masks=[full_model.active_mask])
+
+    graph.nodes[object_names.target].interaction = full_model
+    graph.add_to_chain(object_names.target)
+    if len(args.record.save_dir) > 0: graph.save(args.record.save_dir)
+
+    graph = load_graph(args.record.save_dir, -1)
+    print(args.record.save_dir, graph.nodes.Action.option, graph.nodes.Action.option.sampler, graph.nodes.Action.option.sampler.mask)
+    print(full_model.active_mask, full_model.mask.active_mask, graph.nodes.Action.option.sampler.mask.active_mask)

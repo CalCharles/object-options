@@ -22,7 +22,6 @@ def load_intermediate(args, full_model):
     # move the model onto the right device, and cuda
     def load_model(pth):
         model = torch.load(pth)
-        print(model, pth)
         model.cpu()
         model.cuda()
         return model
@@ -32,9 +31,9 @@ def load_intermediate(args, full_model):
     interaction_model = load_model("data/temp/interaction_model.pt") if args.inter.interaction.interaction_pretrain > 0 else full_model.interaction_model
     active_model = load_model("data/temp/active_model.pt") if args.inter.passive.pretrain_active else full_model.active_model
 
-    active_optimizer = initialize_optimizer(active_model, args.optimizer, args.optimizer.lr)
-    passive_optimizer = initialize_optimizer(passive_model, args.optimizer, args.optimizer.lr)
-    interaction_optimizer = initialize_optimizer(interaction_model, args.optimizer, args.optimizer.alt_lr)
+    active_optimizer = initialize_optimizer(active_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
+    passive_optimizer = initialize_optimizer(passive_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
+    interaction_optimizer = initialize_optimizer(interaction_model, args.interaction_net.optimizer, args.interaction_net.optimizer.alt_lr)
     return passive_model, active_model, interaction_model, active_optimizer, passive_optimizer, interaction_optimizer
 
 def train_full(full_model, rollouts, test_rollout, args, object_names, environment):
@@ -45,21 +44,20 @@ def train_full(full_model, rollouts, test_rollout, args, object_names, environme
     @param target_name is the name of the object that we want to control using @param control
     '''    
     # initialize the optimizers
-    active_optimizer = initialize_optimizer(full_model.active_model, args.optimizer, args.optimizer.lr)
-    passive_optimizer = initialize_optimizer(full_model.passive_model, args.optimizer, args.optimizer.lr)
-    interaction_optimizer = initialize_optimizer(full_model.interaction_model, args.optimizer, args.optimizer.alt_lr)
+    active_optimizer = initialize_optimizer(full_model.active_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
+    passive_optimizer = initialize_optimizer(full_model.passive_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
+    interaction_optimizer = initialize_optimizer(full_model.interaction_model, args.interaction_net.optimizer, args.interaction_net.optimizer.alt_lr)
 
     # construct proximity batches if necessary
     proximal = get_error(full_model, rollouts, error_type=error_types.PROXIMITY).astype(int)
     non_proximal = (proximal != True).astype(int)
-    non_proximal_weights = non_proximal / np.sum(non_proximal) if np.sum(non_proximal) != 0 else np.ones(non_proximal.shape) / len(non_proximal)
+    non_proximal_weights = non_proximal.squeeze() / np.sum(non_proximal) if np.sum(non_proximal) != 0 else np.ones(non_proximal.shape) / len(non_proximal)
 
     train_passive(full_model, rollouts, args, active_optimizer, passive_optimizer, weights=non_proximal_weights if full_model.proximity_epsilon > 0 else None)
 
     # saving the intermediate model in the case of crashing during subsequent phases
     if args.inter.save_intermediate and args.inter.passive.passive_iters > 0:
         full_model.cpu()
-        print("saving passive and active models")
         torch.save(full_model.passive_model, create_directory("data/temp/") + "passive_model.pt")
         torch.save(full_model.active_model, create_directory("data/temp/") + "active_model.pt")
         full_model.cuda()

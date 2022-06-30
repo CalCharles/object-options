@@ -6,6 +6,7 @@ import imageio as imio
 import os, copy
 from Environment.environment import Environment
 from Environment.Environments.Breakout.breakout_specs import *
+from Record.file_management import numpy_factored
 from gym import spaces
 
 
@@ -17,6 +18,7 @@ class Breakout(Environment):
         super(Breakout, self).__init__()
         # breakout specialized parameters are stored in the variant
         self.variant = breakout_variant
+        self.self_reset = True
 
         # environment properties
         self.num_actions = 4 # this must be defined, -1 for continuous. Only needed for primitive actions
@@ -25,7 +27,7 @@ class Breakout(Environment):
         self.frameskip = 1 # no frameskip
 
         # spaces
-        self.action_shape = (1,) # should be set in the environment, (1,) is for discrete action environments
+        self.action_shape = (1,)
         self.action_space = spaces.Discrete(self.num_actions) # gym.spaces
         self.observation_space = spaces.Box(low=0, high=255, shape=(84, 84), dtype=np.uint8) # raw space, gym.spaces
         self.seed_counter = -1
@@ -46,7 +48,7 @@ class Breakout(Environment):
 
         # factorized state properties
         self.object_names = ["Action", "Paddle", "Ball", "Block", 'Done', "Reward"]
-        self.object_sizes = {"Action": 5, "Paddle": 5, "Ball": 5, "Block": 5, 'Done': 1, "Reward": 1}
+        self.object_sizes = {"Action": 1, "Paddle": 5, "Ball": 5, "Block": 5, 'Done': 1, "Reward": 1}
         self.object_name_dict = dict() # initialized in reset
         self.object_range = ranges
         self.object_dynamics = dynamics
@@ -276,7 +278,8 @@ class Breakout(Environment):
 
     def get_state(self):
         self.render()
-        return {"raw_state": self.frame, "factored_state": {**{obj.name: obj.getMidpoint() + obj.vel.tolist() + [obj.getAttribute()] for obj in self.objects}, **{'Done': [self.done], 'Reward': [self.reward]}}}
+        state =  {"raw_state": self.frame, "factored_state": numpy_factored({**{obj.name: obj.getMidpoint() + obj.vel.tolist() + [obj.getAttribute()] for obj in self.objects}, **{'Done': [self.done], 'Reward': [self.reward]}})}
+        return state
 
     def clear_interactions(self):
         self.ball.clear_hits()
@@ -335,7 +338,6 @@ class Breakout(Environment):
                 needs_ball_reset = True
                 self.dropped = True
                 self.since_last_bounce = 0
-                break
 
             # end of episode by dropping
             if self.ball.losses == 5 or (self.dropped and self.drop_stopping):
@@ -429,18 +431,21 @@ class Breakout(Environment):
         if render: self.render_frame()
         # TODO: set the info from the factored state as well
 
-    def get_trace(self, factored_state, action, names):
-        # gets the trace for a factored state, using the screen. If we don't want to screen to change, use a dummy screen here
-        self.set_from_factored_state(factored_state)
-        self.step(action)
+    def current_trace(self, names):
         targets = [self.object_name_dict[names.target]] if type(self.object_name_dict[names.target]) != list else self.object_name_dict[names.target]
         traces = list()
         for target in targets:
-            if target.name in self.object_name_dict[names.primary_parent].interaction_trace:
+            if self.object_name_dict[names.primary_parent].name in target.interaction_trace:
                 traces.append(1)
             else:
                 traces.append(0)
         return traces
+
+    def get_trace(self, factored_state, action, names):
+        # gets the trace for a factored state, using the screen. If we don't want to screen to change, use a dummy screen here
+        self.set_from_factored_state(factored_state)
+        self.step(action)
+        return self.current_trace(names)
 
     def demonstrate(self):
         action = 0

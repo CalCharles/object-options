@@ -6,13 +6,13 @@ class HistorySampler(Sampler):
         self.sample_raw = kwargs["sample_raw"]
         super().__init__(**kwargs)
         self.epsilon = 1e-5
-        self.active_filtered = self.masking.filtered_active_set.copy()
+        self.active_filtered = self.mask.filtered_active_set.copy()
 
 
     def sample(self, full_state):
         '''
         samples a new value: full_state
         '''
-        use_set = self.masking.active_set if self.sample_raw else self.active_filtered
+        use_set = self.mask.active_set if self.sample_raw else self.active_filtered
         target = use_set[np.random.randint(len(use_set))]
-        return use_set
+        return target, self.mask.active_mask

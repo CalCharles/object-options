@@ -29,7 +29,7 @@ if __name__ == "__main__":
     args.seed = args.seed if args.seed >= 0 else np.random.randint(10000)
     args.render = args.demonstrate or args.render
     # first argument is num frames, second argument is save path
-    environment, record = initialize_environment(args)
+    environment, record = initialize_environment(args, args)
     for i in range(args.num_frames):
         action = environment.action_space.sample() if not args.demonstrate else environment.demonstrate()
         full_state, reward, done, info = environment.step(action)

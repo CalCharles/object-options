@@ -1,11 +1,42 @@
 import yaml
+import copy
 from State.object_dict import ObjDict
+
+network_args = {    
+    "net_type": "mlp",
+    "use_layer_norm": False,
+    "hidden_sizes": list(),
+    "init_form": "",
+    "activation": "relu",
+    "activation_final": "none",
+    "pair": {
+        "drop_first": False,
+        "reduce_function": "mean",
+    },
+    "optimizer": {
+        "lr": 1e-4,
+        "alt_lr": 1e-5,
+        "eps": 1e-5,
+        "alpha": 0.99,
+        "betas": [0.9, 0.999],
+        "weight_decay": 0.00
+    },
+}
+
 
 expected_args = {
     "record": {
         "record_rollouts": "",
         "record_recycle": -1,
-        'save_dir': ""
+        'save_dir': "",
+        'load_dir': "",
+        'load_checkpoint': "",
+        'checkpoint_dir': "",
+        "pretrain_dir": "",
+        'save_action': False, # saves in record_rollouts, saves the whole action chain and the param
+        "save_interval": 0,
+        "log_filename": "",
+        "refresh": False,
     },
     "environment": {
         "env": None,
@@ -21,12 +52,16 @@ expected_args = {
         "cuda": True,
     },
     "train": {
-        "num_frames": 1000,
-        "train_edge": [],
+        "train": False,
+        "num_frames": 0,
+        "train_edge": list(),
         "load_rollouts": "",
         "train_test_ratio": 0.9,
-        "num_iters": 10000,
+        "train_test_order": "random",
+        "num_iters": 0,
+        "pretrain_frames": 0,
         "batch_size": 128,
+        "num_steps": 0
     },
     "inter": {
         "predict_dynamics": False,
@@ -52,26 +87,87 @@ expected_args = {
             "intrain_passive": False,
         },
     },
-    "network": {
-        "net_type": "mlp",
-        "use_layer_norm": False,
-        "hidden_sizes": [],
-        "init_form": "",
-        "activation": "relu",
-        "activation_final": "none",
-        "pair": {
-            "drop_first": False,
-            "reduce_function": "mean",
+    "mask": {
+        "min_sample_difference": 1,
+        "var_cutoff": [0.1],
+        "num_samples": 30,
+    },
+    "sample": { # TODO NEW
+        "sample_type": "uni",
+        "sample_distance": -1,
+        "sample_schedule": -1,
+        "sample_raw": False,
+        "param_recycle": -1,
+    },
+    "extract": {
+        "obs_setting": [0, 0, 0, 0, 0, 0, 0, 0],
+        "combine_param_mask": True
+    },
+    "option": { # mostly terminate and reward parameters
+        "term_form": "param",
+        "term_as_done": False,
+        "true_done": True,
+        "epsilon_close": -1,
+        "param_norm": 1,
+        "constant_lambda": 0,
+        "param_lambda": -1,
+        "inter_lambda": -1,
+        "temporal_extend": -1,
+        "time_cutoff": 0,
+    },
+    "action": {
+        "use_relative_action": False,
+        "relative_action_ratio": -1,
+        "min_active_size": 10,
+        "discrete_params": False,
+    },
+    "collect": {
+        "buffer_len": 100000,
+        "prioritized_replay": list(),
+        "test_episode": True,
+        "max_steps": 1000,
+        "terminate_reset": False,
+        "aggregator": {
+            "sum_rewards": False,
+            "only_termination": False,
+        },
+    },
+    "policy": {
+        "learning_type": "dqn",
+        "epsilon_random": 0.0,
+        "epsilon_schedule": -1,
+        "rainbow": {
+                    "num_atoms": 51,
+        },
+        "learn": {
+            "grad_epoch": 10,
+            "sample_form": "merged",
+        },
+        "discount_factor": 0.99,
+        "lookahead": 2,
+        "max_critic": -1,
+        "reward_normalization": False,
+        "tau": 0.005,
+        "sac_alpha": 0.2,
+        "logging": {
+            "log_interval": 5,
+            "train_log_maxlen": 0,
+            "test_log_maxlen": 0,
+            "initial_trials": 10,
+            "test_trials": 10,
+            "max_terminate_step": [0,0]
         }
     },
-    "optimizer": {
-        "lr": 1e-4,
-        "alt_lr": 1e-5,
-        "eps": 1e-5,
-        "alpha": 0.99,
-        "betas": [0.9, 0.999],
-        "weight_decay": 0.00
-    }
+    "hindsight": {
+        "use_her": False,
+        "resample_timer": -1,
+        "select_positive": 0.5,
+        "interaction_resample": False,
+        "max_hindsight": -1,
+        "early_stopping": False,
+        "interaction_criteria": 0,
+    },
+    "network": copy.deepcopy(network_args),
 }
 
 def read_config(pth):
@@ -86,10 +182,11 @@ def read_config(pth):
 
 def construct_namespace(data):
     args = ObjDict()
-    print(data, expected_args)
     def add_data(add_dict, data_dict, exp_dict):
+        if data_dict is None: # if only the name is returned, create a new dict to fill with values
+            data_dict = ObjDict()
         for key in exp_dict.keys():
-            if type(exp_dict[key]) == dict: # if we have a dict recursively call
+            if type(exp_dict[key]) == dict or type(exp_dict[key]) == ObjDict: # if we have a dict recursively call
                 new_add = ObjDict()
                 add_dict[key] = add_data(new_add, data_dict[key] if key in data_dict else dict(), exp_dict[key])
             else: # exp_dict contains the default values
@@ -97,12 +194,19 @@ def construct_namespace(data):
                 # handling special characters
                 if add_dict[key] == "None": add_dict[key] = None
                 elif add_dict[key] == "[]": add_dict[key] = list()
-                elif type(add_dict[key]) == str and len(add_dict[key].split(" ")) > 1: 
-                    try:
-                        add_dict[key] = [float(v) for v in add_dict[key].split(" ")]
-                    except ValueError as e:
-                        add_dict[key] = add_dict[key].split(" ")
+                elif type(exp_dict[key]) == list and key in data_dict:
+                    if type(data_dict[key]) != str:
+                        add_dict[key] = [data_dict[key]]
+                    else:
+                        try:
+                            add_dict[key] = [float(v) for v in add_dict[key].split(" ")]
+                        except ValueError as e:
+                            add_dict[key] = add_dict[key].split(" ")
         return add_dict
     args = add_data(args, data, expected_args)
-    print("args", args, args.train)
+    for key in data.keys():
+        if key.find("_net") != -1: # _net 
+            vargs = add_data(ObjDict(), data[key], args.network)
+            args[key] = vargs
+            print(vargs)
     return add_data(args, data, expected_args)

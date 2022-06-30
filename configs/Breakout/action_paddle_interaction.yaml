@@ -2,6 +2,8 @@
   record:
     record_rollouts: ""
     record_recycle: -1
+    # load_dir: /nfs/data/calebc/object_data/breakout/testrun/
+    save_dir: /nfs/data/calebc/object_data/breakout/testrun/
   environment:
     env: Breakout
     render: False
@@ -14,20 +16,21 @@
     gpu: 0
     no_cuda: False
   train:
+    train: True
     num_frames: 1000
     train_edge: Action Paddle
-    load_rollouts: /hdd/datasets/object_data/breakout/random
-    train_iters: 20000
+    load_rollouts: /nfs/data/calebc/object_data/breakout/random/
+    num_iters: 7500
     batch_size: 64
   inter:
     predict_dynamics: True
-    interaction_testing: 0.9 -16 -16 -1
+    interaction_testing: 0.9 -13 -16 -1
     interaction_iters: 0
-    load_intermediate: True
-    save_intermediate: False
+    # load_intermediate: False
+    save_intermediate: True
     compare_trace: True
     passive:
-      passive_iters: 0
+      passive_iters: 5000
       passive_log_interval: 100
       pretrain_active: True
     active:
@@ -37,14 +40,14 @@
       interaction_weighting: -1 -1
     combined:
       weighting: -13, 1, 1, -1
-  network:
+  interaction_net:
     hidden_sizes: 256 256
     net_type: mlp
-  optimizer:
-    lr: .0001
-    alt_lr: .0001
-    eps: .00001
-    alpha: 0.99
-    betas: 0.9 0.999
-    weight_decay: 0.00
+    optimizer:
+      lr: .0001
+      alt_lr: .0001
+      eps: .00001
+      alpha: 0.99
+      betas: 0.9 0.999
+      weight_decay: 0.00
 ...

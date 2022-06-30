@@ -105,16 +105,27 @@ def numpy_factored(factored_state):
         factored_state[n] = np.array(factored_state[n])
     return factored_state
 
-def action_toString(action):
-    if type(action) == list: 
-        action = np.array(action)
-    if type(action) == np.ndarray:
-        action = action.squeeze()
-    else:
-        return str(action)
-    if len(action.shape) == 0:
-        return str(action)
-    return ",".join(map(str, action))
+def write_string(file_str, wstring):
+    option_dumps = open(file_str, 'a')
+    option_dumps.write(wstring)
+    option_dumps.close()
+
+
+def action_chain_string(action):
+    # expects a list of lists or individual values, returns tab separated actions, and comma separated values
+    action_str = ""
+    for a in action:
+        if type(a) == list: 
+            a = np.array(action)
+        if type(a) == np.ndarray:
+            a = a.squeeze()
+            if len(a.shape) == 0:
+                action_str += str(a) + '\t' # a single value string
+            else: 
+                action_str += ",".join(map(str, a)) + '\t'
+        else:
+            action_str += str(a) + '\t'
+    return action_str[:-1]
 
 def read_action_dumps(pth, i=0, rng=-1, filename='action_dumps.txt', indexed=False):
     action_dumps = list()

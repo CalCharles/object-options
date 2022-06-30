@@ -40,7 +40,7 @@ class Environment():
         self.object_sizes = dict() # must be initialized, a dictionary of name to length of the state
         self.object_range = dict() # the minimum and maximum values for a given feature of an object
         self.object_dynamics = dict() # the most that an object can change in a single time step
-        self.object_instanced = dict() # name of object to boolean if instanced
+        self.object_instanced = dict() # name of object to max number of objects of that type
 
         # proximity state components
         self.position_masks = dict() 

@@ -5,18 +5,18 @@ from Causal.Utils.get_error import get_error, error_types
 def separate_weights(weighting, full_model, rollouts, proximity, trace):
     passive_error = get_error(full_model, rollouts, error_type = error_types.PASSIVE)
     passive_error_cutoff, passive_error_upper, weighting_ratio, weighting_schedule = weighting
-    if weighting[2] > 0:
+    if weighting_ratio > 0:
         # weighting hyperparameters, if passive_error_cutoff > 0 then using passive weighting
-        
+
         # make passive error weights binary
         binaries = passive_error
         binaries[binaries<=passive_error_cutoff] = 0
         binaries[binaries>passive_error_upper] = 0 # if the error is too high, this might be an anomaly
         binaries[binaries>passive_error_cutoff] = 1
 
-        # use proximity to narrow the range of weights
-        if args.inter.proximity_epsilon > 0: weights = (weights.astype(int) * proximity.astype(int)).astype(np.float128)
-        weights = get_weights(weighting_ratio, weights)
+        # use proximity to narrow the range of weights, if proximity is not used, these should be ones TODO: replace with feasibility?
+        binaries = (binaries.astype(int) * proximity.astype(int)).astype(np.float128).squeeze()
+        weights = get_weights(weighting_ratio, binaries)
     elif trace is not None:
         passive_error = trace.copy()
         binaries = torch.max(trace, dim=1)[0].squeeze() if full_model.multi_instanced else trace

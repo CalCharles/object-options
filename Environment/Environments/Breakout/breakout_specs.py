@@ -1,8 +1,8 @@
 import numpy as np
 
 ranges = {
-	"Action": [np.array([0,0,0,0,0]).astype(np.float64), np.array([0,0,0,0,4]).astype(np.float64)],
-	"Paddle": [np.array([71.9, 0, 0, 0, 0.9]).astype(np.float64), np.array([72.1, 84, 0, 0, 1.1]).astype(np.float64)],
+	"Action": [np.array([0]).astype(np.float64), np.array([3]).astype(np.float64)],
+	"Paddle": [np.array([71.9, 5, 0, 0, 0.9]).astype(np.float64), np.array([72.1, 71, 0, 0, 1.1]).astype(np.float64)],
 	"Ball": [np.array([0, 0, -2, -1, 0.9]).astype(np.float64), np.array([84, 84, 2, 1, 1.1]).astype(np.float64)],
 	"Block": [np.array([10, 0, 0, 0, 0]).astype(np.float64), np.array([58, 84, 0, 0, 1]).astype(np.float64)],
 	"Done": [np.array([0]).astype(np.float64), np.array([1]).astype(np.float64)],
@@ -10,7 +10,7 @@ ranges = {
 }
 
 dynamics = {
-    "Action": [np.array([0,0,0,0,-4]).astype(np.float64), np.array([0,0,0,0,4]).astype(np.float64)],
+    "Action": [np.array([-3]).astype(np.float64), np.array([3]).astype(np.float64)],
     "Paddle": [np.array([0, -2, 0, 0, 0]).astype(np.float64), np.array([0, 2, 0, 0, 0]).astype(np.float64)],
     "Ball": [np.array([-2, -1, -4, -2, 0]).astype(np.float64), np.array([2, 1, 4, 2, 0]).astype(np.float64)],
     "Block": [np.array([0, 0, 0, 0, 0]).astype(np.float64), np.array([0, 0, 0, 0, 0]).astype(np.float64)],
@@ -20,7 +20,7 @@ dynamics = {
 
 
 position_masks = {
-    "Action": np.array([0,0,0,0,0]),
+    "Action": np.array([0]),
     "Paddle": np.array([1,1,0,0,0]),
     "Ball": np.array([1,1,0,0,0]),
     "Block": np.array([1,1,0,0,0]),
@@ -29,18 +29,19 @@ position_masks = {
 }
 
 instanced = {
-    "Action": False,
-    "Paddle": False,
-    "Ball": False,
-    "Block": True,
-    "Done": False,
-    "Reward": False,
+    "Action": 1,
+    "Paddle": 1,
+    "Ball": 1,
+    "Block": 100,
+    "Done": 1,
+    "Reward": 1,
 }
 
 
 # var_form, num_rows, num_columns, hit_reset, negative_mode, bounce_cost, bounce_reset, completion_reward, timeout_penalty, drop_stopping
 # var_form, num_rows, num_columns, max_block_height, hit_reset, negative_mode, random_exist, bounce_cost, bounce_reset, completion_reward, timeout_penalty, drop_stopping
 breakout_variants = {"default": (0,5, 20,4, -1, "", -1, 0,0, 0,-10, False),
+                     "drop_stopping": (0,5, 20,4, -1, "", -1, 0,0, 0,-10, True),
                      "row":  (0,1,10,4,-1,"", -1, 0,0, 0,-10, False),
                      "small": (0,2,10,4,-1,"", -1, 0,0, 0,-10, False), 
                     "row_nobreak": (0,1,10,4,10,"", -1, 0,0, 0,-1, False), 

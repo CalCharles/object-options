@@ -9,6 +9,7 @@ import copy
 import cv2
 from Environments.environment_specification import RawEnvironment
 from Environment.environments.RoboPushing.robopushing_specs import *
+from Record.file_management import numpy_factored
 from collections import deque
 import robosuite.utils.macros as macros
 macros.SIMULATION_TIMESTEP = 0.02
@@ -24,6 +25,7 @@ PLANAR_MODE = 2
 class RoboPushing(Environments):
     def __init__(self, variant="default", horizon=30, renderable=False):
         super().__init__()
+        self.self_reset = True
         self.variant=variant
         control_freq, num_obstacles, standard_reward, goal_reward, obstacle_reward, out_of_bounds_reward, mode  = variants[variant]
         self.mode = mode
@@ -89,6 +91,7 @@ class RoboPushing(Environments):
         self.num_obstacles = num_obstacles
         self.objects = ["Action", "Gripper", "Block"] + ["Obstacle" + str(i) for i in range(num_obstacles)] + ["Target", "Reward", "Done"]
         self.object_instanced = instanced
+        self.object_instanced["Obstacle"] = num_obstacles
 
         # position mask
         self.position_masks = position_masks
@@ -103,7 +106,7 @@ class RoboPushing(Environments):
         obs_dict['Reward'], obs_dict['Done'] = [self.reward], [self.done]
 
     def construct_full_state(self, factored_state, raw_state):
-        self.full_state = {'raw_state': raw_state, 'factored_state': factored_state}
+        self.full_state = {'raw_state': raw_state, 'factored_state': numpy_factored(factored_state)}
         return self.full_state
 
     def set_action(self, action):

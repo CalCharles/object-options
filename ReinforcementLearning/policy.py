@@ -6,35 +6,26 @@ from torch.autograd import Variable
 from torch.distributions import Independent, Normal
 import torch.optim as optim
 import copy, os, cv2
-from file_management import default_value_arg
-from Networks.network import Network, pytorch_model
-from Networks.tianshou_networks import networks, RainbowNetwork
-from Networks.critic import BoundedDiscreteCritic, BoundedContinuousCritic
-from tianshou.utils.net.continuous import Actor, Critic, ActorProb
-cActor, cCritic = Actor, Critic
-from tianshou.utils.net.discrete import Actor, Critic
-dActor, dCritic = Actor, Critic
 from tianshou.exploration import GaussianNoise, OUNoise
 from tianshou.data import Batch, ReplayBuffer
 import tianshou as ts
 import gym
 from typing import Any, Dict, Tuple, Union, Optional, Callable
-from ReinforcementLearning.LearningAlgorithm.iterated_supervised_learner import IteratedSupervisedPolicy
-from ReinforcementLearning.LearningAlgorithm.HER import HER
-from Rollouts.rollouts import ObjDict
+
+from ReinforcementLearning.ts.utils import init_networks, init_algorithm, assign_device, reassign_optim
+from State.object_dict import ObjDict
 
 
 _actor_critic = ['ddpg', 'sac']
 _double_critic = ['sac']
 
-# TODO: redo this one
-class TSPolicy(nn.Module):
+class Policy(nn.Module):
     '''
     wraps around a TianShao Base policy, but supports most of the same functions to interface with Option.option.py
     Note that TianShao Policies also support learning
 
     '''
-    def __init__(self, discrete_actions, input_shape, action_shape, args):
+    def __init__(self, discrete_actions, input_shape, policy_action_space, args):
         '''
         @param input shape is the shape of the input to the network
         @param paction space is a gym.space corresponding to the ENVIRONMENT action space
@@ -46,36 +37,40 @@ class TSPolicy(nn.Module):
             network args: max critic, cuda, policy type, gpu (device), hidden sizes, actor_lr, critic_lr, aggregate final, post dim, 
         '''
         super().__init__()
-        self.algo_name = args.learning_type # the algorithm being used
+        self.algo_name = args.policy.learning_type # the algorithm being used
         
         # initialize networks
-        nets_optims = init_networks(args, input_shape, action_shape, discrete_actions)
+        nets_optims = init_networks(args, input_shape, policy_action_space.n if discrete_actions else policy_action_space.shape[0], discrete_actions)
+        self.critic_lr, self.actor_lr = args.critic_net.optimizer.lr, args.actor_net.optimizer.lr
 
         # initialize tianshou lower level
-        self.algo_policy = init_algorithm(args, nets_optims)
+        self.algo_policy = init_algorithm(args, nets_optims, policy_action_space, discrete_actions)
 
         # intialize epsilon values for randomness
-        self.epsilon = 1 if self.epsilon_schedule > 0 else args.epsilon
-        self.epsilon_schedule = args.epsilon_schedule # if > 0, adjusts epsilon from 1->args.epsilon by exp(-steps/epsilon schedule)
+        self.epsilon_schedule = args.policy.epsilon_schedule
+        self.epsilon = 1 if self.epsilon_schedule > 0 else args.policy.epsilon_random
+        self.epsilon_schedule = args.policy.epsilon_schedule # if > 0, adjusts epsilon from 1->args.epsilon by exp(-steps/epsilon schedule)
         self.epsilon_timer = 0 # timer to record steps
-        self.epsilon_base = args.epsilon
+        self.epsilon_base = args.policy.epsilon_schedule
         self.set_eps(self.epsilon)
 
         # other parameters
         self.discrete_actions = discrete_actions
-        self.grad_epoch = args.grad_epoch
-        self.sample_form = args.sample_form
+        self.grad_epoch = args.policy.learn.grad_epoch
+        self.select_positive = args.hindsight.select_positive
+        self.use_her = args.hindsight.use_her
+        self.sample_form = args.policy.learn.sample_form
 
     def cpu(self):
         super().cpu()
-        assign_device("cpu")
-        reassign_optim(self.algo_policy)
+        assign_device(self.algo_policy, self.discrete_actions, "cpu")
+        reassign_optim(self.algo_policy, self.critic_lr, self.actor_lr)
 
-    def cuda(self, device=None, args=None, critic_lr=1e-5, actor_lr=1e-5):
+    def cuda(self, device=None, args=None):
         super().cuda()
         if device is not None:
-            assign_device(self.algo_policy, device)
-            reassign_optim(self.algo_policy)
+            assign_device(self.algo_policy, self.discrete_actions, device)
+            reassign_optim(self.algo_policy, self.critic_lr, self.actor_lr)
 
     def set_eps(self, epsilon): # not all algo policies have set eps
         self.epsilon = epsilon
@@ -130,13 +125,13 @@ class TSPolicy(nn.Module):
                     return {}
                 her_batch, indice = her_buffer.sample(sample_size)
                 batch = self.algo_policy.process_fn(her_batch, her_buffer, indice)
-            elif self.sample_form == "merged" and len(self.learning_algorithm.replay_buffer) > 1000:
+            elif self.sample_form == "merged" and len(her_buffer) > 1000:
                 if buffer is None or her_buffer is None:
                     return {}
                 self.algo_policy.updating = True
 
                 # sample from the main buffer and assign returns
-                main_batch, main_indice = buffer.sample(int(np.round((1-sample_size) * self.select_positive)))
+                main_batch, main_indice = buffer.sample(int(np.round(sample_size * (1-self.select_positive))))
                 main_batch = self.algo_policy.process_fn(main_batch, buffer, main_indice)
 
                 # sample from the HER buffer and assign returns
@@ -144,9 +139,9 @@ class TSPolicy(nn.Module):
                 her_batch = self.algo_policy.process_fn(her_batch, her_buffer, her_indice)
                 
                 batch = main_batch
-                batch.cat_([main_batch])
+                batch.cat_([her_batch])
             else:
-                use_buffer = her_buffer if np.random.rand() < self.select_positive and self.use_her else buffer
+                use_buffer = her_buffer if np.random.rand() < self.select_positive and self.use_her and len(her_buffer) > 1000 else buffer
                 batch, indice = use_buffer.sample(sample_size)
                 batch = self.algo_policy.process_fn(batch, use_buffer, indice)
 
@@ -157,7 +152,7 @@ class TSPolicy(nn.Module):
             else: 
                 for k in result.keys():
                     cumul_losses[k] += result[k] 
-            if self.sample_merged and len(self.learning_algorithm.replay_buffer) > 1000:
+            if self.sample_form == "merged" and len(her_buffer) > 1000:
                 self.algo_policy.post_process_fn(main_batch, buffer, main_indice)
                 self.algo_policy.post_process_fn(her_batch, her_buffer, her_indice)
             else:

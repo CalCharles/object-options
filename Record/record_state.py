@@ -1,5 +1,5 @@
-import os
-from Record.file_management import append_string, create_directory, action_toString
+import os, time
+from Record.file_management import append_string, create_directory, action_chain_string
 
 class FullRecord():
     def __init__(self, itr, save_dir, recycle, save_raw, all_dir=""):
@@ -29,11 +29,7 @@ class FullRecord():
             state_path = os.path.join(self.save_path, str(self.itr//2000))
             count = self.itr
         create_directory(state_path)
-
-        append_string(os.path.join(self.save_path, "action_dumps.txt"), action_toString(entity_state["Action"]) + "\t")
+        
+        append_string(os.path.join(self.save_path, "action_dumps.txt"), action_chain_string([entity_state["Action"]]) + "\t")
         append_string(os.path.join(self.save_path, "object_dumps.txt"), toString(entity_state) + "\n")
         if self.save_raw: imio.imsave(os.path.join(state_path, "state" + str(count % 2000) + ".png"), frame)
-
-    def _save_mapped_action(self, mapped_act, param, resampled, term):
-        append_string(os.path.join(self.save_path, "option_dumps.txt"), str(self.environment_model.environment.get_itr() - 1) + ":" + action_toString(mapped_act) + "\t")
-        append_string(os.path.join(self.save_path, "param_dumps.txt"), str(self.environment_model.environment.get_itr() - 1) + ":" + action_toString(param) + "|" + str(int(resampled)) + "," + str(int(term)) + "\t")

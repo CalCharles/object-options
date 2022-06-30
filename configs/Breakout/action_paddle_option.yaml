@@ -1,0 +1,78 @@
+---
+  record:
+    # record_rollouts: /nfs/data/calebc/object_data/breakout/testrun/paddle/
+    # record_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle
+    record_recycle: -1
+    log_filename: logs/temp/paddle_train.log
+    load_dir: /nfs/data/calebc/object_data/breakout/testrun/
+    save_dir: /nfs/data/calebc/object_data/breakout/testrun/
+    checkpoint_dir: /nfs/data/calebc/object_data/breakout/testrun/action_paddle_checkpoint
+    save_interval: 100
+  environment:
+    env: Breakout
+    render: False
+    frameskip: 1
+    variant: drop_stopping
+    time_cutoff: -1
+    seed: -1
+    demonstrate: False
+  torch:
+    gpu: 0
+    no_cuda: False
+  train:
+    train: True
+    pretrain_frames: 10
+    num_steps: 90
+    num_frames: 1000
+    train_edge: Action Paddle
+    load_rollouts: /hdd/datasets/object_data/breakout/random
+    num_iters: 600
+    batch_size: 16
+  critic_net:
+  actor_net:
+  network:
+    hidden_sizes: 256 256 256
+    net_type: basic
+    optimizer:
+      lr: .0001
+      alt_lr: .0001
+      eps: .00001
+      alpha: 0.99
+      betas: 0.9 0.999
+      weight_decay: 0.00
+  sample:
+    sample_type: cent
+    sample_distance: 0.4
+    sample_schedule: 200
+    param_recycle: 0.1
+  extract:
+    obs_setting: 1 0 0 0 0 1 1 0
+  option:
+    term_form: combined
+    term_as_done: True
+    epsilon_close: 1
+    param_norm: 1
+    constant_lambda: -1
+    param_lambda: 1
+    inter_lambda: 0
+    temporal_extend: 20
+    time_cutoff: 30
+  collect:
+    buffer_len : 100000
+    test_episode: True
+    max_steps: 1000
+  hindsight:
+    use_her: True
+  policy:
+    logging:
+      log_interval: 10
+      train_log_maxlen: 5
+      test_log_maxlen: 50
+      epsilon_random: 0.1
+      initial_trials: 20
+      test_trials: 10
+      max_terminate_step: 1 30
+    learn:
+      grad_epoch: 50
+      sample_form: merged
+...

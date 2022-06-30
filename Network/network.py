@@ -21,10 +21,12 @@ class Network(nn.Module):
     def cuda(self):
         super().cuda()
         self.iscuda = True
+        return self
 
     def cpu(self):
         super().cpu()
         self.iscuda = False
+        return self
 
     def reset_parameters(self):
         # initializes the weights by iterating through ever layer of the model

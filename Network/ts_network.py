@@ -1,8 +1,12 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from Network.network import pytorch_model, BasicMLPNetwork, PointNetwork, PairNetwork
 import torch.nn.functional as F
+from Network.network_utils import pytorch_model
+from Network.General.mlp import MLPNetwork
+from Network.General.point import PointNetwork
+from Network.General.pair import PairNetwork
+from State.object_dict import ObjDict
 
 class TSNet(nn.Module):
     def __init__(self, **kwargs):
@@ -34,17 +38,19 @@ class TSNet(nn.Module):
 class BasicNetwork(TSNet):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        kwargs = ObjDict(kwargs)
         kwargs["num_outputs"] = self.output_dim
-        self.model = BasicMLPNetwork(**kwargs)
+        self.model = MLPNetwork(kwargs)
         if self.iscuda:
             self.cuda()
 
 class PairPolicyNetwork(TSNet):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        kwargs = ObjDict(kwargs)
         kwargs["aggregate_final"] = True
         kwargs["num_outputs"] = self.output_dim
-        self.model = PairNetwork(**kwargs)
+        self.model = PairNetwork(kwargs)
         if self.iscuda:
             self.cuda()
 
@@ -56,22 +62,23 @@ class RainbowNetwork(TSNet):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        kwargs = ObjDict(kwargs)
         if kwargs['policy_type'] == "pair":
             kwargs["aggregate_final"] = True
             kwargs["num_outputs"] = kwargs['hidden_sizes'][-1]
-            self.model = PairNetwork(**kwargs)
+            self.model = PairNetwork(kwargs)
         if kwargs['policy_type'] == "basic":
             kwargs["num_outputs"] = kwargs['hidden_sizes'][-1]
-            self.model = BasicMLPNetwork(**kwargs)
+            self.model = MLPNetwork(kwargs)
         kwargs["num_inputs"] = kwargs['hidden_sizes'][-1]
         self.num_atoms = kwargs['num_atoms']
         kwargs['hidden_sizes'] = [512]
         kwargs["num_outputs"] = self.num_atoms * self.output_dim
         self._is_dueling = kwargs['is_dueling']
-        self.Q = BasicMLPNetwork(**kwargs)
+        self.Q = MLPNetwork(kwargs)
         if self._is_dueling:
             kwargs["num_outputs"] = self.num_atoms
-            self.V = BasicMLPNetwork(**kwargs)
+            self.V = MLPNetwork(kwargs)
 
 
     def forward(self, obs, state=None, info={}):
@@ -96,4 +103,4 @@ class RainbowNetwork(TSNet):
         probs = logits.softmax(dim=2) # not certain how compatible this is
         return probs, state
 
-networks = {'basic': BasicNetwork, 'pixel': PixelNetwork, 'grid': GridWorldNetwork, 'pair': PairPolicyNetwork}
+networks = {'basic': BasicNetwork, 'pair': PairPolicyNetwork, 'rainbow': RainbowNetwork}
