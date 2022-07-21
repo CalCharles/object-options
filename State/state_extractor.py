@@ -31,7 +31,7 @@ class StateExtractor():
 
         # sizes for first_object_dim, object_size for obs
         self.obs_setting = args.obs_setting # TODO: add additional state to obs
-        self.first_obj_dim, self.obj_dim = self._get_dims()
+        self.first_obj_dim, self.obj_dim, self.post_dim = self._get_dims()
         self.total_size = self._get_size()
 
         # combines the mask with the param
@@ -42,9 +42,9 @@ class StateExtractor():
     def _get_dims(self): # gets the first object dimension and object dimension for multi object-networks
         param, additional, inter, parent, relative, target, param_relative, diff = self.obs_setting
         if self.max_parent_objects > 1:
-            return int(target * self.target_size + param * self.target_size + param_relative * self.target_size + diff * self.target_size), int(relative * self.parent_size + parent * self.parent_size)
+            return int(target * self.target_size + param * self.target_size + param_relative * self.target_size + diff * self.target_size), int(relative * self.parent_size + parent * self.parent_size), self.target_size
         else: # multi-instanced targets or normal target numbers
-            return int(param * self.target_size + inter * self.inter_size + parent * self.parent_size),  int(relative * self.target_size + target * self.target_size + param_relative * self.target_size)
+            return int(param * self.target_size + inter * self.inter_size + parent * self.parent_size),  int(relative * self.target_size + target * self.target_size + param_relative * self.target_size), self.target_size
 
     def _get_size(self): # gets the size of the observation
         param, additional, inter, parent, relative, target, param_relative, diff = self.obs_setting
@@ -63,9 +63,11 @@ class StateExtractor():
         else: expanded[mask] = mapped_action
         return expanded
 
-    def param_mask(self, param, mask): # combines the param with the mask, if necessary, and normalizes
-        return self.norm(param) * mask if self.combine_param_mask else self.norm(param)
+    def param_mask(self, param, mask, normalize=True): # combines the param with the mask, if necessary, and normalizes
+        if normalize: return self.norm(param) * mask if self.combine_param_mask else self.norm(param)
+        return param * mask if self.combine_param_mask else param
 
+    # Most getters are rarely used, since ObservationExtractor handles gets internally
     def get_raw(self, full_state, norm=False):
         if norm: return self.norm(full_state["raw_state"], form = "raw")
         else: return full_state["raw_state"]
@@ -75,11 +77,11 @@ class StateExtractor():
         return self.target_select(full_state["factored_state"])
 
     def get_inter(self, full_state, norm=False):
-        if norm: self.norm(self.inter_select(full_state["factored_state"]), form="inter")
+        if norm: return self.norm(self.inter_select(full_state["factored_state"]), form="inter")
         return self.inter_select(full_state["factored_state"])
 
     def get_diff(self, last_full, full_state, norm=False):
-        if norm: self.norm(self.target_select(full_state["factored_state"]) - self.target_select(last_full["factored_state"]), form="diff")
+        if norm: return self.norm(self.target_select(full_state["factored_state"]) - self.target_select(last_full["factored_state"]), form="diff")
         return self.target_select(full_state["factored_state"]) - self.target_select(last_full["factored_state"])
 
     def get_additional(self, full_state, norm=False):
@@ -89,15 +91,15 @@ class StateExtractor():
         else: return self.additional_select(full_state["factored_state"])
 
     def get_parent(self, full_state, norm=False):
-        if norm: self.norm(self.parent_select(full_state["factored_state"]), form="parent")
+        if norm: return self.norm(self.parent_select(full_state["factored_state"]), form="parent")
         return self.parent_select(full_state["factored_state"])
 
+    # Observation extractor getters
     def get_obs(self, last_state, full_state, param, mask, raw = False):
-        if not hasattr(self, "observation_extractor"): self.observation_extractor = ObservationExtractor(self) #TODO: REMOVE THIS
         return self.observation_extractor.get_obs(last_state, full_state, param, mask, raw)
 
-    def reverse_obs_norm(self, obs):
-        return self.observation_extractor.reverse_obs_norm(obs)
+    def reverse_obs_norm(self, obs, mask=None):
+        return self.observation_extractor.reverse_obs_norm(obs, mask=mask)
 
     def assign_param(self, full_state, obs, param, mask):
         return self.observation_extractor.assign_param(full_state, obs, param, mask)

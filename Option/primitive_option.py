@@ -30,6 +30,8 @@ class PrimitiveOption(Option): # primitive discrete actions
         self.temporal_extension_manager = None
         self.initiation_set = None # TODO: handle initiation states
         self.next_option = None
+        self.interaction_model = None
+        self.inline_trainer = ObjDict({'interaction_model': None})
         # cuda handling
         self.iscuda = False
         self.device = None
@@ -55,11 +57,15 @@ class PrimitiveOption(Option): # primitive discrete actions
     def extended_action_sample(self, batch, state_chain, term_chain, ext_terms, random=False, use_model=False):
         return (*self.sample_action_chain(batch, state_chain, random, use_model), True)
 
+    def assign_interaction_model(self, interaction_model):
+        self.interaction_model = interaction_model
+        return interaction_model
+
     def sample_action_chain(self, batch, state, random=False, use_model=False): # param is an int denoting the primitive action, not protected (could send a faulty param)
         sq_param = batch['param'].squeeze()
         if random: sq_param = self.action_map.sample()
         chain = [np.array(sq_param)]
         return sq_param, chain, None, list(), [np.ones(sq_param.shape)] # chain is the action as an int, policy batch is None, state chain is a list, resampled is True
 
-    def terminate_reward_chain(self, state, next_state, param, chain, mask=None, needs_reward=False):
+    def terminate_reward_chain(self, state, next_state, param, chain, mask=None, masks=None, true_done= None, true_reward=None, needs_reward=False, ):
         return 1, [0], [1], True, True

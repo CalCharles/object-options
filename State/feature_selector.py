@@ -11,9 +11,9 @@ def tensor_state(factored_state, cuda=False):
         fs[k] = pytorch_model.wrap(fs[k], cuda=cuda)
     return fs
 
-def broadcast(arr, size, cat=True): # always broadcasts on axis 0
-    if cat: return np.concatenate([arr.copy() for i in range(size)], axis= 0)
-    return np.stack([arr.copy() for i in range(size)], axis=0)
+def broadcast(arr, size, cat=True, axis=0): # always broadcasts on axis 0
+    if cat: return np.concatenate([arr.copy() for i in range(size)], axis= axis)
+    return np.stack([arr.copy() for i in range(size)], axis=axis)
 
 def sample_feature(feature_range, step, idx, states):
     all_states = [] # states to return
@@ -36,13 +36,14 @@ def construct_object_selector(names, environment, masks=None):
     '''
     constructs a selector to select the elements of all the objects in names\
     masks will select particular features from that object, one mask for each object
+    This should be the only entry point for constructing feature selectors
     '''
     factored = dict()
     if masks is None: masks = [np.ones(environment.object_sizes[name]) for name in names] # if no masks select all features
     for mask, name in zip(masks, names):
         sze = environment.object_sizes[name]
         factored[name] = np.arange(sze)[np.array(mask).astype(bool)]
-    return FeatureSelector(factored, names)
+    return FeatureSelector(factored, names, multiinstanced={name: environment.object_instanced[name] != 1 for name in names})
 
 def numpy_factored(factored_state):
     for n in factored_state.keys():
@@ -50,13 +51,14 @@ def numpy_factored(factored_state):
     return factored_state
 
 class FeatureSelector():
-    def __init__(self, factored_features, names):
+    def __init__(self, factored_features, names, multiinstanced=None):
         '''
         factored_features: a dict of the entity name and the feature indices as a numpy array, with only one index per tuple
         names: the order of names for hashes
         '''
         self.factored_features = factored_features
         self.names=names
+        self.multiinstanced = multiinstanced
 
     def __hash__(self):
         # hash is tuple of string names followed by corresponding features
@@ -80,7 +82,18 @@ class FeatureSelector():
         states are dict[name] -> nparray
         target shape can be [batchlen, factored feature shape], or [factored feature shape] 
         '''
-        cut_state = [states[name][...,self.factored_features[name]] for name in self.names]
+        if hasattr(self, "multiinstanced") and self.multiinstanced and np.any([mi for mi in self.multiinstanced.values()]):
+            cut_state = list()
+            for name in self.names:
+                if self.multiinstanced[name]: # iterates through all of the instances
+                    i=0
+                    itr_name = name + str(i)
+                    while itr_name in states:
+                        cut_state.append(states[itr_name][...,self.factored_features[name]])
+                        i += 1
+                        itr_name = name + str(i)
+                else: cut_state += [states[name][...,self.factored_features[name]]]
+        else: cut_state = [states[name][...,self.factored_features[name]] for name in self.names]
         state = np.concatenate(cut_state, axis=-1)
         return state
 

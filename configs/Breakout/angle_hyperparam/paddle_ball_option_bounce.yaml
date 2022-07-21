@@ -1,0 +1,92 @@
+---
+  record:
+    # record_rollouts: /nfs/data/calebc/object_data/breakout/testrun/ball/
+    record_rollouts: /hdd/datasets/object_data/breakout/testrun/ball
+    record_recycle: -1
+    log_filename: logs/temp/angle/bounce4.log
+    load_dir: /nfs/data/calebc/object_data/breakout/testrun/
+    save_dir: /nfs/data/calebc/object_data/breakout/testrun_bounce4/
+    # checkpoint_dir: /nfs/data/calebc/object_data/breakout/testrun/paddle_ball_checkpoint
+    save_interval: 100 #
+  environment:
+    env: Breakout
+    render: False
+    frameskip: 1
+    variant: drop_stopping
+    time_cutoff: -1
+    seed: -1
+    demonstrate: False
+  torch:
+    gpu: 0
+    no_cuda: False
+  train:
+    train: True
+    pretrain_frames: 10000 # 
+    num_steps: 250 #
+    num_frames: 1000
+    train_edge: Paddle Ball
+    load_rollouts: /hdd/datasets/object_data/breakout/paddle
+    num_iters: 40000
+    batch_size: 128 # 
+  critic_net:
+  actor_net:
+  network:
+    hidden_sizes: 128 128 128 128 128 128
+    net_type: basic
+    optimizer:
+      lr: .0001
+      alt_lr: .0001
+      eps: .00001
+      alpha: 0.99
+      betas: 0.9 0.999
+      weight_decay: 0.00
+  sample:
+    sample_type: hist
+    param_recycle: 0.1
+  extract:
+    obs_setting: 1 0 0 1 1 1 0 0
+  option:
+    term_form: combined
+    term_as_done: True
+    epsilon_close: 0.5
+    param_norm: 1
+    constant_lambda: -0.1
+    param_lambda: 200
+    inter_lambda: 1
+    temporal_extend: 4
+    time_cutoff: 300
+    interaction_as_termination: True
+  collect:
+    buffer_len : 300000
+    test_episode: True
+    max_steps: 1000
+    prioritized_replay: 0.2 0.4
+    aggregator:
+      sum_rewards: False
+  hindsight:
+    use_her: True
+    select_positive: 0.1
+    max_hindsight: 20
+    interaction_resample: False
+    interaction_criteria: 1
+    min_replay_len: 3
+  policy:
+    lookahead: 5
+    learning_type: ddpg
+    tau: .001
+    max_critic: 100
+    epsilon_random: 0.1
+    logging:
+      log_interval: 10
+      train_log_maxlen: 5
+      test_log_maxlen: 50
+      initial_trials: 20 #
+      test_trials: 10 #
+      max_terminate_step: 1 300
+    learn:
+      grad_epoch: 50
+      sample_form: merged
+  action:
+    use_relative_action: True
+    relative_action_ratio: 0.2
+...

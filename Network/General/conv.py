@@ -6,11 +6,11 @@ import torch.optim as optim
 import numpy as np
 
 class ConvNetwork(Network): # basic 1d conv network 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.object_dim = kwargs["object_dim"]
-        self.output_dim = kwargs["output_dim"]
-        include_last = kwargs['include_last']
+    def __init__(self, args):
+        super().__init__(args)
+        self.object_dim = args.object_dim
+        self.output_dim = args.output_dim # slightly different in meaning from num_outputs
+        include_last = args.include_last
 
         if len(self.hs) == 0:
             layers = [nn.Conv1d(self.object_dim, self.output_dim, 1)]
@@ -33,4 +33,5 @@ class ConvNetwork(Network): # basic 1d conv network
 
     def forward(self, x):
         x = self.model(x)
+        x = self.activation_final(x)
         return x

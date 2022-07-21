@@ -22,13 +22,16 @@ def fill_buffer(environment, data, args, object_names, norm):
         additional_state = args.parent_select(factored_state)
 
         # compute trace should give back if there is a true interaction at a state
-        trace = environment.get_trace(factored_state, act, object_names)
+        inst_trace = environment.get_trace(factored_state, act, object_names)
+        if len(inst_trace) > 1: trace = [np.sum(inst_trace)] # we don't store per-instance traces
+        else: trace = inst_trace.copy()
 
         # add one step to the buffer
-        buffer.add(Batch(act=act, done=last_done, rew=rew, target=target, next_target=next_target, target_diff=target_diff,
-                        trace=trace, obs=inter_state, inter_state=inter_state, parent_state=parent_state, additional_state=additional_state,
-                        inter=0.0, mask=np.ones(target.shape).astype(float), weight_binary=0)) # the last row are dummy placeholders
-
+        # print(factored_state["Done"], target, next_target)
+        buffer.add(Batch(act=act, done=factored_state["Done"], true_done=factored_state["Done"], rew=rew, target=target, next_target=next_target, target_diff=target_diff,
+                        trace=trace, inst_trace = inst_trace, obs=inter_state, inter_state=inter_state, parent_state=parent_state, additional_state=additional_state,
+                        inter=0.0, proximity=False, mask=np.ones(target.shape).astype(float), weight_binary=0)) # the last row are dummy placeholders
+        # print(buffer.done.shape, factored_state["Done"])
         last_done = factored_state["Done"]
         factored_state = next_factored_state
     return buffer

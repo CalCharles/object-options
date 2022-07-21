@@ -6,24 +6,30 @@ def compute_norm(mean, var, state):
 	state = pytorch_model.unwrap(state)
 	if state.shape[-1] == len(mean): # not multiple instanced
 		return (state - mean) / var
-	mean, var = broadcast(mean, len(state) // len(var)),  broadcast(var, len(state) // len(var))
-	return state - mean / var
+	mean, var = broadcast(mean, state.shape[-1] // len(var)),  broadcast(var, state.shape[-1] // len(var))
+	return (state - mean) / var
 
 def compute_reverse(mean,var, state):
 	state = pytorch_model.unwrap(state)
 	if state.shape[-1] == len(mean): # not multiple instanced
 		return state * var + mean
-	mean, var = broadcast(mean, len(state) // len(var)),  broadcast(var, len(state) // len(var))
-	return state * var + mean
+	mean, var = broadcast(mean, state.shape[-1] // len(var)),  broadcast(var, state.shape[-1] // len(var))
+	return state * var + mean	
+
+def generate_multiobject_norm(nl_dict, names, object_counts):
+	firstv = np.concatenate([(broadcast(nl_dict[n][0], object_counts[n])) for n in names], axis=-1)
+	secondv = np.concatenate([(broadcast(nl_dict[n][1], object_counts[n])) for n in names], axis=-1)
+	return (firstv, secondv) 
 
 class NormalizationModule():
-	def __init__(self, lim_dict, dynamics_dict, object_names):
+	def __init__(self, lim_dict, dynamics_dict, object_names, object_counts):
 		self.lim_dict = lim_dict # the bounds of positions for where an object can be
 		self.dynamics_dict = dynamics_dict # the bounds for the amount an object can change in a single timestep
 		# convert min and max in lim_dict to mean and range/2 in norm dict
 		self.norm_dict = {n: ((self.lim_dict[n][1] + self.lim_dict[n][0])/2, (self.lim_dict[n][1] - self.lim_dict[n][0])/2 + 1e-6) for n in lim_dict.keys()}
 		self.dynamics_norm_dict = {n: ((self.dynamics_dict[n][1] + self.dynamics_dict[n][0])/2, (self.dynamics_dict[n][1] - self.dynamics_dict[n][0])/2 + 1e-6) for n in lim_dict.keys()}
 		self.object_names = object_names
+		self.object_counts = object_counts # environment object counts 
 
 		# specify different norms
 		self.raw_norm, self.raw_lim = (128, 128), (0, 256) # assumes images are ranged 256
@@ -31,8 +37,8 @@ class NormalizationModule():
 		self.parent_norm, self.parent_lim = self.norm_dict[self.object_names.primary_parent], self.lim_dict[self.object_names.primary_parent]
 		self.dynamics_norm, self.dynamics_lim = self.dynamics_norm_dict[self.object_names.target], self.dynamics_dict[self.object_names.target]
 		# interaction state norm
-		inter_names = self.object_names.parents + [self.object_names.target]
-		self.inter_norm, self.inter_lim = np.concatenate([self.norm_dict[n] for n in inter_names], axis=-1), np.concatenate([self.lim_dict[n] for n in inter_names], axis=-1)
+		inter_names = self.object_names.parents + self.object_names.additional +  [self.object_names.target]
+		self.inter_norm, self.inter_lim = generate_multiobject_norm(self.norm_dict, inter_names, object_counts), generate_multiobject_norm(self.lim_dict, inter_names, object_counts)
 		self.additional_norm, self.additional_lim = np.concatenate([self.norm_dict[n] for n in self.object_names.additional], axis=-1) if len(self.object_names.additional) > 0 else None, np.concatenate([self.lim_dict[n] for n in self.object_names.additional], axis=-1) if len(self.object_names.additional) > 0 else None
 		
 		self.difference_norm, self.difference_lim = (np.zeros(self.norm_dict[self.object_names.target][0].shape), self.norm_dict[self.object_names.target][1] * 2), (self.target_lim[0] - self.target_lim[1], self.target_lim[0] + self.target_lim[1])

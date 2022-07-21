@@ -15,7 +15,7 @@ class ParamReplayBuffer(ReplayBuffer):
     # TODO: parent is the action that specifies which parent to use
     _reserved_keys = ("obs", "act", "rew", "done", "obs_next", "info", "policy", "param", 
         "mask", "target", "next_target", "target_diff", "terminate", "true_reward", "true_done", "option_resample", 
-        "mapped_act", "inter", "trace", "inter_state", "parent_state", "additional_state", "time", "weight_binary")
+        "mapped_act", "inter", "trace", "inst_trace", "proximity", "inter_state", "parent_state", "additional_state", "time", "weight_binary")
 
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
         """Return a data batch: self[index].
@@ -56,6 +56,8 @@ class ParamReplayBuffer(ReplayBuffer):
             mapped_act = self.mapped_act[indice],
             inter = self.inter[indice],
             trace = self.trace[indice],
+            inst_trace = self.inst_trace[indice],
+            proximity = self.proximity[indice],
             inter_state = self.inter_state[indice],
             parent_state = self.parent_state[indice],
             additional_state = self.additional_state[indice],
@@ -63,55 +65,10 @@ class ParamReplayBuffer(ReplayBuffer):
             time = self.time[indice]
         )
 
-class ParamWeightedReplayBuffer(ParamReplayBuffer):
-    def sample_indices(self, batch_size: int, weights: np.ndarray) -> np.ndarray:
-        """Get a random sample of index with size = batch_size, with @param weights weighting the selection
-        see Tianshou.data.bbase, since most of the code is copied from there
-
-        Return all available indices in the buffer if batch_size is 0; return an empty
-        numpy array if batch_size < 0 or no available index can be sampled.
-        """
-        if self.stack_num == 1 or not self._sample_avail:  # most often case
-            if batch_size > 0:
-                return np.random.choice(self._size, batch_size, p=weights)
-            elif batch_size == 0:  # construct current available indices
-                return np.concatenate(
-                    [np.arange(self._index, self._size),
-                     np.arange(self._index)]
-                )
-            else:
-                return np.array([], int)
-        else:
-            if batch_size < 0:
-                return np.array([], int)
-            all_indices = prev_indices = np.concatenate(
-                [np.arange(self._index, self._size),
-                 np.arange(self._index)]
-            )
-            for _ in range(self.stack_num - 2):
-                prev_indices = self.prev(prev_indices)
-            all_indices = all_indices[prev_indices != self.prev(prev_indices)]
-            if batch_size > 0:
-                return np.random.choice(all_indices, batch_size, p=weights)
-            else:
-                return all_indices
-
-    def sample(self, batch_size: int, weights: np.ndarray) -> Tuple[Batch, np.ndarray]:
-        """Get a random sample from buffer with size = batch_size.
-
-        Return all the data in the buffer if batch_size is 0.
-
-        :return: Sample data and its corresponding index inside the buffer.
-        """
-        indices = self.sample_indices(batch_size, weights)
-        return self[indices], indices
-
-
-
 class ParamPriorityReplayBuffer(PrioritizedReplayBuffer): # not using double inheritance so exactly the same as above.
     _reserved_keys = ("obs", "act", "rew", "done", "obs_next", "info", "policy", "param", 
         "mask", "target", "next_target", "target_diff", "terminate", "true_reward", "true_done", "option_resample", 
-        "mapped_act", "inter", "inter_state", "parent_state", "additional_state", "time", "weight_binary")
+        "mapped_act", "inter", "trace", "inst_trace", "proximity", "inter_state", "parent_state", "additional_state", "time", "weight_binary")
 
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
         """Return a data batch: self[index].
@@ -152,12 +109,108 @@ class ParamPriorityReplayBuffer(PrioritizedReplayBuffer): # not using double inh
             mapped_act = self.mapped_act[indice],
             inter = self.inter[indice],
             trace = self.trace[indice],
+            inst_trace = self.inst_trace[indice],
+            proximity = self.proximity[indice],
             inter_state = self.inter_state[indice],
             parent_state = self.parent_state[indice],
             additional_state = self.additional_state[indice],
             weight_binary = self.weight_binary[indice],
             time = self.time[indice]
         )
+
+class ParamWeightedReplayBuffer(ParamReplayBuffer):
+    def sample_indices(self, batch_size: int, weights: np.ndarray=None) -> np.ndarray:
+        """Get a random sample of index with size = batch_size, with @param weights weighting the selection
+        see Tianshou.data.bbase, since most of the code is copied from there
+
+        Return all available indices in the buffer if batch_size is 0; return an empty
+        numpy array if batch_size < 0 or no available index can be sampled.
+        """
+        if weights is not None: # if given weights, use those
+            if self.stack_num == 1 or not self._sample_avail:  # most often case
+                if batch_size > 0:
+                    return np.random.choice(self._size, batch_size, p=weights)
+                elif batch_size == 0:  # construct current available indices
+                    return np.concatenate(
+                        [np.arange(self._index, self._size),
+                         np.arange(self._index)]
+                    )
+                else:
+                    return np.array([], int)
+            else:
+                if batch_size < 0:
+                    return np.array([], int)
+                all_indices = prev_indices = np.concatenate(
+                    [np.arange(self._index, self._size),
+                     np.arange(self._index)]
+                )
+                for _ in range(self.stack_num - 2):
+                    prev_indices = self.prev(prev_indices)
+                all_indices = all_indices[prev_indices != self.prev(prev_indices)]
+                if batch_size > 0:
+                    return np.random.choice(all_indices, batch_size, p=weights)
+                else:
+                    return all_indices
+        else:
+            return super().sample_indices(batch_size) # sample using priority
+
+
+    def sample(self, batch_size: int, weights: np.ndarray=None) -> Tuple[Batch, np.ndarray]:
+        """Get a random sample from buffer with size = batch_size.
+
+        Return all the data in the buffer if batch_size is 0.
+
+        :return: Sample data and its corresponding index inside the buffer.
+        """
+        indices = self.sample_indices(batch_size, weights)
+        return self[indices], indices
+
+class ParamPrioWeightedReplayBuffer(ParamPriorityReplayBuffer): # the same as above except for this line
+    def sample_indices(self, batch_size: int, weights: np.ndarray=None) -> np.ndarray:
+        """Get a random sample of index with size = batch_size, with @param weights weighting the selection
+        see Tianshou.data.bbase, since most of the code is copied from there
+
+        Return all available indices in the buffer if batch_size is 0; return an empty
+        numpy array if batch_size < 0 or no available index can be sampled.
+        """
+        if weights is not None: # if given weights, use those
+            if self.stack_num == 1 or not self._sample_avail:  # most often case
+                if batch_size > 0:
+                    return np.random.choice(self._size, batch_size, p=weights)
+                elif batch_size == 0:  # construct current available indices
+                    return np.concatenate(
+                        [np.arange(self._index, self._size),
+                         np.arange(self._index)]
+                    )
+                else:
+                    return np.array([], int)
+            else:
+                if batch_size < 0:
+                    return np.array([], int)
+                all_indices = prev_indices = np.concatenate(
+                    [np.arange(self._index, self._size),
+                     np.arange(self._index)]
+                )
+                for _ in range(self.stack_num - 2):
+                    prev_indices = self.prev(prev_indices)
+                all_indices = all_indices[prev_indices != self.prev(prev_indices)]
+                if batch_size > 0:
+                    return np.random.choice(all_indices, batch_size, p=weights)
+                else:
+                    return all_indices
+        else:
+            return super().sample_indices(batch_size) # sample using priority
+
+
+    def sample(self, batch_size: int, weights: np.ndarray=None) -> Tuple[Batch, np.ndarray]:
+        """Get a random sample from buffer with size = batch_size.
+
+        Return all the data in the buffer if batch_size is 0.
+
+        :return: Sample data and its corresponding index inside the buffer.
+        """
+        indices = self.sample_indices(batch_size, weights)
+        return self[indices], indices
 
 class InterWeightedReplayBuffer(ReplayBuffer):
     # A buffer used for the active-passive models.
@@ -168,9 +221,9 @@ class InterWeightedReplayBuffer(ReplayBuffer):
     # inter_state, parent_state, additional_state record:
     #   inter = parent+additional+target, parent=primary parent, additional=other state
     # TODO: parent is the action that specifies which parent to use
-    _reserved_keys = ("obs", "act", "rew", "done", 
+    _reserved_keys = ("obs", "act", "rew", "done", "true_done",
         "mask", "target", "next_target", "target_diff",
-        "inter", "trace", "inter_state", "parent_state", "additional_state", "weight_binary")
+        "inter", "trace", "inst_trace", "proximity", "inter_state", "parent_state", "additional_state", "weight_binary")
 
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
         """Return a data batch: self[index].
@@ -196,12 +249,15 @@ class InterWeightedReplayBuffer(ReplayBuffer):
             act=self.act[indice],
             rew=self.rew[indice],
             done=self.done[indice],
+            true_done=self.true_done[indice],
             mask = self.mask[indice], 
             target = self.target[indice], 
             next_target=self.next_target[indice], 
             target_diff=self.target_diff[indice], 
             inter = self.inter[indice],
             trace = self.trace[indice],
+            inst_trace = self.inst_trace[indice],
+            proximity = self.proximity[indice],
             inter_state = self.inter_state[indice],
             parent_state = self.parent_state[indice],
             additional_state = self.additional_state[indice],

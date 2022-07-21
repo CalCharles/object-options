@@ -34,10 +34,10 @@ def test_full_train(full_model, train_buffer, args, object_names, environment):
 	train_likev = get_error(full_model, train_buffer, error_type = error_types.INTERACTION_RAW)[train_valid]
 	train_likepred = full_model.test(train_likev)
 
-	BN_train = np.mean((train_bin > train_likepred).astype(np.float64), axis=0) / np.sum(train_bin.astype(np.float64)), 
-	BP_train = np.mean((train_bin < train_likepred).astype(np.float64), axis=0) / np.sum((train_bin == 0).astype(np.float64)), 
-	FN_train = np.mean((train_trace > train_likepred).astype(np.float64), axis=0) / np.sum(train_trace.astype(np.float64)),
-	FP_train = np.mean((train_trace < train_likepred).astype(np.float64), axis=0) / np.sum((train_trace == 0).astype(np.float64)),
+	BN_train = np.mean((train_bin > train_likepred).astype(np.float64), axis=0) / np.sum(train_bin.astype(np.float64)) 
+	BP_train = np.mean((train_bin < train_likepred).astype(np.float64), axis=0) / np.sum((train_bin == 0).astype(np.float64)) 
+	FN_train = np.mean((train_trace > train_likepred).astype(np.float64), axis=0) / np.sum(train_trace.astype(np.float64))
+	FP_train = np.mean((train_trace < train_likepred).astype(np.float64), axis=0) / np.sum((train_trace == 0).astype(np.float64))
 
 	log_string = f'train_results:'
 	log_string += f'\nl1_passive: {np.mean(train_l1_passive, axis=0)}'
@@ -52,10 +52,10 @@ def test_full_train(full_model, train_buffer, args, object_names, environment):
 	log_string += f'\nlike_a: {train_like_a}'
 	log_string += f'\nlike_full: {train_like_full}'
 	log_string += f'\nlike_mean: {train_like_mean}'
-	log_string += f'\nBP: {BP_train}'
-	log_string += f'\nBN: {BN_train}'
-	log_string += f'\nFP: {FP_train}'
-	log_string += f'\nFN: {FN_train}'
+	log_string += f'\nBP: {BP_train.squeeze()}'
+	log_string += f'\nBN: {BN_train.squeeze()}'
+	log_string += f'\nFP: {FP_train.squeeze()}'
+	log_string += f'\nFN: {FN_train.squeeze()}'
 	print(log_string)
 	logging.info(log_string)
 
@@ -136,29 +136,34 @@ def test_full(full_model, test_buffer, args, object_names, environment):
 	log_string += f'\nlike_a: {test_like_a}'
 	log_string += f'\nlike_full: {test_like_full}'
 	log_string += f'\nlike_mean: {test_like_mean}'
-	log_string += f'\nBP: {BP_test}'
-	log_string += f'\nBN: {BN_test}'
-	log_string += f'\nFP: {FP_test}'
-	log_string += f'\nFN: {FN_test}'
+	log_string += f'\nBP: {BP_test.squeeze()}'
+	log_string += f'\nBN: {BN_test.squeeze()}'
+	log_string += f'\nFP: {FP_test.squeeze()}'
+	log_string += f'\nFN: {FN_test.squeeze()}'
 
-	inter_points = (test_prox == 1).squeeze() + (test_trace.squeeze() == 1) + (test_likepred == 1).squeeze() + (test_bin == 1).squeeze() # high passive error could be added
-	target = test_buffer.target[:len(test_buffer)][test_valid][inter_points]
-	next_target = test_buffer.next_target[:len(test_buffer)][test_valid][inter_points]
+	# inter_points = (test_prox == 1).squeeze() + (test_trace.squeeze() == 1) + (test_likepred == 1).squeeze() + (test_bin == 1).squeeze() # high passive error could be added
+	inter_points = (test_trace.squeeze() == 1) + (test_likepred == 1).squeeze() + (test_bin == 1).squeeze() # high passive error could be added
+	target = test_buffer.target[:len(test_buffer)][test_valid]#[inter_points]
+	inter_state = test_buffer.inter_state[:len(test_buffer)][test_valid]#[inter_points]
+	next_target = test_buffer.next_target[:len(test_buffer)][test_valid]#[inter_points]
 	target_diff = test_buffer.target_diff[:len(test_buffer)][test_valid][inter_points]
 
 	passive_samp = np.concatenate([test_l1_passive, test_passive_var, test_likev], axis=-1)[inter_points]
 	active_samp = np.concatenate([test_l1_active, test_active_var, test_likev], axis=-1)[inter_points]
-	bins = np.concatenate([test_likev, 
+	bins = np.concatenate([
+							test_likev, 
 							test_likepred, 
 							test_bin, 
 							test_trace, 
-							test_prox, 
+							test_prox,
 							np.expand_dims(np.sum(test_like, axis=-1), -1), 
 							np.expand_dims(np.sum(test_like_passive, axis=-1), -1), 
-							np.expand_dims(np.sum(test_like_active, axis=-1), -1)], axis=-1)[inter_points]
-	log_string += 'Sampled computation: '
-	log_string += f'\ntarget: {target[:128]}'
-	log_string += f'\nnext: {next_target[:128]}'
+							np.expand_dims(np.sum(test_like_active, axis=-1), -1),
+							full_model.norm.reverse(inter_state, form = "inter"),
+							full_model.norm.reverse(next_target)], axis=-1)[inter_points]
+	log_string += '\n\nSampled computation: '
+	# log_string += f'\ntarget: {target[:128]}'
+	# log_string += f'\nnext: {next_target[:128]}'
 	log_string += f'\ndiff: {target_diff[:128]}'
 	log_string += f'\npassive_pred_diff: {passive_samp[:128]}'
 	log_string += f'\nactive_pred_diff: {active_samp[:128]}'

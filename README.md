@@ -114,3 +114,15 @@ Code run:
 	args
 	train option
 	test option
+
+Run Breakout Training:
+python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/breakout/
+
+Run Robopushing training:
+python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/ --num-frames 5000
+
+Run Asteroids training:
+python generate_random.py --env Asteroids --record-rollouts /hdd/datasets/object_data/asteroids/random/ --num-frames 10000
+
+
+python generate_random.py --env Asteroids --demonstrate --num-frames 5000

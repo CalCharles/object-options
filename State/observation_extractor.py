@@ -1,6 +1,8 @@
 import numpy as np
 from State.feature_selector import broadcast
 
+obs_names = ["param", "additional", "inter", "parent", "relative", "target", "param_relative", "diff"]
+
 class ObservationExtractor(): 
 # an internal class for state extractor to handle the observation-related components
     def __init__(self, state_extractor):
@@ -33,7 +35,7 @@ class ObservationExtractor():
         self.combine_param_mask = state_extractor.combine_param_mask
         self.first_obj_dim, self.obj_dim = state_extractor.first_obj_dim, state_extractor.obj_dim
 
-    def reverse_obs_norm(self, obs):
+    def reverse_obs_norm(self, obs, mask=None):
         combined = list()
         def add_names(obs, bins, order, combine, start):
             # adds the reverse-norm components of obs, corresponding to the nonzero values in bins, in the order of order
@@ -49,7 +51,7 @@ class ObservationExtractor():
         param, additional, inter, parent, relative, target, param_relative, diff = self.obs_setting
         size_to = 0
         if param: # the param is always the first part
-            combined += [self.norm.reverse(obs[...,:self.target_size])]
+            combined += [self.norm.reverse(obs[...,:self.target_size])] if mask is None else [self.norm.reverse(obs[...,:self.target_size]) * mask]
             size_to = self.target_size * param
         if self.max_parent_objects > 1: # if multiple parents, first reverse the non-instanced components 
             size_to = add_names(obs, [target, param_relative, diff, additional, inter], self._multiparent_order[1:6], combined, size_to)
@@ -90,21 +92,21 @@ class ObservationExtractor():
         tar, parent_relative, param_rel, differ = list(), list(), list(), list()
         if target: tar = [self.norm(target_raw)]
         if param_relative: # get target - param, broadcasted since there may be multiple targets
-            broad_param, broad_mask = broadcast(param, n_target), broadcast(mask, n_target)
+            broad_param, broad_mask = broadcast(param, n_target, axis=-1), broadcast(mask, n_target, axis=-1)
             param_rel = [self.norm((target_raw - broad_param) * broad_mask , form="diff")]
         if relative:
             parent_raw = self.parent_select(full_state["factored_state"])
-            broad_parent = broadcast(parent_raw, n_target)
+            broad_parent = broadcast(parent_raw, n_target, axis=-1)
             parent_relative = [self.norm(broad_parent - target_raw, form="rel")]
         if diff: differ = [self.norm(target_raw - self.target_select(last_state["factored_state"]), form="diff")]
         if n_target > 1: # interleaving
             combined = list()
             for i in range(n_target):
                 # param relative is first so that assignment is easier (it is the only param dependent component)
-                if target: combined += target[0][...,i*self.target_size:(i+1)*self.target_size]
-                if param_relative: combined += param_rel[0][...,i*self.target_size:(i+1)*self.target_size]
-                if diff: combined += differ[0][...,i*self.target_size:(i+1)*self.target_size]
-                if relative: combined += parent_relative[0][...,i*self.target_size:(i+1)*self.target_size]
+                if target: combined += [tar[0][...,i*self.target_size:(i+1)*self.target_size]]
+                if param_relative: combined += [param_rel[0][...,i*self.target_size:(i+1)*self.target_size]]
+                if diff: combined += [differ[0][...,i*self.target_size:(i+1)*self.target_size]]
+                if relative: combined += [parent_relative[0][...,i*self.target_size:(i+1)*self.target_size]]
             return combined
         else: # no interleaving means easy combination
             return parent_relative + tar + param_rel + differ
@@ -120,10 +122,10 @@ class ObservationExtractor():
         combined = list()
         if additional: additional_state = [self.norm(self.additional_select(full_state["factored_state"]), form="additional")]
         if inter: inter_state = [self.norm(self.inter_select(full_state["factored_state"]), form="inter")]  # inter is not interleaved, use parent, additional if interleaving
-        if parent: par = [self.norm(parent_raw)]
+        if parent: par = [self.norm(parent_raw, form="parent")]
         if relative:
             target_raw = self.target_select(full_state["factored_state"])
-            broad_target = broadcast(target_raw, n_parent)
+            broad_target = broadcast(target_raw, n_parent, axis=-1)
             parent_relative = [self.norm(parent_raw - broad_target, form="rel")]
         if n_parent > 1: # interleaving
             combined += additional_state

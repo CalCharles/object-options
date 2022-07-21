@@ -1,0 +1,81 @@
+---
+  record:
+    # record_rollouts: /nfs/data/calebc/object_data/breakout/testrun/paddle/
+    # record_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle
+    record_recycle: -1
+    log_filename: logs/temp/paddle_train.log
+    load_dir: /nfs/data/calebc/object_data/breakout/testrun_inline/
+    save_dir: /nfs/data/calebc/object_data/breakout/testrun_inline2/
+    checkpoint_dir: /nfs/data/calebc/object_data/breakout/testrun_inline/action_paddle_checkpoint
+    # load_checkpoint: /nfs/data/calebc/object_data/breakout/testrun_inline/action_paddle_checkpoint
+    save_interval: 100
+  environment:
+    env: Breakout
+    variant: drop_stopping
+  torch:
+    gpu: 0
+    no_cuda: False
+  train:
+    train: True
+    pretrain_frames: 1000
+    num_steps: 90
+    num_frames: 1000
+    train_edge: Action Paddle
+    load_rollouts: /hdd/datasets/object_data/breakout/random
+    num_iters: 600
+    batch_size: 64
+  critic_net:
+  actor_net:
+  network:
+    hidden_sizes: 256 256
+    net_type: basic
+    optimizer:
+      lr: .0001
+      alt_lr: .0001
+      eps: .00001
+      alpha: 0.99
+      betas: 0.9 0.999
+      weight_decay: 0.00
+  sample:
+    sample_type: cent
+    sample_distance: 0.3
+    sample_schedule: 200
+    param_recycle: 0.5
+  extract:
+    obs_setting: 1 0 0 0 0 1 1 0
+  option:
+    term_form: combined
+    term_as_done: True
+    epsilon_close: 1
+    param_norm: 1
+    constant_lambda: -1
+    param_lambda: 2
+    inter_lambda: 0
+    temporal_extend: 20
+    time_cutoff: 30
+  collect:
+    buffer_len : 100000
+    test_episode: True
+    max_steps: 1000
+  hindsight:
+    use_her: True
+  policy:
+    epsilon_random: 0.1
+    logging:
+      log_interval: 10
+      train_log_maxlen: 5
+      test_log_maxlen: 50
+      initial_trials: 2
+      test_trials: 1
+      max_terminate_step: 1 30
+    learn:
+      grad_epoch: 100
+      sample_form: merged
+  inline:
+    interaction_config: "configs/Breakout/action_paddle_interaction.yaml"
+    inpolicy_iters: 1000
+    inpolicy_schedule: -1
+    policy_intrain_passive: False
+    intrain_weighting: -13 1 1 -1
+
+...

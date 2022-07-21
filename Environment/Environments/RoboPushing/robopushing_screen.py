@@ -7,9 +7,9 @@ from robosuite.controllers import load_controller_config
 import imageio, tqdm
 import copy
 import cv2
-from Environments.environment_specification import RawEnvironment
-from Environment.environments.RoboPushing.robopushing_specs import *
-from Record.file_management import numpy_factored
+from Environment.environment import Environment
+from Environment.Environments.RoboPushing.robopushing_specs import *
+from Record.file_management import numpy_factored, display_frame
 from collections import deque
 import robosuite.utils.macros as macros
 macros.SIMULATION_TIMESTEP = 0.02
@@ -20,14 +20,15 @@ macros.SIMULATION_TIMESTEP = 0.02
 
 DEFAULT = 0
 JOINT_MODE = 1
-PLANAR_MODE = 2
+HARD_MODE = 2
+PLANAR_MODE = 3
 
-class RoboPushing(Environments):
+class RoboPushing(Environment):
     def __init__(self, variant="default", horizon=30, renderable=False):
         super().__init__()
         self.self_reset = True
         self.variant=variant
-        control_freq, num_obstacles, standard_reward, goal_reward, obstacle_reward, out_of_bounds_reward, mode  = variants[variant]
+        control_freq, horizon, num_obstacles, standard_reward, goal_reward, obstacle_reward, out_of_bounds_reward, mode  = variants[variant]
         self.mode = mode
         self.goal_reward = goal_reward
         controller = "JOINT_POSITION" if self.mode==JOINT_MODE else "OSC_POSE" # TODO: handles only two action spaces at the moment
@@ -50,8 +51,8 @@ class RoboPushing(Environments):
                 goal_reward=goal_reward, 
                 obstacle_reward=obstacle_reward, 
                 out_of_bounds_reward=out_of_bounds_reward,
-                hard_obstacles=hard_obstacles,
-                keep_gripper_in_cube_plane=planar_mode
+                hard_obstacles=mode == HARD_MODE,
+                keep_gripper_in_cube_plane=mode == PLANAR_MODE
             )
         # environment properties
         self.num_actions = -1 # this must be defined, -1 for continuous. Only needed for primitive actions
@@ -59,7 +60,7 @@ class RoboPushing(Environments):
         self.discrete_actions = False
         self.frameskip = control_freq
         self.timeout_penalty = -horizon
-        self.planar_mode = planar_mode 
+        self.planar_mode = mode == PLANAR_MODE 
 
         # spaces
         low, high = self.env.action_spec
@@ -77,9 +78,6 @@ class RoboPushing(Environments):
         self.done = False
         self.action = np.zeros(self.action_shape)
         self.extracted_state = None
-
-        # saving component
-        self.save_module = save_module
 
         # factorized state properties
         self.object_names = ["Action", "Gripper", "Block", 'Obstacle', 'Done', "Reward"] # must be initialized, a list of names that controls the ordering of things
@@ -116,7 +114,7 @@ class RoboPushing(Environments):
             use_act = np.concatenate([action[:2], [0,0,0,0]])
         else:
             use_act = np.concatenate([action, [0, 0, 0]])
-
+        return use_act
 
     def step(self, action):
         # step internal robosuite environment
@@ -126,9 +124,6 @@ class RoboPushing(Environments):
         if self.reward == self.goal_reward: # don't wait at the goal, just terminate
             self.done = True
             info["TimeLimit.truncated"] = False
-        else:
-            info["TimeLimit.truncated"] = done
-
         # set state
         self.set_named_state(next_obs) # mutates next_obs
         img = next_obs["frontview_image"][::-1] if self.renderable else None
@@ -138,9 +133,6 @@ class RoboPushing(Environments):
         # step timers 
         self.itr += 1
         self.timer += 1
-
-        # save module
-        self.save_module.save(self.itr, full_state, info)
 
         if self.done:
             self.reset()

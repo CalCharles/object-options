@@ -50,6 +50,7 @@ def train_full(full_model, rollouts, test_rollout, args, object_names, environme
 
     # construct proximity batches if necessary
     proximal = get_error(full_model, rollouts, error_type=error_types.PROXIMITY).astype(int)
+    proximal_inst = get_error(full_model, rollouts, error_type=error_types.PROXIMITY, reduced=False).astype(int) # the same as above if not multiinstanced
     non_proximal = (proximal != True).astype(int)
     non_proximal_weights = non_proximal.squeeze() / np.sum(non_proximal) if np.sum(non_proximal) != 0 else np.ones(non_proximal.shape) / len(non_proximal)
 
@@ -74,7 +75,6 @@ def train_full(full_model, rollouts, test_rollout, args, object_names, environme
     # sampling weights, either wit hthe passive error or if we can upweight the true interactions
     passive_error, active_weights, binaries = separate_weights(args.inter.active.weighting, full_model, rollouts, proximal, trace if args.inter.interaction.interaction_pretrain > 0 else None)
     interaction_weights = get_weights(args.inter.active.weighting[2], rollouts.weight_binary)
-
     # handling boosting the passive operator to work with upweighted states
     # boosted_passive_operator = copy.deepcopy(full_model.passive_model)
     # true_passive = full_model.passive_model
@@ -83,6 +83,6 @@ def train_full(full_model, rollouts, test_rollout, args, object_names, environme
     # print("combined", psutil.Process().memory_info().rss / (1024 * 1024 * 1024))
 
     train_combined(full_model, rollouts, test_rollout, args,
-                        trace, active_weights, interaction_weights, proximal,
+                        trace, active_weights, interaction_weights, proximal, proximal_inst,
                         active_optimizer, passive_optimizer, interaction_optimizer)
     if len(args.record.save_dir) > 0: full_model.save(args.record.save_dir)

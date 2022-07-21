@@ -1,40 +1,36 @@
 ---
   record:
     # record_rollouts: /nfs/data/calebc/object_data/breakout/testrun/paddle/
-    # record_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle
+    # record_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle2
     record_recycle: -1
     log_filename: logs/temp/paddle_train.log
     load_dir: /nfs/data/calebc/object_data/breakout/testrun/
     save_dir: /nfs/data/calebc/object_data/breakout/testrun/
-    checkpoint_dir: /nfs/data/calebc/object_data/breakout/testrun/action_paddle_checkpoint
-    save_interval: 100
+    # checkpoint_dir: /nfs/data/calebc/object_data/breakout/testrun/action_paddle_checkpoint
+    # load_checkpoint: /nfs/data/calebc/object_data/breakout/testrun_inline/action_paddle_checkpoint
+    save_interval: 1200
   environment:
     env: Breakout
-    render: False
-    frameskip: 1
     variant: drop_stopping
-    time_cutoff: -1
-    seed: -1
-    demonstrate: False
   torch:
     gpu: 0
     no_cuda: False
   train:
     train: True
-    pretrain_frames: 10
+    pretrain_frames: 1000
     num_steps: 90
     num_frames: 1000
     train_edge: Action Paddle
     load_rollouts: /hdd/datasets/object_data/breakout/random
-    num_iters: 600
-    batch_size: 16
+    num_iters: 1200
+    batch_size: 64
   critic_net:
   actor_net:
   network:
-    hidden_sizes: 256 256 256
+    hidden_sizes: 512 512
     net_type: basic
     optimizer:
-      lr: .0001
+      lr: .00005
       alt_lr: .0001
       eps: .00001
       alpha: 0.99
@@ -42,9 +38,9 @@
       weight_decay: 0.00
   sample:
     sample_type: cent
-    sample_distance: 0.4
+    sample_distance: 0.3
     sample_schedule: 200
-    param_recycle: 0.1
+    param_recycle: 2
   extract:
     obs_setting: 1 0 0 0 0 1 1 0
   option:
@@ -58,21 +54,22 @@
     temporal_extend: 20
     time_cutoff: 30
   collect:
+    prioritized_replay: 0.6 0.4
     buffer_len : 100000
     test_episode: True
     max_steps: 1000
   hindsight:
     use_her: True
   policy:
+    epsilon_random: 0.1
     logging:
       log_interval: 10
       train_log_maxlen: 5
       test_log_maxlen: 50
-      epsilon_random: 0.1
       initial_trials: 20
       test_trials: 10
       max_terminate_step: 1 30
     learn:
-      grad_epoch: 50
+      grad_epoch: 200
       sample_form: merged
 ...

@@ -120,12 +120,21 @@ class Environment():
         '''
         pass
 
-    def get_trace(factored_state, action, object_names):
+    def get_trace(self, factored_state, action, object_names):
         '''
         gets the interaction between objects specified in the names, if possible
         defaults to returning [1] (list because the target/parent object might have multiple instances TODO: multiple instances of both target and parent)
         '''
         return [1]
+
+    def current_trace(self, object_names):
+        '''
+        gets the interaction between objects specified in the names, if possible
+        at the current timestep
+        defaults to returning [1] (list because the target/parent object might have multiple instances TODO: multiple instances of both target and parent)
+        '''
+        return [1]
+
 
     def demonstrate(self):
         '''

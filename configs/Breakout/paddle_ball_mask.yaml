@@ -10,12 +10,12 @@
     no_cuda: False
   train:
     train_edge: Paddle Ball
-    load_rollouts: /nfs/data/calebc/object_data/breakout/testrun/paddle/
-    num_frames: 50000
+    load_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle2/
+    num_frames: 100000
   mask:
     min_sample_difference: 0.1
-    var_cutoff: 0.05
+    var_cutoff: 0.4 #0.05
   inter:
-    # save_intermediate: True
-    load_intermediate: True
+    save_intermediate: True
+    # load_intermediate: True
 ...

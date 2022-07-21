@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 import copy
-from Network.network_utils import reduce_function
+from Network.network_utils import reduce_function, get_acti
 from Network.General.mlp import MLPNetwork
 from Network.General.conv import ConvNetwork
 
@@ -15,32 +15,32 @@ class PairNetwork(Network):
         # assumes the input is flattened list of input space sized values
         # needs an object dim
         # does NOT require a fixed number of objects, because it collects through a max operator
-        self.object_dim = args.object_dim
-        self.first_obj_dim = args.first_obj_dim
-        self.post_dim = args.post_dim
+        self.object_dim = args.pair.object_dim
+        self.first_obj_dim = args.pair.first_obj_dim
+        self.post_dim = args.pair.post_dim
         self.drop_first = args.drop_first if 'drop_first' in args else False
-        self.reduce_fn = args.reduce_function
+        self.reduce_fn = args.pair.reduce_function
         
         conv_args = copy.deepcopy(args)
-        conv_args.object_dim += max(0, self.first_obj_dim * int(not self.drop_first))
-        self.conv_dim = self.hs[-1] if len(self.hs) > 0 else args.output_dim    
-        if args.aggregate_final: conv_args.output_dim = self.hs[-1] + max(0, self.post_dim) 
-        conv_args.include_last = args.aggregate_final
+        conv_args.object_dim = args.pair.object_dim + max(0, self.first_obj_dim * int(not self.drop_first))
+        self.conv_dim = self.hs[-1] + max(0, self.post_dim) if args.pair.aggregate_final else args.num_outputs    
+        conv_args.output_dim = self.conv_dim
+        conv_args.include_last = True #args.pair.aggregate_final
+        if args.pair.aggregate_final: conv_args.activation_final = "none" # the final  activation is after the aggregated MLP
 
         layers = list()
         self.conv = ConvNetwork(conv_args)
         layers.append(self.conv)
 
-        post_mlp_args = copy.deepcopy(kargs) 
-        if args.post_dim > 0:
+        post_mlp_args = copy.deepcopy(args) 
+        if args.pair.post_dim > 0:
             args.num_inputs = args.post_dim + args.first_obj_dim
             args.num_outputs = self.hs[-1]
             self.post_channel = MLPNetwork(args)
             layers.append(self.post_channel)
-        self.aggregate_final = args.aggregate_final
-        self.activation_final = args.activation_final if "activation_final" in args else ""
+        self.aggregate_final = args.pair.aggregate_final
         self.softmax = nn.Softmax(-1)
-        if args.aggregate_final: # does not work with a post-channel
+        if args.pair.aggregate_final: # does not work with a post-channel
             args.include_last = True
             args.num_inputs = conv_args.output_dim
             args.num_outputs = self.num_outputs
@@ -93,8 +93,7 @@ class PairNetwork(Network):
         else:
             # when dealing without many-many input outputs
             x = x.transpose(2,1)
-            x = x.reshape(batch_size, -1)
-        x = self.activation_final(x)
+            x = x.reshape(batch_size, -1) 
         return x
 
     def forward(self, x):

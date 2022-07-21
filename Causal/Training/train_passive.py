@@ -8,8 +8,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 from collections import Counter
 from Causal.Training.loggers.forward_logger import forward_logger
+from Causal.Utils.instance_handling import compute_likelihood
 from Network.network_utils import pytorch_model, run_optimizer
-from Record.file_management import create_directory
 
 def train_passive(full_model, rollouts, args, active_optimizer, passive_optimizer, weights=None):
     logger = forward_logger("passive", args.inter.passive.passive_log_interval, full_model, filename=args.record.log_filename)
@@ -26,12 +26,12 @@ def train_passive(full_model, rollouts, args, active_optimizer, passive_optimize
         target = pytorch_model.wrap(target, cuda=full_model.iscuda)
 
         # compute network values
-        passive_prediction_params = full_model.passive_model(pytorch_model.wrap(batch.target, cuda=full_model.iscuda))
+        passive_prediction_params = full_model.passive_model(pytorch_model.wrap(batch.target, cuda=full_model.iscuda)) # batch.target != target
         
         # Train the passive model
         done_flags = 1-batch.done
         passive_likelihood_full = - full_model.dist(*passive_prediction_params).log_prob(target)
-        passive_loss = passive_likelihood_full.sum(dim=-1).unsqueeze(1) * pytorch_model.wrap(done_flags, cuda=full_model.iscuda)
+        passive_loss = compute_likelihood(full_model, args.train.batch_size, passive_likelihood_full, done_flags=done_flags)
         run_optimizer(passive_optimizer, full_model.passive_model, passive_loss)
 
         # logging the passive model outputs
@@ -44,9 +44,7 @@ def train_passive(full_model, rollouts, args, active_optimizer, passive_optimize
             active_likelihood_full = - full_model.dist(*active_prediction_params).log_prob(target)
             active_loss = active_likelihood_full.sum(dim=-1).unsqueeze(1) * pytorch_model.wrap(done_flags, cuda = full_model.iscuda)
             run_optimizer(active_optimizer, full_model.active_model, active_loss)
-
             # logging the active model outputs
             active_logger.log(i, active_loss, None, None, active_likelihood_full * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, weight_rate,
                                 active_prediction_params, target, None, full_model) 
-
     return outputs

@@ -28,6 +28,7 @@ class TemporalAggregator():
         skipped = False
         if self.keep_next: 
             self.current_data = copy.deepcopy(data)
+            self.keep_next = False
         else: # otherwise, we only update the reward, this is to ensure the reward is NOT updated twice
             if self.sum_reward:
                 self.current_data.rew += data.rew.squeeze()
@@ -38,17 +39,24 @@ class TemporalAggregator():
         # update state components
         self.current_data.update(next_full_state = data.next_full_state, next_target=data.next_target, obs_next=data.obs_next, inter_state=data.inter_state)
         # update  termination and resampling components
-        self.current_data.done = [np.any(self.current_data.done) + np.any(data.done)] # basically an OR
+        self.current_data.done = [np.any(self.current_data.done) + np.any(data.done)]
         self.current_data.terminate = [np.any(self.current_data.terminate) + np.any(data.terminate)] # basically an OR
         self.current_data.true_done = [np.any(self.current_data.true_done) + np.any(data.true_done)] # basically an OR
+        self.current_data.trace = [np.any(self.current_data.trace) + np.any(data.trace)]
+        self.current_data.inst_trace = [(self.current_data.inst_trace[0] + data.inst_trace).astype(bool)]
         self.current_data.option_resample = data.option_resample
         self.current_data.info["TimeLimit.truncated"] = data.info["TimeLimit.truncated"] if "TimeLimit.truncated" in data.info else False
         self.current_data.inter = [max(data.inter[0], self.current_data.inter[0])]
         self.current_data.update(time=[self.time_counter])
+
+        # expand dimensions for one-dimensional vectors
+        self.current_data.update(inter_state=[data.inter_state], next_target=[data.next_target], target=[data.target], target_diff=[data.target_diff], parent_state = [data.parent_state], additional_state=[data.additional_state])
         
         # if a true done happened, the NEXT data point will need to be recorded
         added = False
         # if we just resampled (meaning temporal extension occurred), or a done or termination
+        # if np.linalg.norm(self.current_data.full_state.factored_state.Paddle - self.current_data.full_state.factored_state.Ball) < 7 or np.any(self.current_data.trace):
+        #     print(self.current_data.target, self.current_data.next_target, self.current_data.param, self.current_data.trace, self.current_data.inter, self.current_data.rew, self.current_data.action_chain)
         if ((np.any(data.ext_term) and not self.only_termination) or # going to resample a new action
             np.any(data.done)
             or np.any(data.terminate)):
@@ -61,7 +69,9 @@ class TemporalAggregator():
                         next_data, buffer_ids=ready_env_ids)
             self.time_counter = 0
 
-        # skip the next value if a done or it would get double counted
-        self.temporal_skip = np.any(data.done)
+            # skip the next value if a done or it would get double counted
+            self.temporal_skip = np.any(data.true_done)
+        # if np.any(self.current_data.inter) or data.inter or np.linalg.norm(self.current_data.full_state.factored_state.Paddle - self.current_data.full_state.factored_state.Ball) < 6:
+        #     print("add inter", added, self.current_data.inter, self.current_data.terminate, data.inter, np.any(data.terminate), data.target, data.next_target)
         self.time_counter += 1
         return self.current_data, skipped, added, self.ptr

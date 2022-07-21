@@ -2,7 +2,7 @@ import numpy as np
 
 ranges = {
 	"Action": [np.array([0]).astype(np.float64), np.array([3]).astype(np.float64)],
-	"Paddle": [np.array([71.9, 5, 0, 0, 0.9]).astype(np.float64), np.array([72.1, 71, 0, 0, 1.1]).astype(np.float64)],
+	"Paddle": [np.array([71.9, 7.5, 0, 0, 0.9]).astype(np.float64), np.array([72.1, 71, 0, 0, 1.1]).astype(np.float64)],
 	"Ball": [np.array([0, 0, -2, -1, 0.9]).astype(np.float64), np.array([84, 84, 2, 1, 1.1]).astype(np.float64)],
 	"Block": [np.array([10, 0, 0, 0, 0]).astype(np.float64), np.array([58, 84, 0, 0, 1]).astype(np.float64)],
 	"Done": [np.array([0]).astype(np.float64), np.array([1]).astype(np.float64)],
@@ -13,7 +13,7 @@ dynamics = {
     "Action": [np.array([-3]).astype(np.float64), np.array([3]).astype(np.float64)],
     "Paddle": [np.array([0, -2, 0, 0, 0]).astype(np.float64), np.array([0, 2, 0, 0, 0]).astype(np.float64)],
     "Ball": [np.array([-2, -1, -4, -2, 0]).astype(np.float64), np.array([2, 1, 4, 2, 0]).astype(np.float64)],
-    "Block": [np.array([0, 0, 0, 0, 0]).astype(np.float64), np.array([0, 0, 0, 0, 0]).astype(np.float64)],
+    "Block": [np.array([0, 0, 0, 0, -1]).astype(np.float64), np.array([0, 0, 0, 0, 1]).astype(np.float64)],
     "Done": [np.array([0]).astype(np.float64), np.array([1]).astype(np.float64)],
     "Reward": [np.array([-100]).astype(np.float64), np.array([100]).astype(np.float64)]
 }
@@ -28,14 +28,16 @@ position_masks = {
     "Reward": np.array([0]),
 }
 
-instanced = {
-    "Action": 1,
-    "Paddle": 1,
-    "Ball": 1,
-    "Block": 100,
-    "Done": 1,
-    "Reward": 1,
-}
+def get_instanced(num_rows, num_columns, random_exist, is_big_block):
+    instanced = {
+        "Action": 1,
+        "Paddle": 1,
+        "Ball": 1,
+        "Block": 1 if is_big_block else (num_rows * num_columns if random_exist <= 0 else random_exist),
+        "Done": 1,
+        "Reward": 1,
+    }
+    return instanced
 
 
 # var_form, num_rows, num_columns, hit_reset, negative_mode, bounce_cost, bounce_reset, completion_reward, timeout_penalty, drop_stopping

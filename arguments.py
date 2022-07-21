@@ -34,6 +34,8 @@ def get_command_args():
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='no cuda')
     # shared train args
+    parser.add_argument('--dummy', action ='store_true', default=False,
+                        help='trains in dummy mode, for running baselines or running final layer options')
     parser.add_argument('--train', action ='store_true', default=False,
                         help='usually included, trains the network')
     parser.add_argument('--num-frames', type=int, default=1000,
@@ -53,6 +55,8 @@ def get_command_args():
                         help='the normalized cutoff variance for an attribute to be considered active')
     parser.add_argument('--num-samples', type=int, default=0,
                         help='number of samples to take for identifying active components')
+    parser.add_argument('--sample-grid', action='store_true', default=False,
+                        help='samples parent values from a grid (rather than a fixed number of uniformly random samples)')
 
     # peripheral arguments
     parser.add_argument('--load-intermediate', action ='store_true', default=False,
@@ -70,7 +74,7 @@ def get_command_args():
     parser.add_argument('--predict-dynamics', action='store_true', default=False,
                         help='predicts the change in state instead of the state itself')
     parser.add_argument('--interaction-testing', type=float, nargs='+', default=list(),
-                        help='interaction binary cutoff, Active greater than, passive less than, difference between P-A  (default: empty list)')
+                        help='interaction binary cutoff, require Active greater than, omit passive less than, require difference between P-A  (default: empty list)')
     parser.add_argument('--proximity-epsilon', type=float, default=-1,
                         help='the minimum distance for two objects to be considered "close"')
     parser.add_argument('--passive-iters', type=int, default=0,
@@ -86,8 +90,8 @@ def get_command_args():
     parser.add_argument('--interaction-pretrain', type=int, default=0,
                         help='number of interaction-only trace training steps to run')
     # combined training args
-    parser.add_argument('--weighting', type=float, nargs='+', default=list(),
-                        help='4-tuple of weighting values: passive_error_cutoff, passive_error_upper, weighting_ratio, weighting schedule (default: empty for no weighting)')
+    parser.add_argument('--weighting', type=float, nargs='+', default=[0,0,-1,0],
+                        help='4-tuple of weighting values: passive_error_cutoff, passive_error_upper, weighting_ratio, weighting schedule (default: weighting[2] = -1 for no weighting)')
     parser.add_argument('--active-log-interval', type=int, default=100,
                         help='prints logs every n iterations')
     parser.add_argument('--interaction-schedule', type=int, default=-1,
@@ -136,6 +140,46 @@ def get_command_args():
     # state setting
     parser.add_argument('--obs-setting', type=int, nargs='+', default=[0,0,0,0,0,0,0,0],
                         help='7-tuple of param, additional, inter, parent, relative, target, param_relative, diff')
+
+    # rew term arguments
+    parser.add_argument('--term-form', default = "param",
+                        help='the termination/reward function type (comb, term)')
+    parser.add_argument('--term-as-done', action ='store_true', default=False,
+                        help='if a termination occurs, sends a done signal')
+    parser.add_argument('--true-done', action ='store_true', default=False,
+                        help='if a true done occurs, sends a done signal')
+    parser.add_argument('--epsilon-close', type=float, default=-1,
+                        help='minimum distance for term/reward, in unnormalized units (default: -1)')
+    parser.add_argument('--param-norm', type=int, default=1,
+                        help='the norm used to compute distance (default: 1)')
+    parser.add_argument('--between-terminate', type=int, default=1,
+                        help='the minimum amount of time between valid terminations (default: 1)')
+    # reward parameters
+    parser.add_argument('--constant-lambda', type=float, default=0,
+                        help='reward given at every state (default: 0)')
+    parser.add_argument('--param-lambda', type=float, default=-1,
+                        help='reward given for getting to the correct goal state (default: -1)')
+    parser.add_argument('--inter-lambda', type=float, default=-1,
+                        help='reward given for getting an interaction (default: -1)')
+    # term arguments
+    parser.add_argument('--interaction-as-termination', action ='store_true', default=False,
+                        help='treats interactions as termination signals')
+    # termination manager arguments
+    parser.add_argument('--temporal-extend', type=int, default=-1,
+                        help='the number of steps before requiring a resampled action (default: -1)')
+    # policy logging options
+    parser.add_argument('--log-interval', type=int, default=-1,
+                        help='iterations between logs (default: 0)')
+    parser.add_argument('--train-log-maxlen', type=int, default=0,
+                        help='the maximum number of train iterations to store in the logging rolling averages (default: 0)')
+    parser.add_argument('--test-log-maxlen', type=int, default=0,
+                        help='the maximum number of test iterations to store in the logging rolling averages (default: 0)')
+    parser.add_argument('--initial-trials', type=int, default=0,
+                        help='the total number of episodes to trial with random actions for comparison (default: 0)')
+    parser.add_argument('--test-trials', type=int, default=0,
+                        help='the total number of episodes to trial with random actions every log-interval iterations (default: 0)')
+    parser.add_argument('--max-terminate-step', type=float, nargs=2, default=(1, 30),
+                        help='terminates after reaching either mts[0] terminations or mts[1] steps (default: (0.9, 0.999))')
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda

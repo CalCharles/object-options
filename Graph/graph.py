@@ -45,11 +45,10 @@ def load_graph(load_dir, device):
 	graph = load_from_pickle(load_name)
 	for node in graph.nodes.values():
 		node.interaction = load_interaction(load_dir, node.name, device) # returns none if there is no interaction model in the directory
-		node.option = load_option(load_dir, node.name, device) # returns none if there is no option in the directory
+		node.option = load_option(load_dir, node.name, node.interaction, device) # returns none if there is no option in the directory
 		# reassigns to the latest interaction model, if changed
-		if node.option is not None:
-			node.option.sampler.mask = node.interaction.mask
-			node.option.terminate_reward.interaction_model = node.interaction
+		if node.option is not None and node.interaction is not None:
+			node.option.assign_interaction_model(node.interaction)
 	# to prevent double-saving, we removed the next_option, and add it back here
 	for node in graph.nodes.values():
 		if node.option is not None and node.option.name != "Action":

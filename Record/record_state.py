@@ -1,4 +1,5 @@
 import os, time
+import imageio as imio
 from Record.file_management import append_string, create_directory, action_chain_string
 
 class FullRecord():

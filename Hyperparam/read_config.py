@@ -12,6 +12,7 @@ network_args = {
     "pair": {
         "drop_first": False,
         "reduce_function": "mean",
+        "post_dim": -1,
     },
     "optimizer": {
         "lr": 1e-4,
@@ -52,6 +53,7 @@ expected_args = {
         "cuda": True,
     },
     "train": {
+        "dummy": False,
         "train": False,
         "num_frames": 0,
         "train_edge": list(),
@@ -67,7 +69,7 @@ expected_args = {
         "predict_dynamics": False,
         "load_intermediate": False,
         "save_intermediate": False,
-        "interaction_testing": [0.9, -16, -16, -1],
+        "interaction_testing": [],
         "proximity_epsilon": -1,
         "compare_trace": False,
         "passive": {
@@ -79,7 +81,7 @@ expected_args = {
             "interaction_pretrain": 0,
         },
         "active": {
-            "weighting": [0,0,0,0], # must be length 4
+            "weighting": [0,0,-1,0], # must be length 4
             "active_log_interval": 100,
             "interaction_schedule": -1,
             "inline_iters": [5, 1, 1000],
@@ -91,6 +93,7 @@ expected_args = {
         "min_sample_difference": 1,
         "var_cutoff": [0.1],
         "num_samples": 30,
+        "sample_grid": True,
     },
     "sample": { # TODO NEW
         "sample_type": "uni",
@@ -112,8 +115,10 @@ expected_args = {
         "constant_lambda": 0,
         "param_lambda": -1,
         "inter_lambda": -1,
+        "interaction_as_termination": False,
         "temporal_extend": -1,
         "time_cutoff": 0,
+        "between_terminate": 1
     },
     "action": {
         "use_relative_action": False,
@@ -128,7 +133,7 @@ expected_args = {
         "max_steps": 1000,
         "terminate_reset": False,
         "aggregator": {
-            "sum_rewards": False,
+            "sum_rewards": True,
             "only_termination": False,
         },
     },
@@ -166,6 +171,16 @@ expected_args = {
         "max_hindsight": -1,
         "early_stopping": False,
         "interaction_criteria": 0,
+        "min_replay_len": -1
+    },
+    "inline": {
+        "interaction_config": "",
+        "inpolicy_iters": 5000,
+        "inpolicy_schedule": -1,
+        "policy_intrain_passive": False,
+        "intrain_weighting": [-13, 1, 1, -1],   
+        "save_inline": False,
+        "policy_inline_iters": [5, 1, 1000],
     },
     "network": copy.deepcopy(network_args),
 }

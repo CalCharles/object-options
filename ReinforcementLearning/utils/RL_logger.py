@@ -61,7 +61,6 @@ class RLLogger(Logger):
         pass
 
     def print_log(self, i, force=False): # force forces the printout of log values
-        print(self.log_interval)
         if i % self.log_interval == 0 or force:
             # first line logs the rolling totals
             log_string = self.name + f': Iters: {i}, Steps: {self.total_steps}, Episodes: {self.total_episodes}, FPS: {self.total_steps/(time.time()-self.time)}'

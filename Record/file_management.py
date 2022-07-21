@@ -173,3 +173,7 @@ def get_raw_data(pth, i=0, rng=-1):
         for f in range(i, i + rng[1]):
             frames.append(imio.load(os.path.join(pth, "state" + str(f) + ".png")))
     return frames
+
+def display_frame(frame, waitkey=10):
+    cv2.imshow('image',frame)
+    cv2.waitKey(waitkey) # waits until a key is pressed

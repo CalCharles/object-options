@@ -52,16 +52,17 @@ class Breakout(Environment):
         self.object_name_dict = dict() # initialized in reset
         self.object_range = ranges
         self.object_dynamics = dynamics
-        self.object_instanced = instanced
 
         # asign variant values
         var_form, num_rows, num_columns, max_block_height, hit_reset, negative_mode, random_exist, bounce_cost, bounce_reset, completion_reward, timeout_penalty, drop_stopping = breakout_variants[breakout_variant]
+        self.object_instanced = get_instanced(num_rows, num_columns, random_exist, self.variant == "big_block")
         self.target_mode = (var_form == 1)
         if var_form == 2: negative_mode = "hardedge"
         elif var_form == 3: negative_mode = "hardcenter"
         elif var_form == 4: negative_mode = "hardscatter"
         self.negative_mode = negative_mode
         self.no_breakout = hit_reset > 0
+        self.hit_reset = hit_reset
         self.timeout_penalty = timeout_penalty
         self.completion_reward = completion_reward
         self.assessment_stat = 0 if self.variant != "proximity" else (0,0)# a measure of performance specific to the variant
@@ -276,8 +277,8 @@ class Breakout(Environment):
                 total += 1
         return total
 
-    def get_state(self):
-        self.render()
+    def get_state(self, render=False):
+        if render: self.render()
         state =  {"raw_state": self.frame, "factored_state": numpy_factored({**{obj.name: obj.getMidpoint() + obj.vel.tolist() + [obj.getAttribute()] for obj in self.objects}, **{'Done': [self.done], 'Reward': [self.reward]}})}
         return state
 
@@ -377,14 +378,14 @@ class Breakout(Environment):
 
         # record state information before any resets
         self.itr += 1
-        full_state = self.get_state()
+        full_state = self.get_state(render)
         frame, extracted_state = full_state['raw_state'], full_state['factored_state']
         lives = 5-self.ball.losses
 
         # get assessment values
         self.assign_assessment_stat() # TODO: bugs may occur if using frame skipping
         assessment_stat = self.assessment_stat
-        info = {"lives": lives, "TimeLimit.truncated": False, "assessment": self.assessment_stat, "total_score": self.total_score}
+        info = {"lives": lives, "TimeLimit.truncated": False, "assessment": self.assessment_stat, "total_score": self.total_score} # treats drops as truncations
         
         # perform resets
         if needs_ball_reset: self.ball.reset_pos()

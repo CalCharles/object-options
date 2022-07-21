@@ -8,6 +8,7 @@ import time
 import logging
 from Record.file_management import save_to_pickle, load_from_pickle
 from ReinforcementLearning.utils.RL_logging import collect_test_trials, buffer_printouts
+from State.observation_extractor import obs_names
 
 
 
@@ -16,13 +17,14 @@ def trainRL(args, train_collector, test_collector, option, graph,  loggers):
     Run the RL train loop
     '''
     train_logger, test_logger, initial_logger = loggers
+    initial_logger.logout("observation: " + str([obs_names[i] for i in range(len(option.state_extractor.obs_setting)) if option.state_extractor.obs_setting[i] == 1]))
     start = time.time()
     # collect initial random actions
     if len(args.record.pretrain_dir) == 0: pretrain_result = train_collector.collect(n_step=args.train.pretrain_frames, random=True) # param doesn't matter with random actions
     else: 
         train_collector.load(os.path.join(args.record.pretrain_dir, "pretrain_buffers.bf"))
         pretrain_result = load_from_pickle(os.path.join(args.record.pretrain_dir, "pretrain_result.pkl"))
-    total_steps, total_episodes = pretrain_result['n/st'], pretrain_result['n/tep']
+    train_logger.log_results(pretrain_result)
     buffer_printouts(args, train_collector, option)
     
     if len(args.record.checkpoint_dir) > 0:
@@ -43,17 +45,21 @@ def trainRL(args, train_collector, test_collector, option, graph,  loggers):
 
         losses = option.policy.update(args.train.batch_size, train_collector.buffer, train_collector.her_buffer)
         train_logger.log_losses(losses)
+        if option.inline_trainer.train: option.inline_trainer.run_train(i, train_collector.full_buffer)
 
         # only prints if log interval is reached
         train_logger.print_log(i)
         test_logger.print_log(i)
         if args.record.save_interval > 0 and (i+1) % args.record.save_interval == 0:
+            buffer_printouts(args, train_collector, option)
             if len(args.record.save_dir) > 0: graph.save(args.record.save_dir)
-            if len(args.record.checkpoint_dir) > 0: train_collector.save(os.path.join(args.record.checkpoint_dir, "buffers.bf"))
+            if len(args.record.checkpoint_dir) > 0:
+                graph.save(args.record.checkpoint_dir)
+                train_collector.save(args.record.checkpoint_dir, "RL_buffers.bf")
 
     if args.record.save_interval > 0: 
         graph.save(args.record.save_dir)
-        if len(args.record.checkpoint_dir) > 0: train_collector.save(os.path.join(args.record.checkpoint_dir, "buffers.bf"))
+        if len(args.record.checkpoint_dir) > 0: train_collector.save(args.record.checkpoint_dir, "RL_buffers.bf")
     
     # final logging step to determinie the performance of the final policy
     test_logger.print_log(i, force=True)

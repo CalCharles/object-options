@@ -57,9 +57,9 @@ class ActionMap():
         ''' This runs on initialization, deciding whether the parameter space should be discrete or continuous
         selection is based on if |active set| > args.min_active_size
         '''
-        if discrete_primitive != 0:
+        if discrete_primitive > 0:
             return True, gym.spaces.Discrete(discrete_primitive)
-        elif len(self.filtered_active_set) < self.min_active_size:
+        elif len(self.filtered_active_set) < self.min_active_size and discrete_primitive == 0:
             return True, gym.spaces.Box(*self.mapped_norm.mapped_lim)
         else:
             return False, gym.spaces.Box(*self.mapped_norm.mapped_lim)
@@ -110,7 +110,7 @@ class ActionMap():
         '''
         samples the policy action space
         '''
-        return np.array(self.policy_action_space.sample()).squeeze()
+        return np.array(self.policy_action_space.sample())
 
     def sample(self):
         '''

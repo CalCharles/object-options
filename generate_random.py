@@ -1,6 +1,7 @@
-import sys
+import sys, time
 import argparse
 from Environment.Environments.initialize_environment import initialize_environment
+from Record.file_management import display_frame
 import numpy as np
 
 if __name__ == "__main__":
@@ -13,6 +14,8 @@ if __name__ == "__main__":
                         help='environment to run on')
     parser.add_argument('--render', action='store_true', default=False,
                         help='run the pushing gripper domain')
+    parser.add_argument('--display-frame', action='store_true', default=False,
+                        help='shows the frame if renderering')
     parser.add_argument('--frameskip', type=int, default=1,
                         help='amount of frameskip, 1=no frameskip')
     parser.add_argument('--variant', default="default",
@@ -30,7 +33,11 @@ if __name__ == "__main__":
     args.render = args.demonstrate or args.render
     # first argument is num frames, second argument is save path
     environment, record = initialize_environment(args, args)
+    start = time.time()
     for i in range(args.num_frames):
         action = environment.action_space.sample() if not args.demonstrate else environment.demonstrate()
-        full_state, reward, done, info = environment.step(action)
+        full_state, reward, done, info = environment.step(action, render=args.render)
+        if args.render and args.display_frame: display_frame(full_state['raw_state'], waitkey=100)
         if record is not None: record.save(full_state['factored_state'], full_state["raw_state"], environment.toString)
+        if i % 1000 == 0: print(i, "fps", i / (time.time() - start))
+    print("fps", args.num_frames / (time.time() - start))

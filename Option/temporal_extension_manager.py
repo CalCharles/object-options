@@ -1,3 +1,5 @@
+from tianshou.data import Batch, ReplayBuffer, to_torch_as, to_numpy
+
 class TemporalExtensionManager():
     def __init__(self, args):
         '''
@@ -8,7 +10,7 @@ class TemporalExtensionManager():
         self.just_reset = True
         self.act = None
         self.chain = None
-        self.policy_batch = None
+        self.policy_batch = Batch()
         self.state = None
         self.masks = None
 

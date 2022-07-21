@@ -27,14 +27,15 @@ def reassign_optim(algo_policy, critic_lr, actor_lr):
         algo_policy.alpha_optim = torch.optim.Adam(_alpha, lr=1e-4) # TODO alpha learning rate not hardcoded
 
 
-def assign_device(algo_policy, discrete_actions, device):
+def _assign_device(algo_policy, algo_name, discrete_actions, device):
     '''
     Tianshou stores the device on a variable inside the internal models. This must be pudated when changing CUDA/CPU devices
     '''
     if type(device) == int:
-        device = 'cuda:' + str(device)
+        if device < -1: device = 'cpu'
+        else: device = 'cuda:' + str(device)
     if hasattr(algo_policy, "actor"):
-        if not discrete_actions:
+        if not discrete_actions and algo_name in rand_actor:
             algo_policy.actor.mu.device = device
             algo_policy.actor.sigma.device = device
         else:

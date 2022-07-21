@@ -7,6 +7,7 @@ from Buffer.train_test_buffers import generate_buffers
 from Causal.interaction_model import NeuralInteractionForwardModel
 from Causal.Training.train_full import train_full
 from Causal.Training.test_full import test_full, test_full_train
+from Causal.dummy_interaction import construct_selectors
 
 from Environment.Environments.initialize_environment import initialize_environment
 
@@ -37,11 +38,7 @@ if __name__ == '__main__':
     object_names = init_names(args)
 
     # build the selectors for the passive (target), interaction or active (parent + target), parent (just parent) states
-    args.target_select = construct_object_selector([object_names.target], environment)
-    args.parent_selectors = {p: construct_object_selector([p], environment) for p in object_names.parents}
-    args.additional_select = construct_object_selector(object_names.additional, environment) if len(object_names.additional) > 0 else None
-    args.parent_select = construct_object_selector(object_names.parents, environment)
-    args.inter_select = construct_object_selector(object_names.parents + [object_names.target], environment)
+    args.target_select, args.parent_selectors, args.additional_select, args.parent_select, args.inter_select = construct_selectors(object_names, environment)
     args.controllable = None # this is filled in with controllable features of the target
 
     # initialize the full model

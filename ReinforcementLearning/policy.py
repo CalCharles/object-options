@@ -12,7 +12,7 @@ import tianshou as ts
 import gym
 from typing import Any, Dict, Tuple, Union, Optional, Callable
 
-from ReinforcementLearning.ts.utils import init_networks, init_algorithm, assign_device, reassign_optim
+from ReinforcementLearning.ts.utils import init_networks, init_algorithm, _assign_device, reassign_optim
 from State.object_dict import ObjDict
 
 
@@ -60,16 +60,19 @@ class Policy(nn.Module):
         self.select_positive = args.hindsight.select_positive
         self.use_her = args.hindsight.use_her
         self.sample_form = args.policy.learn.sample_form
+        self.device = args.torch.gpu
 
     def cpu(self):
         super().cpu()
-        assign_device(self.algo_policy, self.discrete_actions, "cpu")
+        self.device = "cpu"
+        _assign_device(self.algo_policy, self.algo_name, self.discrete_actions, "cpu")
         reassign_optim(self.algo_policy, self.critic_lr, self.actor_lr)
 
     def cuda(self, device=None, args=None):
         super().cuda()
         if device is not None:
-            assign_device(self.algo_policy, self.discrete_actions, device)
+            self.device=device
+            _assign_device(self.algo_policy, self.algo_name, self.discrete_actions, device)
             reassign_optim(self.algo_policy, self.critic_lr, self.actor_lr)
 
     def set_eps(self, epsilon): # not all algo policies have set eps
@@ -140,6 +143,7 @@ class Policy(nn.Module):
                 
                 batch = main_batch
                 batch.cat_([her_batch])
+                indice = np.concatenate([main_indice, her_indice]) 
             else:
                 use_buffer = her_buffer if np.random.rand() < self.select_positive and self.use_her and len(her_buffer) > 1000 else buffer
                 batch, indice = use_buffer.sample(sample_size)
@@ -153,6 +157,7 @@ class Policy(nn.Module):
                 for k in result.keys():
                     cumul_losses[k] += result[k] 
             if self.sample_form == "merged" and len(her_buffer) > 1000:
+                if "weight" in batch: main_batch.weight, her_batch.weight = batch.weight[:int(np.round(sample_size * (1-self.select_positive)))], batch.weight[int(np.round(sample_size * (1-self.select_positive))):] # assign weight values for prioritized buffer
                 self.algo_policy.post_process_fn(main_batch, buffer, main_indice)
                 self.algo_policy.post_process_fn(her_batch, her_buffer, her_indice)
             else:

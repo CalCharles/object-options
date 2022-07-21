@@ -3,7 +3,8 @@ import os, torch
 from arguments import get_args
 from Environment.Environments.initialize_environment import initialize_environment
 from Record.file_management import read_obj_dumps, load_from_pickle, save_to_pickle
-from train_interaction import generate_buffers, init_names
+from train_interaction import init_names
+from Buffer.train_test_buffers import generate_buffers
 from Causal.Utils.get_error import get_error, error_types
 from Causal.active_mask import ActiveMasking
 from Causal.interaction_model import make_name
@@ -35,6 +36,8 @@ if __name__ == '__main__':
     args.parent_selectors = full_model.parent_selectors
     args.parent_select = full_model.parent_select
 
+    print(args.inter.load_intermediate)
+
     if args.inter.load_intermediate: buffer = load_from_pickle("/hdd/datasets/object_data/temp/rollouts.pkl")
     else: buffer = generate_buffers(environment, args, object_names, full_model, train=False)
     if args.inter.save_intermediate: save_to_pickle("/hdd/datasets/object_data/temp/rollouts.pkl", buffer)
@@ -43,18 +46,18 @@ if __name__ == '__main__':
     print(get_error(full_model, buffer, error_type=error_types.INTERACTION_RAW)[:10], buffer.inter[:10], len(buffer), len(get_error(full_model, buffer, error_type=error_types.INTERACTION_RAW)))
 
     test_full(full_model, buffer, args, object_names, environment)
-
     full_model.mask = ActiveMasking(buffer, full_model, args.mask.min_sample_difference, args.mask.var_cutoff, 
         graph.nodes[object_names.primary_parent].interaction.active_mask, 
         parent_max_num= environment.num_actions if (environment.discrete_actions and object_names.primary_parent == "Action") else 10000,
-        num_samples=args.mask.num_samples)
+        num_samples=args.mask.num_samples, sample_grid = args.mask.sample_grid)
     full_model.active_mask = full_model.mask.active_mask
     full_model.active_select = construct_object_selector([object_names.target], environment, masks=[full_model.active_mask])
 
     graph.nodes[object_names.target].interaction = full_model
     graph.add_to_chain(object_names.target)
-    if len(args.record.save_dir) > 0: graph.save(args.record.save_dir)
-
-    graph = load_graph(args.record.save_dir, -1)
+    if len(args.record.save_dir) > 0: 
+        graph.save(args.record.save_dir)
+        graph = load_graph(args.record.save_dir, -1)
     print(args.record.save_dir, graph.nodes.Action.option, graph.nodes.Action.option.sampler, graph.nodes.Action.option.sampler.mask)
-    print(full_model.active_mask, full_model.mask.active_mask, graph.nodes.Action.option.sampler.mask.active_mask)
+    print(full_model.active_mask, full_model.mask.active_mask, graph.nodes.Action.option.sampler.mask.active_mask, len(graph.nodes[object_names.target].interaction.mask.filtered_active_set))
+    print(graph.nodes.Action.option.name, graph.nodes.Action.option.interaction_model)
