@@ -29,7 +29,7 @@ class ConvNetwork(Network): # basic 1d conv network
                 layers += [nn.Conv1d(self.hs[-1], self.output_dim, 1)]
         self.model = nn.Sequential(*layers)
         self.train()
-        self.reset_parameters()
+        self.reset_network_parameters()
 
     def forward(self, x):
         x = self.model(x)

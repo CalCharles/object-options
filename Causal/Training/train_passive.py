@@ -19,6 +19,7 @@ def train_passive(full_model, rollouts, args, active_optimizer, passive_optimize
     for i in range(args.inter.passive.passive_iters):
         # get input-output values
         batch, idxes = rollouts.sample(args.train.batch_size, weights=weights)
+        # print (batch.inter_state.shape, full_model.norm.reverse(batch.inter_state[0], form = "inter"))
         weight_rate = np.sum(weights[idxes]) / len(idxes) if weights is not None else 1.0
 
         # the values to be predicted, values in the buffer are pre-normalized
@@ -35,8 +36,8 @@ def train_passive(full_model, rollouts, args, active_optimizer, passive_optimize
         run_optimizer(passive_optimizer, full_model.passive_model, passive_loss)
 
         # logging the passive model outputs
-        logger.log(i, passive_loss, None, None, passive_likelihood_full  * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, weight_rate,
-                    passive_prediction_params, target, None, full_model)
+        logger.log(i, passive_loss, None, None, passive_likelihood_full  * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, weight_rate, batch.done,
+                    passive_prediction_params, target  * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, full_model)
 
         # If pretraining the active model
         if args.inter.passive.pretrain_active:
@@ -45,6 +46,8 @@ def train_passive(full_model, rollouts, args, active_optimizer, passive_optimize
             active_loss = active_likelihood_full.sum(dim=-1).unsqueeze(1) * pytorch_model.wrap(done_flags, cuda = full_model.iscuda)
             run_optimizer(active_optimizer, full_model.active_model, active_loss)
             # logging the active model outputs
-            active_logger.log(i, active_loss, None, None, active_likelihood_full * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, weight_rate,
+            active_logger.log(i, active_loss, None, None, active_likelihood_full * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, weight_rate, batch.done,
                                 active_prediction_params, target, None, full_model) 
+        if i % args.inter.passive.passive_log_interval == 0:
+            print(full_model.norm.reverse(batch.inter_state[0], form="inter"), full_model.norm.reverse(batch.next_target[0]))
     return outputs

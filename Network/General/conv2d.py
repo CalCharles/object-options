@@ -42,7 +42,7 @@ class Basic2DConvNetwork(Network): # basic 1d conv network
             self.final = nn.Linear(self.reduce_size, self.output_dim)
             self.model = nn.ModuleList([self.conv] + [self.final])
         self.train()
-        self.reset_parameters()
+        self.reset_network_parameters()
 
     def forward(self, x):
         x = self.conv(x)

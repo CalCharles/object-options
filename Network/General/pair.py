@@ -20,36 +20,43 @@ class PairNetwork(Network):
         self.post_dim = args.pair.post_dim
         self.drop_first = args.drop_first if 'drop_first' in args else False
         self.reduce_fn = args.pair.reduce_function
+        self.difference_first = args.pair.difference_first
+        no_nets = args.pair.no_nets if 'no_nets' in args.pair else False
         
         conv_args = copy.deepcopy(args)
-        conv_args.object_dim = args.pair.object_dim + max(0, self.first_obj_dim * int(not self.drop_first))
-        self.conv_dim = self.hs[-1] + max(0, self.post_dim) if args.pair.aggregate_final else args.num_outputs    
+        conv_args.object_dim = args.pair.object_dim + max(0, self.first_obj_dim * int(not self.drop_first)) + args.pair.object_dim * int(args.pair.difference_first)
+        self.conv_dim = self.hs[-1] + max(0, self.post_dim) if args.pair.aggregate_final else args.num_outputs
         conv_args.output_dim = self.conv_dim
-        conv_args.include_last = True #args.pair.aggregate_final
+        conv_args.include_last = not args.pair.aggregate_final
         if args.pair.aggregate_final: conv_args.activation_final = "none" # the final  activation is after the aggregated MLP
+        self.conv_args = conv_args
 
         layers = list()
-        self.conv = ConvNetwork(conv_args)
-        layers.append(self.conv)
+        if not no_nets: 
+            self.conv = ConvNetwork(conv_args)
+            layers.append(self.conv)
 
         post_mlp_args = copy.deepcopy(args) 
         if args.pair.post_dim > 0:
             args.num_inputs = args.post_dim + args.first_obj_dim
             args.num_outputs = self.hs[-1]
-            self.post_channel = MLPNetwork(args)
-            layers.append(self.post_channel)
+            if not no_nets:
+                self.post_channel = MLPNetwork(args)
+                layers.append(self.post_channel)
         self.aggregate_final = args.pair.aggregate_final
         self.softmax = nn.Softmax(-1)
         if args.pair.aggregate_final: # does not work with a post-channel
             args.include_last = True
             args.num_inputs = conv_args.output_dim
             args.num_outputs = self.num_outputs
-            args.hidden_sizes = [256] # TODO: hardcoded final hidden sizes for now
-            self.MLP = MLPNetwork(args)
-            layers.append(self.MLP)
+            args.hidden_sizes = args.pair.final_layers # TODO: hardcoded final hidden sizes for now
+            if not no_nets: 
+                self.MLP = MLPNetwork(args)
+                layers.append(self.MLP)
         self.model = layers
         self.train()
-        self.reset_parameters()
+        self.reset_network_parameters()
+        print(self, self.first_obj_dim, self.object_dim)
 
     def slice_input(self, x):
         fx, px = None, None
@@ -66,6 +73,7 @@ class PairNetwork(Network):
             fx = fx.view(-1, self.first_obj_dim)
             # cut out the object components
             x = x[..., self.first_obj_dim:x.shape[-1]-self.post_dim]
+            
 
         # reshape the object components
         nobj = x.shape[-1] // self.object_dim
@@ -73,6 +81,10 @@ class PairNetwork(Network):
         if self.first_obj_dim > 0 and not self.drop_first:
             # append the pre components to every object and reshape
             broadcast_fx = torch.stack([fx.clone() for i in range(nobj)], dim=len(fx.shape) - 1)
+             # appends the difference between the last of pre-comp and object, fx must be at least as long as x, 
+            if self.difference_first:
+                dx = x - torch.stack([fx[...,fx.shape[-1]-x.shape[-1]:].clone() for i in range(nobj)], dim=len(fx.shape) - 1)
+                broadcast_fx = torch.cat((broadcast_fx, dx), dim = -1) 
             x = torch.cat((broadcast_fx, x), dim=-1)
         # transpose because conv-nets have reversed dimensions
         x = x.transpose(-1,-2)
@@ -93,7 +105,7 @@ class PairNetwork(Network):
         else:
             # when dealing without many-many input outputs
             x = x.transpose(2,1)
-            x = x.reshape(batch_size, -1) 
+            x = x.reshape(batch_size, -1)
         return x
 
     def forward(self, x):

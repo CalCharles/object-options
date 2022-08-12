@@ -49,8 +49,9 @@ class TemporalExtensionManager():
         else:
             # a temporally extended action just finished
             needs_sample = self.get_extension(terminate, ext_term)
+        # print(needs_sample, terminate, ext_term, self.timer, self.ext_cutoff)
         return needs_sample, self.act, self.chain, self.policy_batch, self.state, self.masks
 
     def get_extension(self, terminate, ext_term):
         # Contains any logic for deciding whether to end temporally extension (either timer, or terminate, or action terminate)
-        return terminate or ext_term or self.timer == self.ext_cutoff
+        return terminate or ext_term# or self.timer >= self.ext_cutoff

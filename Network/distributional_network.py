@@ -20,7 +20,7 @@ class DiagGaussianForwardNetwork(Network):
         self.base_variance = .01 # hardcoded based on normalized values, base variance 1% of the average variance
 
         self.train()
-        self.reset_parameters()
+        self.reset_network_parameters()
 
     def forward(self, x):
         x = pytorch_model.wrap(x, cuda=self.iscuda)
@@ -36,7 +36,7 @@ class InteractionNetwork(Network):
         self.model = [self.inter]
 
         self.train()
-        self.reset_parameters()
+        self.reset_network_parameters()
         
     def forward(self, x):
         x = pytorch_model.wrap(x, cuda=self.iscuda)

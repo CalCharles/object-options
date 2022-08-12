@@ -69,3 +69,6 @@ class PrimitiveOption(Option): # primitive discrete actions
 
     def terminate_reward_chain(self, state, next_state, param, chain, mask=None, masks=None, true_done= None, true_reward=None, needs_reward=False, ):
         return 1, [0], [1], True, True
+
+    def zero_below_grads(self, top=False):
+        pass

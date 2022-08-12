@@ -31,6 +31,8 @@ class InlineTrainer():
         self.schedule = args.inpolicy_schedule
         self.train_passive = args.policy_intrain_passive
         self.terminate_reward = terminate_reward
+        self.reset_weights = args.reset_weights
+        self.inpolicy_times = args.inpolicy_times
         self.init_optimizers()
 
     def init_optimizers(self):
@@ -41,27 +43,40 @@ class InlineTrainer():
 
     def set_values(self, data):
         proximity = compute_error(self.interaction_model, error_types.PROXIMITY, data, prenormalize=True)
+        proximity_inst = compute_error(self.interaction_model, error_types.PROXIMITY, data, prenormalize=True, reduced=False) # the same as above if not multiinstanced
+        done = compute_error(self.interaction_model, error_types.DONE, data) # the same as above if not multiinstanced
         if type(self.interaction_model) == DummyInteraction:
             binaries = np.ones(proximity.shape)
         else:
             passive_error = - compute_error(self.interaction_model, error_types.PASSIVE_LIKELIHOOD, data, prenormalize=True)
-            binaries = passive_binary(passive_error, self.weighting, proximity)
+            binaries = passive_binary(passive_error, self.weighting, proximity, done)
         # print(data.full_state.factored_state.Paddle, data.full_state.factored_state.Ball,data.next_full_state.factored_state.Ball, proximity, binaries)
-        return proximity, binaries
+        return proximity, proximity_inst, binaries
 
     def run_train(self, i, rollouts):
-        if self.schedule > 0 and i % self.schedule == 0 and i != 0:
+        if self.schedule > 0 and i % self.schedule == 0 and i != 0 and self.inpolicy_times > 0 and i // self.schedule <= self.inpolicy_times:
+            # resets the network
+            if self.reset_weights[0] == 1:
+                self.interaction_model.reset_network("interaction")
+                self.interaction_optimizer = initialize_optimizer(self.interaction_model.interaction_model, self.interaction_args.interaction_net.optimizer, self.interaction_args.interaction_net.optimizer.alt_lr)
+            if self.reset_weights[1] == 1:
+                self.interaction_model.reset_network("active")
+                self.active_optimizer = initialize_optimizer(self.interaction_model.active_model, self.interaction_args.interaction_net.optimizer, self.interaction_args.interaction_net.optimizer.lr)
+            if self.reset_weights[2] == 1:
+                self.interaction_model.reset_network("passive")
+                self.passive_optimizer = initialize_optimizer(self.interaction_model.passive_model, self.interaction_args.interaction_net.optimizer, self.interaction_args.interaction_net.optimizer.lr)
             # change interaction model values
             cut_rols = rollouts[:len(rollouts)]
             # print(cut_rols.weight_binary[-200:], cut_rols.proximity[-200:])
             train_combined(self.interaction_model, rollouts, None, self.interaction_args,
                 rollouts.trace, get_weights(self.weighting[2], cut_rols.weight_binary).squeeze(),
-                get_weights(self.weighting[1], cut_rols.weight_binary).squeeze(), cut_rols.proximity,
+                get_weights(self.weighting[1], cut_rols.weight_binary).squeeze(), cut_rols.proximity, cut_rols.proximity_inst,
                 self.active_optimizer, self.passive_optimizer, self.interaction_optimizer,
                 normalize=True)
 
             # update inter, rew, terminate, done values
-            term, rew, done, inter, cutoffs = self.terminate_reward(cut_rols.inter_state, cut_rols.next_target, cut_rols.param, cut_rols.mask, cut_rols.true_done, cut_rols.true_reward, reset=False)
+            term, rew, done, inter, cutoffs = self.terminate_reward(cut_rols.inter_state, cut_rols.target, cut_rols.next_target, cut_rols.target_diff, cut_rols.param, cut_rols.mask, cut_rols.true_done, cut_rols.true_reward, reset=False)
+            print(term.shape, rew.shape, done.shape, inter.shape)
             # print(term.shape, rew.shape, done.shape, inter.shape)
             rollouts.terminate[:len(rollouts)], rollouts.rew[:len(rollouts)], rollouts.done[:len(rollouts)], rollouts.inter[:len(rollouts)] = \
                 np.expand_dims(term, 1), np.expand_dims(rew, 1), np.expand_dims(done, 1), np.expand_dims(inter, 1)

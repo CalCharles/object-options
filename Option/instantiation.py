@@ -1,3 +1,4 @@
+import numpy as np
 from Causal.Sampling.sampling import samplers
 from State.state_extractor import StateExtractor
 from State.feature_selector import construct_object_selector
@@ -5,7 +6,7 @@ from Option.General.rew_term_fns import terminate_reward
 from Option.action_map import ActionMap
 from Environment.Normalization.norm import MappedNorm
 from Buffer.buffer import ParamPriorityReplayBuffer, ParamReplayBuffer, ParamPrioWeightedReplayBuffer, ParamWeightedReplayBuffer
-from Causal.dummy_interaction import DummyInteraction
+from Causal.dummy_interactions import dummy_interactions
 
 def instantiate_buffers(args, models):
     if len(args.collect.prioritized_replay) > 0:
@@ -25,8 +26,12 @@ def instantiate_action_map(args, parent_option, parent_interaction, environment,
     mapped_norm = MappedNorm(environment.object_range, environment.object_dynamics, object_names.primary_parent, parent_interaction.active_mask)
     mapped_select = construct_object_selector([object_names.primary_parent], environment, masks=[parent_interaction.active_mask])
     filtered_active_set = [fas[parent_interaction.active_mask.astype(bool)] for fas in parent_interaction.mask.filtered_active_set]
-    action_map = ActionMap(args.action, filtered_active_set,
-     mapped_norm, mapped_select, discrete_primitive)
+    diff = mapped_norm.mapped_lim[1] - mapped_norm.mapped_lim[0]
+    round_values = None if not args.action.round_values else [np.linspace(mapped_norm.mapped_lim[0][i], mapped_norm.mapped_lim[1][i], int(diff[i] // mapped_norm.mapped_dynamics[i]) + 1) for i in range(len(mapped_norm.mapped_dynamics))]
+    no_scale_last = True if environment.name == "Asteroids" and object_names.target == "Laser" else False
+    sample_angle = True if environment.name == "Asteroids" and object_names.target == "Laser" else False
+    action_map = ActionMap(args.action, filtered_active_set, mapped_norm, mapped_select, 
+                    discrete_primitive, round_values, no_scale_last, sample_angle)
     return action_map
 
 
@@ -40,26 +45,27 @@ def instantiate_interaction(args, graph, environment, object_names):
     parent_interaction = graph.nodes[object_names.primary_parent].interaction
 
     # gets the interaction model for the current control object
-    if args.train.dummy: # train in dummy mode
-        interaction_model = DummyInteraction(args, object_names, environment, environment.object_sizes[object_names.target])
+    if len(args.train.dummy) != 0: # train in dummy mode
+        interaction_model = dummy_interactions[args.train.dummy](args, object_names, environment, environment.object_sizes[object_names.target])
     else:
         interaction_model = graph.nodes[object_names.target].interaction
-        interaction_model.regenerate_norm(environment)
+        interaction_model.regenerate(environment)
     return parent_option, parent_interaction, interaction_model
 
-def instantiate_sampler(args, interaction_model):
+def instantiate_sampler(args, interaction_model, environment):
     args.sample.mask = interaction_model.mask
     args.sample.target_select = interaction_model.target_select
+    args.sample.parent_select = interaction_model.parent_select
+    args.sample.additional_select = interaction_model.additional_selectors[-1] if len(interaction_model.additional_selectors) > 0 else interaction_model.additional_select
     args.sample.obj_dim = interaction_model.obj_dim
     args.sample.test_sampler = True
+    args.sample.num_angles = 0 if environment.name != "Asteroids" else int(2 * np.pi / environment.ship_speed[1] if environment.ship_speed[1] > 0 else 0)
+    args.sample.positive = True if environment.name == "Asteroids" and interaction_model.name == "Laser" else False
+    args.sample.epsilon_close = args.option.epsilon_close
     return samplers[args.sample.sample_type](**args.sample)
 
 def instantiate_extractor(args, interaction_model, environment, object_names):
-    args.extract.inter_select = interaction_model.inter_select
-    args.extract.target_select = interaction_model.target_select
-    args.extract.parent_selectors = interaction_model.parent_selectors
-    args.extract.parent_select = interaction_model.parent_select
-    args.extract.additional_select = interaction_model.additional_select
+    args.extract.inter_extractor = interaction_model.extractor
     args.extract.object_names = object_names
     args.extract.norm = interaction_model.norm
     args.extract.max_target_objects = environment.object_instanced[object_names.target]

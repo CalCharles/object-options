@@ -1,0 +1,22 @@
+---
+  record:
+    load_dir: /nfs/data/calebc/object_data/sokoban/testrun/
+    save_dir: /nfs/data/calebc/object_data/sokoban/testrun_block/
+  environment:
+    env: Sokoban
+    variant: small_obs
+  torch:
+    gpu: 1
+    no_cuda: False
+  train:
+    train_edge: Pusher Action Obstacle Block
+    load_rollouts: /nfs/data/calebc/object_data/sokoban/pusher/
+    num_frames: 10000
+  mask:
+    min_sample_difference: 0.1
+    var_cutoff: 0.04
+    sample_grid: False
+  inter:
+    # save_intermediate: True
+    load_intermediate: True
+...

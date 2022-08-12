@@ -1,0 +1,19 @@
+---
+metaparam: 
+  multi_filename: pusher_option_
+  log_endpoint: /hdd/datasets/object_data/sokoban/few_obs/hyperparam/hyperparam_logs/pusher/lr2/
+  yaml_endpoint: /hdd/datasets/object_data/sokoban/few_obs/hyperparam/hyperparam_yamls/pusher/lr2/
+  save_endpoint: /hdd/datasets/object_data/sokoban/few_obs/hyperparam/hyperparam/pusher/lr2/
+  graph_endpoint: /hdd/datasets/object_data/sokoban/few_obs/hyperparam/hyperparam_graphs/pusher/lr2/
+  bash_path: pusher_lr2.sh
+  base_config: configs/Sokoban/few_obs/action_pusher_option.yaml
+  runfile: train_option.py
+  gpu: 1
+  match: False
+network:
+  optimizer:
+    lr: .0005,.0001,.00005,.00001
+policy:
+  learn:
+    grad_epoch: 50,200,300
+...

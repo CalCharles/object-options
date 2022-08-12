@@ -1,0 +1,18 @@
+---
+metaparam: 
+  multi_filename: ball_option_
+  log_endpoint: /hdd/datasets/object_data/breakout/hyperparam/hyperparam_logs/ball/learn/
+  yaml_endpoint: /hdd/datasets/object_data/breakout/hyperparam/hyperparam_yamls/ball/learn/
+  save_endpoint: /hdd/datasets/object_data/breakout/hyperparam/hyperparam/ball/learn/
+  graph_endpoint: /hdd/datasets/object_data/breakout/hyperparam/hyperparam_graphs/ball/learn/
+  bash_path: ball_learn.sh
+  base_config: configs/Breakout/angle_hyperparam/paddle_ball_option_inline.yaml
+  runfile: train_option.py
+  gpu: 2
+  match: False
+train:
+  num_iters: 4000
+policy:
+  learning_type: ddpg,sac
+  epsilon_random: 0.1,0.2,0.25
+...

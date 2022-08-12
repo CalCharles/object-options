@@ -343,7 +343,7 @@ class Breakout(Environment):
             # end of episode by dropping
             if self.ball.losses == 5 or (self.dropped and self.drop_stopping):
                 self.done = True
-                needs_reset = True
+                needs_reset = self.ball.losses == 5
                 print("eoe", self.total_score)
                 break
 
@@ -358,6 +358,7 @@ class Breakout(Environment):
                     needs_reset = True
                     self.reward += self.completion_reward * self.default_reward
                     self.done = True
+                    print("eoe", self.total_score)
                     break
 
             # reset because the ball is stuck
@@ -391,15 +392,6 @@ class Breakout(Environment):
         if needs_ball_reset: self.ball.reset_pos()
         if needs_reset: self.reset()
         return full_state, self.reward, self.done, info
-
-
-    def toString(self, extracted_state):
-        estring = "ITR:" + str(self.itr) + "\t"
-        for i, obj in enumerate(self.objects):
-            estring += obj.name + ":" + " ".join(map(str, extracted_state[obj.name])) + "\t" # TODO: attributes are limited to single floats
-        estring += "Reward:" + str(self.reward) + "\t"
-        estring += "Done:" + str(int(self.done)) + "\t"
-        return estring
 
     def compute_proximity_reward(self, target_block, block):
         dist = np.linalg.norm(target_block[:2] - block[:2], ord=1)

@@ -28,7 +28,7 @@ class PointNetwork(Network):
         else:
             self.model = nn.ModuleList([self.conv])
         self.train()
-        self.reset_parameters()
+        self.reset_network_parameters()
 
     def forward(self, x):
         batch_size = x.shape[0] if len(x.shape) > 1 else 1

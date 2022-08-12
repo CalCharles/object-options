@@ -4,6 +4,7 @@ from Network.network_utils import pytorch_model
 import copy
 from Causal.Utils.instance_handling import compute_likelihood, split_instances
 from State.feature_selector import broadcast
+from tianshou.data import Batch
 
 error_names = [# an enumerator for different error types
     "PASSIVE",# mean of passive subtracted with target,
@@ -116,7 +117,10 @@ def get_error(full_model, rollouts, error_type=0, reduced=True, normalized=False
     # computes some term over the entire rollout, iterates through batches of 500 to avoid overloading the GPU
 
     # gets all the data from rollouts, in the order of the data (for assignment)
-    batch, indices = rollouts.sample(0) if len(rollouts) != rollouts.maxsize else (rollouts, np.arange(rollouts.maxsize))
+    if type(rollouts) == Batch:
+        batch = rollouts
+    else:
+        batch, indices = rollouts.sample(0) if len(rollouts) != rollouts.maxsize else (rollouts, np.arange(rollouts.maxsize))
 
     model_error = []
     for i in range(int(np.ceil(len(batch) / min(500,len(batch))))): # run 500 at a time, so that we don't overload the GPU

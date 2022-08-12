@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
     # gets the interaction model for the current control object
     interaction_model = graph.nodes[object_names.target].interaction
-    interaction_model.norm = interaction_model.regenerate_norm(environment)
+    interaction_model.regenerate(environment)
     
     option = graph.nodes[object_names.target].option
     test_buffer = ParamReplayBuffer(args.collect.buffer_len, stack_num=1)

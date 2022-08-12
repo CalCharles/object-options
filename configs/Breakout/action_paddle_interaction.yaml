@@ -20,8 +20,8 @@
     predict_dynamics: True
     interaction_testing: 0.9 -13 -16 -1
     interaction_iters: 0
-    # load_intermediate: False
-    save_intermediate: True
+    # load_intermediate: /hdd/datasets/object_data/breakout/temp/
+    save_intermediate: /hdd/datasets/object_data/breakout/temp/
     compare_trace: True
     passive:
       passive_iters: 5000

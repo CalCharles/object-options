@@ -1,0 +1,19 @@
+---
+metaparam: 
+  multi_filename: ship_option_
+  log_endpoint: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam_logs/ship/pri2/
+  yaml_endpoint: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam_yamls/ship/pri2/
+  save_endpoint: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam/ship/pri2/
+  graph_endpoint: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam_graphs/ship/pri2/
+  bash_path: ship_pri2.sh
+  base_config: configs/Asteroids/rotation/action_ship_option.yaml
+  runfile: train_option.py
+  gpu: 3
+  match: False
+policy:
+  primacy:
+    reset_layers: 2,3
+    reset_frequency: 200
+    primacy_iters: 40
+  lookahead: 2,5,10
+...

@@ -15,6 +15,7 @@
   mask:
     min_sample_difference: 0.1
     var_cutoff: 0.4 #0.05
+    num_samples: 30
   inter:
     save_intermediate: True
     # load_intermediate: True

@@ -10,18 +10,13 @@
     save_interval: 100 #
   environment:
     env: Breakout
-    render: False
-    frameskip: 1
     variant: drop_stopping
-    time_cutoff: -1
-    seed: -1
-    demonstrate: False
   torch:
     gpu: 0
     no_cuda: False
   train:
     train: True
-    pretrain_frames: 1000 # 
+    pretrain_frames: 10000 # 
     num_steps: 250 #
     num_frames: 1000
     train_edge: Paddle Ball
@@ -44,7 +39,8 @@
     sample_type: hist
     param_recycle: 0.1
   extract:
-    obs_setting: 1 0 0 1 1 1 0 0
+    single_obs_setting: 1 1 0 1 0 0
+    relative_obs_setting: 1 0 0 0
   option:
     term_form: combined
     term_as_done: True
@@ -53,7 +49,7 @@
     constant_lambda: -0.1
     param_lambda: 200
     inter_lambda: 1
-    temporal_extend: 4
+    temporal_extend: 1
     time_cutoff: 300
     interaction_as_termination: True
   collect:
@@ -61,6 +57,7 @@
     test_episode: True
     max_steps: 1000
     prioritized_replay: 0.2 0.4
+    # demonstrate_option: True
     aggregator:
       sum_rewards: False
   hindsight:
@@ -76,17 +73,29 @@
     tau: .001
     max_critic: 100
     epsilon_random: 0.1
+    # ground_truth: Paddle
+    primacy:
+      reset_layers: 3
     logging:
       log_interval: 10
       train_log_maxlen: 5
       test_log_maxlen: 50
-      initial_trials: 20 #
-      test_trials: 10 #
+      initial_trials: 1 #
+      test_trials: 1 #
       max_terminate_step: 1 300
     learn:
       grad_epoch: 50
       sample_form: merged
+      post_random_iters: 100
   action:
     use_relative_action: True
-    relative_action_ratio: 0.25
+    relative_action_ratio: 0.15
+    round_values: True
+  inline:
+    interaction_config: "configs/Breakout/angle_hyperparam/paddle_ball_interaction_inline.yaml"
+    inpolicy_iters: 100
+    inpolicy_schedule: 10
+    policy_intrain_passive: False
+    intrain_weighting: 0 200000 100 -1
+    policy_inline_iters: 10 10 -1
 ...

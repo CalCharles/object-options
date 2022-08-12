@@ -1,0 +1,19 @@
+---
+metaparam: 
+  multi_filename: pusher_option_
+  log_endpoint: /hdd/datasets/object_data/sokoban/few_obs/hyperparam/hyperparam_logs/pusher/tc2/
+  yaml_endpoint: /hdd/datasets/object_data/sokoban/few_obs/hyperparam/hyperparam_yamls/pusher/tc2/
+  save_endpoint: /hdd/datasets/object_data/sokoban/few_obs/hyperparam/hyperparam/pusher/tc2/
+  graph_endpoint: /hdd/datasets/object_data/sokoban/few_obs/hyperparam/hyperparam_graphs/pusher/tc2/
+  bash_path: pusher_tc2.sh
+  base_config: configs/Sokoban/few_obs/action_pusher_option.yaml
+  runfile: train_option.py
+  gpu: 2
+  match: True
+option:
+  time_cutoff: 10,20,30,50,75
+policy:
+  max_min_critic: -10 0,-20 0,-30 0,-50 0,-75 0
+  rainbow:
+    num_atoms: 51,51,51,51,75
+...

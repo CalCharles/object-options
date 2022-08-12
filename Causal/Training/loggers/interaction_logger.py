@@ -16,6 +16,8 @@ class interaction_logger(Logger):
         self.total_seen = 0
         self.binary_false_positive = 0
         self.binary_false_negative = 0
+        self.binary_true_false_positive = 0
+        self.binary_true_false_negative = 0
         self.trace_false_positive = 0
         self.trace_false_negative = 0
         self.weight_count = 0
@@ -43,6 +45,9 @@ class interaction_logger(Logger):
         self.binary_false_positive += np.sum((bin_diffs > 0).astype(int) * done_flags.astype(int))
         # comparing to the trace, if trace is not used the trace vector is expected to be all 1
         if trace is not None:
+            bin_trace_diffs = pytorch_model.unwrap(binaries) - trace
+            self.binary_true_false_negative += np.sum((bin_trace_diffs < 0).astype(int) * done_flags.astype(int))
+            self.binary_true_false_positive += np.sum((bin_trace_diffs > 0).astype(int) * done_flags.astype(int))
             trace_diffs = bin_interactions - trace
             self.trace_false_negative += np.sum((trace_diffs < 0).astype(int) * done_flags.astype(int))
             self.trace_false_positive += np.sum((trace_diffs > 0).astype(int) * done_flags.astype(int))
@@ -52,6 +57,7 @@ class interaction_logger(Logger):
             log_str = f'interaction at {i}, mean loss: {np.mean(self.loss)}, total_inter: {self.total_inter/self.total_seen},  total_bin: {self.total_bin/self.total_seen}'
             if self.total_true > 0: log_str += f'\ntotal true: {self.total_true/self.total_seen}, weight rate: {self.weight_count/self.total_seen}' # assumes that there would not be no true interactions unless unused
             log_str  += f'\nbinary FP: {self.binary_false_positive/max(1, self.binary_false_positive + self.total_seen - self.total_bin)}, binary FN: {self.binary_false_negative/max(1, self.binary_false_negative + self.total_bin)}'
+            if self.total_true > 0: log_str  += f'\nbinary true FP: {self.binary_true_false_positive/max(1, self.binary_true_false_positive + self.total_seen - self.total_true)}, binary FN: {self.binary_true_false_negative/max(1, self.binary_true_false_negative + self.total_true)}'
             if self.total_true > 0: log_str += f'\ntrace FP: {self.trace_false_positive/max(1, self.trace_false_positive + self.total_seen - self.total_true)}, trace FN: {self.trace_false_negative/max(1, self.total_true + self.trace_false_negative)}'
             logging.info(log_str)
             print(log_str)

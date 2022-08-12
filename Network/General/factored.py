@@ -14,7 +14,7 @@ class FactoredMLPNetwork(Network):
         self.use_layer_norm = kwargs['use_layer_norm']
         self.MLP = BasicMLPNetwork(**kwargs)
         self.train()
-        self.reset_parameters()
+        self.reset_network_parameters()
 
     def basic_operations(self, x):
         # add, subtract, outer product

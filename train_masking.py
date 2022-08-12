@@ -17,6 +17,7 @@ from State.feature_selector import construct_object_selector
 
 if __name__ == '__main__':
     args = get_args()
+    print(args)
     torch.cuda.set_device(args.torch.gpu)
     np.set_printoptions(threshold=3000, linewidth=120, precision=4, suppress=True)
     torch.set_printoptions(precision=4, sci_mode=False)
@@ -31,12 +32,12 @@ if __name__ == '__main__':
     graph = Graph(environment.object_names, action_dummy, action_option) if "graph.gm" not in os.listdir(args.record.load_dir) or args.record.refresh else load_graph(args.record.load_dir, args.torch.gpu)
 
     full_model = torch.load(os.path.join(args.record.load_dir, make_name(object_names) + "_inter_model.pt"))
-    args.inter_select = full_model.inter_select
-    args.target_select = full_model.target_select
-    args.parent_selectors = full_model.parent_selectors
-    args.parent_select = full_model.parent_select
+    full_model.regenerate(environment)
+    args.target_select, args.full_parent_select, args.additional_select, args.additional_selectors, \
+            args.padi_selector, args.parent_select, args.inter_select = full_model.extractor.get_selectors()
 
     print(args.inter.load_intermediate)
+    print(graph.nodes[object_names.primary_parent].option, graph.nodes[object_names.primary_parent].interaction.active_mask, graph.nodes[object_names.primary_parent].interaction.mask.active_mask)
 
     if args.inter.load_intermediate: buffer = load_from_pickle("/hdd/datasets/object_data/temp/rollouts.pkl")
     else: buffer = generate_buffers(environment, args, object_names, full_model, train=False)
@@ -46,10 +47,12 @@ if __name__ == '__main__':
     print(get_error(full_model, buffer, error_type=error_types.INTERACTION_RAW)[:10], buffer.inter[:10], len(buffer), len(get_error(full_model, buffer, error_type=error_types.INTERACTION_RAW)))
 
     test_full(full_model, buffer, args, object_names, environment)
+    print(object_names.primary_parent, graph.nodes[object_names.primary_parent].option)
+    print (args.mask)
     full_model.mask = ActiveMasking(buffer, full_model, args.mask.min_sample_difference, args.mask.var_cutoff, 
         graph.nodes[object_names.primary_parent].interaction.active_mask, 
         parent_max_num= environment.num_actions if (environment.discrete_actions and object_names.primary_parent == "Action") else 10000,
-        num_samples=args.mask.num_samples, sample_grid = args.mask.sample_grid)
+        num_samples=args.mask.num_samples, sample_grid = args.mask.sample_grid, dynamics_difference=args.mask.dynamics_difference)
     full_model.active_mask = full_model.mask.active_mask
     full_model.active_select = construct_object_selector([object_names.target], environment, masks=[full_model.active_mask])
 

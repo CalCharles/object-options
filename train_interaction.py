@@ -2,12 +2,11 @@ import os, torch
 from arguments import get_args
 from Record.file_management import read_obj_dumps, load_from_pickle, save_to_pickle
 from State.object_dict import ObjDict
-from State.feature_selector import construct_object_selector
 from Buffer.train_test_buffers import generate_buffers
 from Causal.interaction_model import NeuralInteractionForwardModel
 from Causal.Training.train_full import train_full
 from Causal.Training.test_full import test_full, test_full_train
-from Causal.dummy_interaction import construct_selectors
+from Causal.Utils.interaction_selectors import construct_selectors
 
 from Environment.Environments.initialize_environment import initialize_environment
 
@@ -38,16 +37,17 @@ if __name__ == '__main__':
     object_names = init_names(args)
 
     # build the selectors for the passive (target), interaction or active (parent + target), parent (just parent) states
-    args.target_select, args.parent_selectors, args.additional_select, args.parent_select, args.inter_select = construct_selectors(object_names, environment)
     args.controllable = None # this is filled in with controllable features of the target
 
     # initialize the full model
     full_model = NeuralInteractionForwardModel(args, environment)
-    
+    args.target_select, args.full_parent_select, args.additional_select, args.additional_selectors, \
+            args.padi_selector, args.parent_select, args.inter_select = full_model.extractor.get_selectors()
+
     # get the train and test buffers
-    if args.inter.load_intermediate: train_buffer, test_buffer = load_from_pickle("/hdd/datasets/object_data/temp/traintest.pkl")
+    if len(args.inter.load_intermediate) > 0: train_buffer, test_buffer = load_from_pickle(os.path.join(args.inter.load_intermediate,environment.name + "_" + full_model.name + "_traintest.pkl"))
     else: train_buffer, test_buffer = generate_buffers(environment, args, object_names, full_model)
-    if args.inter.save_intermediate: save_to_pickle("/hdd/datasets/object_data/temp/traintest.pkl", (train_buffer, test_buffer))
+    if len(args.inter.save_intermediate) > 0: save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name + "_" + full_model.name + "_traintest.pkl"), (train_buffer, test_buffer))
 
     if args.train.train: train_full(full_model, train_buffer, test_buffer, args, object_names, environment)
     elif len(args.record.load_dir) > 0: full_model = torch.load(os.path.join(args.record.load_dir, full_model.name + "_inter_model.pt"))

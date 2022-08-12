@@ -7,7 +7,7 @@
   environment:
     env: RoboPushing
   torch:
-    gpu: 0
+    gpu: 1
     no_cuda: False
   train:
     train: True

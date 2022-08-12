@@ -1,32 +1,27 @@
 ---
   record:
     # record_rollouts: /nfs/data/calebc/object_data/breakout/testrun/ball/
-    record_rollouts: /hdd/datasets/object_data/breakout/testrun/ball
+    # record_rollouts: /hdd/datasets/object_data/breakout/testrun/ball
     record_recycle: -1
-    log_filename: logs/temp/angle/bounce4.log
+    log_filename: logs/temp/angle/bounce6.log
     load_dir: /nfs/data/calebc/object_data/breakout/testrun/
-    save_dir: /nfs/data/calebc/object_data/breakout/testrun_bounce4/
+    save_dir: /nfs/data/calebc/object_data/breakout/testrun_bounce6/
     # checkpoint_dir: /nfs/data/calebc/object_data/breakout/testrun/paddle_ball_checkpoint
     save_interval: 100 #
   environment:
     env: Breakout
-    render: False
-    frameskip: 1
     variant: drop_stopping
-    time_cutoff: -1
-    seed: -1
-    demonstrate: False
   torch:
     gpu: 0
     no_cuda: False
   train:
     train: True
-    pretrain_frames: 10000 # 
+    pretrain_frames: 1000 # 
     num_steps: 250 #
     num_frames: 1000
     train_edge: Paddle Ball
     load_rollouts: /hdd/datasets/object_data/breakout/paddle
-    num_iters: 40000
+    num_iters: 7500
     batch_size: 128 # 
   critic_net:
   actor_net:
@@ -44,7 +39,8 @@
     sample_type: hist
     param_recycle: 0.1
   extract:
-    obs_setting: 1 0 0 1 1 1 0 0
+    single_obs_setting: 1 1 0 1 0 0
+    relative_obs_setting: 1 0 0 0
   option:
     term_form: combined
     term_as_done: True
@@ -74,12 +70,12 @@
     lookahead: 5
     learning_type: ddpg
     tau: .001
-    max_critic: 100
+    max_critic: 200
     epsilon_random: 0.1
     logging:
-      log_interval: 10
-      train_log_maxlen: 5
-      test_log_maxlen: 50
+      log_interval: 50
+      train_log_maxlen: 20
+      test_log_maxlen: 300
       initial_trials: 20 #
       test_trials: 10 #
       max_terminate_step: 1 300

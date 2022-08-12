@@ -39,7 +39,8 @@
     sample_type: hist
     param_recycle: 0.1
   extract:
-    obs_setting: 1 0 0 1 1 1 0 0
+    single_obs_setting: 1 1 0 1 0 0
+    relative_obs_setting: 1 0 0 0
   option:
     term_form: combined
     term_as_done: True
@@ -58,6 +59,7 @@
     prioritized_replay: 0.2 0.4
     aggregator:
       sum_rewards: False
+    stream_print_file: logs/breakout/pb_option_stream.txt
   hindsight:
     use_her: True
     select_positive: 0.1

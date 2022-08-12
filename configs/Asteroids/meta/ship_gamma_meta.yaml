@@ -1,0 +1,18 @@
+---
+metaparam: 
+  multi_filename: ship_option_
+  log_endpoint: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam_logs/ship/gamma2/
+  yaml_endpoint: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam_yamls/ship/gamma2/
+  save_endpoint: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam/ship/gamma2/
+  graph_endpoint: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam_graphs/ship/gamma2/
+  bash_path: ship_gamma2.sh
+  base_config: configs/Asteroids/rotation/action_ship_option.yaml
+  runfile: train_option.py
+  gpu: 3
+  match: False
+option:
+  constant_lambda: -0.1,-1,-2
+  param_lambda: 1,5
+policy:
+  discount_factor: 0.99,0.9
+...

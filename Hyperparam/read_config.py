@@ -9,10 +9,13 @@ network_args = {
     "init_form": "",
     "activation": "relu",
     "activation_final": "none",
+    "scale_logits": -1,
     "pair": {
         "drop_first": False,
-        "reduce_function": "mean",
+        "reduce_function": "max",
         "post_dim": -1,
+        "difference_first": False,
+        "final_layers": [256]
     },
     "optimizer": {
         "lr": 1e-4,
@@ -28,6 +31,7 @@ network_args = {
 expected_args = {
     "record": {
         "record_rollouts": "",
+        "record_graphs": "",
         "record_recycle": -1,
         'save_dir': "",
         'load_dir': "",
@@ -38,22 +42,24 @@ expected_args = {
         "save_interval": 0,
         "log_filename": "",
         "refresh": False,
+        "presave_graph": False,
     },
     "environment": {
         "env": None,
         "render": False,
         "frameskip": 1,
         "variant": "default",
-        "time_cutoff": -1,
+        "horizon": -1,
         "seed": -1,
         "demonstrate": False,
     },
     "torch": {
         "gpu": 1,
         "cuda": True,
+        "torch_seed": -1
     },
     "train": {
-        "dummy": False,
+        "dummy": "",
         "train": False,
         "num_frames": 0,
         "train_edge": list(),
@@ -63,12 +69,12 @@ expected_args = {
         "num_iters": 0,
         "pretrain_frames": 0,
         "batch_size": 128,
-        "num_steps": 0
+        "num_steps": 0,
     },
     "inter": {
         "predict_dynamics": False,
-        "load_intermediate": False,
-        "save_intermediate": False,
+        "load_intermediate": "",
+        "save_intermediate": "",
         "interaction_testing": [],
         "proximity_epsilon": -1,
         "compare_trace": False,
@@ -94,27 +100,34 @@ expected_args = {
         "var_cutoff": [0.1],
         "num_samples": 30,
         "sample_grid": True,
+        "dynamics_difference": False,
     },
     "sample": { # TODO NEW
         "sample_type": "uni",
         "sample_distance": -1,
         "sample_schedule": -1,
         "sample_raw": False,
+        "sample_parent": False,
         "param_recycle": -1,
     },
     "extract": {
-        "obs_setting": [0, 0, 0, 0, 0, 0, 0, 0],
+        "single_obs_setting": [0, 0, 0, 0, 0, 0],
+        "relative_obs_setting": [0, 0, 0, 0],
         "combine_param_mask": True
     },
     "option": { # mostly terminate and reward parameters
         "term_form": "param",
         "term_as_done": False,
+        "use_binary": False,
         "true_done": True,
-        "epsilon_close": -1,
-        "param_norm": 1,
-        "constant_lambda": 0,
-        "param_lambda": -1,
-        "inter_lambda": -1,
+        "trunc_true": False,
+        "epsilon_close": [-1.0],
+        "param_norm": 1.0,
+        "constant_lambda": 0.0,
+        "true_lambda": 0.0,
+        "param_lambda": -1.0,
+        "inter_lambda": -1.0,
+        "negative_true": -1.0,
         "interaction_as_termination": False,
         "temporal_extend": -1,
         "time_cutoff": 0,
@@ -125,6 +138,7 @@ expected_args = {
         "relative_action_ratio": -1,
         "min_active_size": 10,
         "discrete_params": False,
+        "round_values": False,
     },
     "collect": {
         "buffer_len": 100000,
@@ -132,6 +146,9 @@ expected_args = {
         "test_episode": True,
         "max_steps": 1000,
         "terminate_reset": False,
+        "display_frame": 0,
+        "stream_print_file": "",
+        "demonstrate_option": False,
         "aggregator": {
             "sum_rewards": True,
             "only_termination": False,
@@ -142,15 +159,24 @@ expected_args = {
         "epsilon_random": 0.0,
         "epsilon_schedule": -1,
         "rainbow": {
-                    "num_atoms": 51,
+            "num_atoms": 51,
+            "is_dueling": True,
         },
+        "ground_truth": "",
         "learn": {
+            "post_random_iters": 0,
             "grad_epoch": 10,
             "sample_form": "merged",
         },
+        "primacy": {
+            "reset_layers": -1,
+            "reset_frequency": -1,
+            "primacy_iters": -1,
+            "stop_resets": -1
+        },
         "discount_factor": 0.99,
         "lookahead": 2,
-        "max_critic": -1,
+        "max_min_critic": [-1.0,-1.0],
         "reward_normalization": False,
         "tau": 0.005,
         "sac_alpha": 0.2,
@@ -171,16 +197,22 @@ expected_args = {
         "max_hindsight": -1,
         "early_stopping": False,
         "interaction_criteria": 0,
-        "min_replay_len": -1
+        "min_replay_len": -1,
+        "num_param_samples": -1,
     },
     "inline": {
         "interaction_config": "",
         "inpolicy_iters": 5000,
         "inpolicy_schedule": -1,
+        "inpolicy_times": -1,
         "policy_intrain_passive": False,
         "intrain_weighting": [-13, 1, 1, -1],   
         "save_inline": False,
         "policy_inline_iters": [5, 1, 1000],
+        "reset_weights": [0,0,0]
+    },
+    "testing": {
+        "test_type": "",
     },
     "network": copy.deepcopy(network_args),
 }
@@ -206,6 +238,7 @@ def construct_namespace(data):
                 add_dict[key] = add_data(new_add, data_dict[key] if key in data_dict else dict(), exp_dict[key])
             else: # exp_dict contains the default values
                 add_dict[key] = data_dict[key] if key in data_dict else exp_dict[key]
+                if type(exp_dict[key]) == float: add_dict[key] = float(add_dict[key])
                 # handling special characters
                 if add_dict[key] == "None": add_dict[key] = None
                 elif add_dict[key] == "[]": add_dict[key] = list()
@@ -223,5 +256,5 @@ def construct_namespace(data):
         if key.find("_net") != -1: # _net 
             vargs = add_data(ObjDict(), data[key], args.network)
             args[key] = vargs
-            print(vargs)
+    print(args)
     return add_data(args, data, expected_args)

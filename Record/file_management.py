@@ -1,7 +1,7 @@
 import pickle, os
 import numpy as np
 import imageio as imio
-import sys, cv2 
+import sys, cv2, copy
 
 def load_from_pickle(pth):
     fid = open(pth, 'rb')
@@ -23,9 +23,14 @@ def save_to_pickle(pth, val):
     pickle.dump(val, fid)
     fid.close()
 
-def create_directory(pth):
+def create_directory(pth, drop_last = False):
+    new_pth = pth
+    if drop_last:
+        new_pth = os.path.join(*os.path.split(pth)[:-1])
+        if len(new_pth) == 0:
+            return pth
     try:
-        os.makedirs(pth)
+        os.makedirs(new_pth)
     except OSError as e:
         pass
     return pth
@@ -105,8 +110,8 @@ def numpy_factored(factored_state):
         factored_state[n] = np.array(factored_state[n])
     return factored_state
 
-def write_string(file_str, wstring):
-    option_dumps = open(file_str, 'a')
+def write_string(file_str, wstring, form="a"):
+    option_dumps = open(file_str, form)
     option_dumps.write(wstring)
     option_dumps.close()
 
@@ -174,6 +179,33 @@ def get_raw_data(pth, i=0, rng=-1):
             frames.append(imio.load(os.path.join(pth, "state" + str(f) + ".png")))
     return frames
 
-def display_frame(frame, waitkey=10):
+def display_frame(frame, waitkey=10, rescale=-1):
+    if rescale > 0: frame = cv2.resize(frame, (frame.shape[0] * 30, frame.shape[1] * 30), interpolation = cv2.INTER_NEAREST)
     cv2.imshow('image',frame)
     cv2.waitKey(waitkey) # waits until a key is pressed
+
+def display_param(frame, param, waitkey=10, rescale=-1, dot=True):
+    param = copy.deepcopy(param)
+    if param is not None:
+        loc = param.squeeze()[:2]
+        angle = None
+        if len(param.squeeze()) >= 4:
+            angle = param.squeeze()[2:4]
+            angle[1] = - angle[1]
+        color = (0,128,0)
+        if len(param.squeeze()) == 3 or len(param.squeeze()) == 5:
+            if param.squeeze()[len(param.squeeze()) - 1:] < 0.5:
+                color = (0,0,128)
+        frame = np.stack([frame.copy() for i in range(3)], axis = -1)
+
+        if angle is not None:
+            cv2.line(frame, loc.astype(int), (loc + 2 * angle).astype(int), color,2)
+        else:
+            if dot:
+                frame[np.round(loc).astype(int)[0], np.round(loc).astype(int)[1]] += color
+            else:
+                cv2.circle(frame, loc.astype(int), 3, color, 3)
+
+    if rescale > 0: frame = cv2.resize(frame, (frame.shape[0] * rescale, frame.shape[1] * rescale), interpolation = cv2.INTER_NEAREST)
+    cv2.imshow('image',frame)
+    cv2.waitKey(int(waitkey)) # waits until a key is pressed

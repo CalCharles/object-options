@@ -9,13 +9,14 @@ def uni_weights(rollouts):
     weights = np.ones(len(rollouts)).astype(np.float64) / float(len(rollouts))
     return passive_error, weights, binaries
 
-def passive_binary(passive_error, weighting, proximity):
+def passive_binary(passive_error, weighting, proximity, done):
     passive_error_cutoff, passive_error_upper, weighting_ratio, weighting_schedule = weighting
     if len(passive_error) < 1000: binaries = copy.deepcopy(passive_error) # in case we want to preserve passive error, but don't copy if this is too large
     else: binaries = passive_error
     binaries[binaries<=passive_error_cutoff] = 0
     binaries[binaries>passive_error_upper] = 0 # if the error is too high, this might be an anomaly
     binaries[binaries>passive_error_cutoff] = 1
+    binaries[done == 1] = 0 # if done, disregard
 
     # use proximity to narrow the range of weights, if proximity is not used, these should be ones TODO: replace with feasibility?
     binaries = (binaries.astype(int) * proximity.astype(int)).astype(np.float128).squeeze()
@@ -26,8 +27,12 @@ def separate_weights(weighting, full_model, rollouts, proximity, trace):
     passive_error_cutoff, passive_error_upper, weighting_ratio, weighting_schedule = weighting
     if weighting_ratio >= 0:
         passive_error =  - get_error(full_model, rollouts, error_type = error_types.PASSIVE_LIKELIHOOD)
+        done =  get_error(full_model, rollouts, error_type = error_types.DONE)
+        print(np.concatenate([passive_error, rollouts.target_diff, done], axis=-1)[(passive_error > 0).squeeze()][:100])
+        print(np.concatenate([passive_error, rollouts.target_diff, done], axis=-1)[(passive_error > 0).squeeze()][100:200])
+        print(np.concatenate([passive_error, rollouts.target_diff, done], axis=-1)[(passive_error > 0).squeeze()][200:300])
         # weighting hyperparameters, if passive_error_cutoff > 0 then using passive weighting
-        binaries = passive_binary(passive_error, weighting, proximity)
+        binaries = passive_binary(passive_error, weighting, proximity, done)
         weights = get_weights(weighting_ratio, binaries)
     elif trace is not None:
         passive_error = trace.copy()

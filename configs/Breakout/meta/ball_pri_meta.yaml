@@ -1,0 +1,24 @@
+---
+metaparam: 
+  multi_filename: ball_option_
+  log_endpoint: /hdd/datasets/object_data/breakout/hyperparam/hyperparam_logs/ball/pri/
+  yaml_endpoint: /hdd/datasets/object_data/breakout/hyperparam/hyperparam_yamls/ball/pri/
+  save_endpoint: /hdd/datasets/object_data/breakout/hyperparam/hyperparam/ball/pri/
+  graph_endpoint: /hdd/datasets/object_data/breakout/hyperparam/hyperparam_graphs/ball/pri/
+  bash_path: ball_pri.sh
+  base_config: configs/Breakout/angle_hyperparam/paddle_ball_option_inline.yaml
+  runfile: train_option.py
+  gpu: 3
+  match: False
+train:
+  num_iters: 4000
+policy:
+  lookahead: 2,5,10
+  learn:
+    grad_epoch: 50,100
+  primacy:
+    reset_layers: 4
+    reset_frequency: 300,1000
+    primacy_iters: 50
+    stop_resets: 3000
+...

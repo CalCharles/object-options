@@ -1,7 +1,7 @@
 ---
   record:
     load_dir: /nfs/data/calebc/object_data/asteroids/testrun/
-    # save_dir: /nfs/data/calebc/object_data/asteroids/testrun/
+    save_dir: /nfs/data/calebc/object_data/asteroids/testrun/
     refresh: True
   environment:
     env: Asteroids
@@ -15,5 +15,5 @@
     num_frames: 1000
   mask:
     min_sample_difference: 0.1
-    var_cutoff: 0.05
+    var_cutoff: 0.02
 ...

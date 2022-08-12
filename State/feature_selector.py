@@ -82,6 +82,7 @@ class FeatureSelector():
         states are dict[name] -> nparray
         target shape can be [batchlen, factored feature shape], or [factored feature shape] 
         '''
+        if len(self.names) == 0: return np.zeros(states["Action"].shape) # return a dummy value
         if hasattr(self, "multiinstanced") and self.multiinstanced and np.any([mi for mi in self.multiinstanced.values()]):
             cut_state = list()
             for name in self.names:

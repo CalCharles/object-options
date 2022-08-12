@@ -6,18 +6,17 @@ from torch.autograd import Variable
 from torch.distributions import Independent, Normal
 import torch.optim as optim
 import copy, os, cv2
+import tianshou as ts
 from tianshou.exploration import GaussianNoise, OUNoise
 from tianshou.data import Batch, ReplayBuffer
-import tianshou as ts
 import gym
 from typing import Any, Dict, Tuple, Union, Optional, Callable
 
-from ReinforcementLearning.ts.utils import init_networks, init_algorithm, _assign_device, reassign_optim
+from ReinforcementLearning.ts.utils import init_networks, init_algorithm, _assign_device, reassign_optim, reset_params
 from State.object_dict import ObjDict
+from Network.network_utils import reset_parameters, count_layers
 
 
-_actor_critic = ['ddpg', 'sac']
-_double_critic = ['sac']
 
 class Policy(nn.Module):
     '''
@@ -25,7 +24,7 @@ class Policy(nn.Module):
     Note that TianShao Policies also support learning
 
     '''
-    def __init__(self, discrete_actions, input_shape, policy_action_space, args):
+    def __init__(self, discrete_actions, input_shape, policy_action_space, args, preset_policy=None):
         '''
         @param input shape is the shape of the input to the network
         @param paction space is a gym.space corresponding to the ENVIRONMENT action space
@@ -38,13 +37,18 @@ class Policy(nn.Module):
         '''
         super().__init__()
         self.algo_name = args.policy.learning_type # the algorithm being used
+        self.MIN_HER = 1000
         
-        # initialize networks
-        nets_optims = init_networks(args, input_shape, policy_action_space.n if discrete_actions else policy_action_space.shape[0], discrete_actions)
-        self.critic_lr, self.actor_lr = args.critic_net.optimizer.lr, args.actor_net.optimizer.lr
+        if preset_policy is None:
+            # initialize networks
+            nets_optims = init_networks(args, input_shape, policy_action_space.n if discrete_actions else policy_action_space.shape[0], discrete_actions)
+            self.critic_lr, self.actor_lr = args.critic_net.optimizer.lr, args.actor_net.optimizer.lr
 
-        # initialize tianshou lower level
-        self.algo_policy = init_algorithm(args, nets_optims, policy_action_space, discrete_actions)
+            # initialize tianshou lower level
+            self.algo_policy = init_algorithm(args, nets_optims, policy_action_space, discrete_actions)
+        else:
+            self.algo_policy = preset_policy.algo_policy
+            self.critic_lr, self.actor_lr = preset_policy.critic_lr, preset_policy.actor_lr
 
         # intialize epsilon values for randomness
         self.epsilon_schedule = args.policy.epsilon_schedule
@@ -61,6 +65,14 @@ class Policy(nn.Module):
         self.use_her = args.hindsight.use_her
         self.sample_form = args.policy.learn.sample_form
         self.device = args.torch.gpu
+        # Primacy bias parameters
+        self.init_form = args.network.init_form
+        self.reset_layers = args.policy.primacy.reset_layers
+        reset_params(0, self.algo_policy, self.discrete_actions, self.init_form, self.algo_name) # resets all the parameters first (including the TS ones)
+
+    def zero_grads(self):
+        for p in self.parameters():
+            p.requires_grad = False
 
     def cpu(self):
         super().cpu()
@@ -74,6 +86,13 @@ class Policy(nn.Module):
             self.device=device
             _assign_device(self.algo_policy, self.algo_name, self.discrete_actions, device)
             reassign_optim(self.algo_policy, self.critic_lr, self.actor_lr)
+
+    def reset_select_params(self):
+        '''
+        resets the parameters of the model, last layers are counted as 1
+        '''
+        reset_params(self.reset_layers, self.algo_policy, self.discrete_actions, self.init_form, self.algo_name)
+
 
     def set_eps(self, epsilon): # not all algo policies have set eps
         self.epsilon = epsilon
@@ -97,7 +116,7 @@ class Policy(nn.Module):
         if self.algo_name in ['dqn', 'rainbow']:
             Q_val = self.algo_policy(batch, input="obs_next" if nxt else "obs").logits
         if self.algo_name in ['rainbow']:
-            Q_val = self.algo_policy.compute_q_value(probs, None)
+            Q_val = self.algo_policy.compute_q_value(Q_val, None)
         return Q_val
 
     def forward(self, batch: Batch, state: Optional[Union[dict, Batch, np.ndarray]] = None, input: str = "obs", **kwargs: Any):
@@ -124,11 +143,11 @@ class Policy(nn.Module):
         for i in range(self.grad_epoch):
             use_buffer = buffer
             if self.sample_form == "HER":
-                if len(her_buffer) < 1000: # nothing to sample 
+                if len(her_buffer) < self.MIN_HER: # nothing to sample 
                     return {}
                 her_batch, indice = her_buffer.sample(sample_size)
                 batch = self.algo_policy.process_fn(her_batch, her_buffer, indice)
-            elif self.sample_form == "merged" and len(her_buffer) > 1000:
+            elif self.sample_form == "merged" and len(her_buffer) > self.MIN_HER:
                 if buffer is None or her_buffer is None:
                     return {}
                 self.algo_policy.updating = True
@@ -145,7 +164,7 @@ class Policy(nn.Module):
                 batch.cat_([her_batch])
                 indice = np.concatenate([main_indice, her_indice]) 
             else:
-                use_buffer = her_buffer if np.random.rand() < self.select_positive and self.use_her and len(her_buffer) > 1000 else buffer
+                use_buffer = her_buffer if np.random.rand() < self.select_positive and self.use_her and len(her_buffer) > self.MIN_HER else buffer
                 batch, indice = use_buffer.sample(sample_size)
                 batch = self.algo_policy.process_fn(batch, use_buffer, indice)
 
@@ -156,7 +175,7 @@ class Policy(nn.Module):
             else: 
                 for k in result.keys():
                     cumul_losses[k] += result[k] 
-            if self.sample_form == "merged" and len(her_buffer) > 1000:
+            if self.sample_form == "merged" and len(her_buffer) > self.MIN_HER:
                 if "weight" in batch: main_batch.weight, her_batch.weight = batch.weight[:int(np.round(sample_size * (1-self.select_positive)))], batch.weight[int(np.round(sample_size * (1-self.select_positive))):] # assign weight values for prioritized buffer
                 self.algo_policy.post_process_fn(main_batch, buffer, main_indice)
                 self.algo_policy.post_process_fn(her_batch, her_buffer, her_indice)

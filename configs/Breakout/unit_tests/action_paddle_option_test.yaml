@@ -25,6 +25,8 @@
     num_iters: 1200
     batch_size: 64
   critic_net:
+    activation_final: tanh
+    scale_logits: 30
   actor_net:
   network:
     hidden_sizes: 256 256
@@ -40,9 +42,10 @@
     sample_type: cent
     sample_distance: 0.3
     sample_schedule: 200
-    param_recycle: 0.5
+    param_recycle: 2
   extract:
-    obs_setting: 1 0 0 0 0 1 1 0
+    single_obs_setting: 1 0 0 1 0 0
+    relative_obs_setting: 0 0 0 1
   option:
     term_form: combined
     term_as_done: True
@@ -61,6 +64,7 @@
     use_her: True
   policy:
     epsilon_random: 0.1
+    max_critic: 30
     logging:
       log_interval: 10
       train_log_maxlen: 5

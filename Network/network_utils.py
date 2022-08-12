@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
+import tianshou as ts
 
 def run_optimizer(optimizer, model, loss):
     optimizer.zero_grad()
@@ -93,7 +94,84 @@ def get_acti(acti):
     elif acti == "none": return identity
 
 def reduce_function(red, x):
-    if red == "add": x = torch.sum(x, dim=2)
+    if red == "sum": x = torch.sum(x, dim=2)
     elif red == "prod": x = torch.prod(x, dim=2)
     elif red == "max": x = torch.max(x, 2, keepdim=True)[0]
+    elif red == "mean": x = torch.mean(x, dim=2)
     return x
+
+def reset_linconv(layer, init_form):
+    if init_form == "orth":
+        nn.init.orthogonal_(layer.weight.data, gain=nn.init.calculate_gain('relu'))
+    elif init_form == "uni":
+         nn.init.uniform_(layer.weight.data, 0.0, 1 / layer.weight.data.shape[0])
+    elif init_form == "smalluni":
+        nn.init.uniform_(layer.weight.data, -.0001 / layer.weight.data.shape[0], .0001 / layer.weight.data.shape[0])
+    elif init_form == "xnorm":
+        torch.nn.init.xavier_normal_(layer.weight.data)
+    elif init_form == "xuni":
+        torch.nn.init.xavier_uniform_(layer.weight.data)
+    elif init_form == "knorm":
+        torch.nn.init.kaiming_normal_(layer.weight.data)
+    elif init_form == "kuni":
+        torch.nn.init.kaiming_uniform_(layer.weight.data)
+    elif init_form == "eye":
+        torch.nn.init.eye_(layer.weight.data)
+    if hasattr(layer, 'bias') and layer.bias is not None:
+        nn.init.uniform_(layer.bias.data, 0.0, 1e-6)
+
+def reset_parameters(network, init_form, n_layers=-1):
+    # initializes the weights by iterating through ever layer of the model
+    relu_gain = nn.init.calculate_gain('relu')
+    total_layers = count_layers(network)
+    layer_at = 0
+    layer_list = network.model if hasattr(network, "model") else network
+    if not hasattr(layer_list, '__iter__'): layer_list = [layer_list]
+    for layer in layer_list:
+        size_next = count_layers(layer)
+        layer_next = layer_at + size_next
+        if n_layers > 0: # TODO: handle case where we have to go into a subnetwork
+            at_before = total_layers - layer_at - 1 >= n_layers
+            next_before = total_layers - layer_next - 1 >= n_layers
+            entering = at_before and (not next_before) and size_next > 1
+            if (not entering and at_before):
+                layer_at = layer_next
+                continue
+        if type(layer) == nn.Conv2d:
+            if self.init_form == "orth": nn.init.orthogonal_(layer.weight.data, gain=nn.init.calculate_gain('relu'))
+            else: nn.init.kaiming_normal_(layer.weight, mode='fan_out', nonlinearity='relu') 
+        elif hasattr(layer, "reset_network_parameters"): # this is a resettable network
+            use_layers = n_layers - (total_layers - layer_at - size_next) if n_layers > 0 else n_layers
+            layer.reset_network_parameters(n_layers=use_layers)
+        elif type(layer) == ts.utils.net.common.MLP:
+            reset_parameters(layer, init_form)
+        elif type(layer) == nn.Parameter:
+            nn.init.uniform_(layer.data, 0.0, 0.2/np.prod(layer.data.shape))
+        else: 
+            if type(layer) == nn.Linear or type(layer) == nn.Conv1d:
+                fulllayer = [layer]
+            elif type(layer) == nn.ModuleList:
+                fulllayer = layer
+            else:
+                continue 
+            for layer in fulllayer:
+                reset_linconv(layer, init_form)
+        layer_at = layer_next
+
+def count_layers(network):
+    total_layers = 0
+    layer_list = network.model if hasattr(network, "model") else network
+    if not hasattr(layer_list, '__iter__'): layer_list = [layer_list]
+    for layer in layer_list:
+        if type(layer) == nn.LayerNorm: # we don't count layer norms
+            continue
+        elif hasattr(layer, "model"):
+            total_layers += count_layers(layer)
+        elif type(layer) == nn.Parameter or type(layer) == nn.Linear or type(layer) == nn.Conv1d or type(layer) == nn.Conv2d:
+            total_layers += 1
+        elif type(layer) == nn.ModuleList:
+            total_layers += self.count_layers(layers=layer)
+        else:
+            pass
+
+    return total_layers

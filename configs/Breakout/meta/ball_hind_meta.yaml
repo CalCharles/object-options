@@ -1,0 +1,19 @@
+---
+metaparam: 
+  multi_filename: ball_option_
+  log_endpoint: /hdd/datasets/object_data/breakout/hyperparam/hyperparam_logs/ball/hind/
+  yaml_endpoint: /hdd/datasets/object_data/breakout/hyperparam/hyperparam_yamls/ball/hind/
+  save_endpoint: /hdd/datasets/object_data/breakout/hyperparam/hyperparam/ball/hind/
+  graph_endpoint: /hdd/datasets/object_data/breakout/hyperparam/hyperparam_graphs/ball/hind/
+  bash_path: ball_hind.sh
+  base_config: configs/Breakout/angle_hyperparam/paddle_ball_option_inline.yaml
+  runfile: train_option.py
+  gpu: 0
+  match: False
+train:
+  num_iters: 4000
+collect:
+  prioritized_replay: 0.2 0.4,0.4 0.4,0.8 0.4
+hindsight:
+  select_positive: 0.1,0.5
+...

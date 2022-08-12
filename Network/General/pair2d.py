@@ -31,7 +31,7 @@ class PairConvNetwork(Network):
         self.model = nn.ModuleList([self.conv, self.final_layer])
 
         self.train()
-        self.reset_parameters()
+        self.reset_network_parameters()
 
     def forward(self, x):
         px = x[...,:self.first_dim]

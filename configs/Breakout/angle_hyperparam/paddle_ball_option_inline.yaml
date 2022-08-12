@@ -3,19 +3,15 @@
     # record_rollouts: /nfs/data/calebc/object_data/breakout/testrun/ball/
     # record_rollouts: /hdd/datasets/object_data/breakout/testrun/ball
     record_recycle: -1
-    log_filename: logs/temp/angle/inline1.log
+    log_filename: logs/temp/angle/inline4.log
     load_dir: /nfs/data/calebc/object_data/breakout/testrun/
-    save_dir: /nfs/data/calebc/object_data/breakout/testrun_inline2/
+    save_dir: /nfs/data/calebc/object_data/breakout/testrun_inline4/
     # checkpoint_dir: /nfs/data/calebc/object_data/breakout/testrun/paddle_ball_checkpoint
+    presave_graph: True
     save_interval: 100 #
   environment:
     env: Breakout
-    render: False
-    frameskip: 1
     variant: drop_stopping
-    time_cutoff: -1
-    seed: -1
-    demonstrate: False
   torch:
     gpu: 0
     no_cuda: False
@@ -26,13 +22,16 @@
     num_frames: 1000
     train_edge: Paddle Ball
     load_rollouts: /hdd/datasets/object_data/breakout/paddle
-    num_iters: 40000
+    num_iters: 7500
     batch_size: 128 # 
   critic_net:
   actor_net:
   network:
+    activation_final: tanh
+    scale_logits: 10
     hidden_sizes: 128 128 128 128 128 128
     net_type: basic
+    init_form: xnorm
     optimizer:
       lr: .0001
       alt_lr: .0001
@@ -42,9 +41,10 @@
       weight_decay: 0.00
   sample:
     sample_type: hist
-    param_recycle: 0.1
+    param_recycle: 0.0
   extract:
-    obs_setting: 1 0 0 1 1 1 0 0
+    single_obs_setting: 1 1 0 1 0 0
+    relative_obs_setting: 1 0 0 0
   option:
     term_form: combined
     term_as_done: True
@@ -53,7 +53,8 @@
     constant_lambda: -0.1
     param_lambda: 200
     inter_lambda: 1
-    temporal_extend: 4
+    negative_true: True
+    temporal_extend: 3
     time_cutoff: 300
     interaction_as_termination: True
   collect:
@@ -63,9 +64,10 @@
     prioritized_replay: 0.2 0.4
     aggregator:
       sum_rewards: False
+    stream_print_file: logs/breakout/pb_option_stream_pretrain2.txt
   hindsight:
     use_her: True
-    select_positive: 0.1
+    select_positive: 0.3
     max_hindsight: 20
     interaction_resample: False
     interaction_criteria: 1
@@ -74,27 +76,29 @@
     lookahead: 5
     learning_type: ddpg
     tau: .001
-    max_critic: 100
+    max_critic: 200
     epsilon_random: 0.1
     logging:
-      log_interval: 10
-      train_log_maxlen: 5
-      test_log_maxlen: 50
+      log_interval: 50
+      train_log_maxlen: 20
+      test_log_maxlen: 300
       initial_trials: 20 #
       test_trials: 10 #
       max_terminate_step: 1 300
     learn:
       grad_epoch: 50
       sample_form: merged
+      post_random_iters: 200
   action:
     use_relative_action: True
-    relative_action_ratio: 0.20
+    relative_action_ratio: 0.15
+    round_values: True
   inline:
-    interaction_config: "configs/Breakout/angle_hyperparam/paddle_ball_interaction_inline.yaml"
-    inpolicy_iters: 3000
+    interaction_config: configs/Breakout/angle_hyperparam/paddle_ball_interaction_inline.yaml
+    inpolicy_iters: 10000
     inpolicy_schedule: 500
+    inpolicy_times: 4
     policy_intrain_passive: False
     intrain_weighting: 0 200000 100 -1
-    policy_inline_iters: 10 10 -1
-
+    policy_inline_iters: 20 20 -1
 ...

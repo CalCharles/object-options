@@ -24,7 +24,7 @@ class MLPNetwork(Network):
                 [nn.Linear(self.hs[-1], self.num_outputs)])
         self.model = nn.Sequential(*layers)
         self.train()
-        self.reset_parameters()
+        self.reset_network_parameters()
 
     def forward(self, x):
         x = self.model(x)

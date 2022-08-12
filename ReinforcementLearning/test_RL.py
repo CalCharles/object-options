@@ -7,14 +7,14 @@ import psutil
 import time
 import logging
 from ReinforcementLearning.utils.RL_logging import collect_test_trials
-from State.observation_extractor import obs_names
+from State.observation_extractor import COMPONENT_NAMES
 
 
 def testRL(args, collector, option, graph, logger, full_logger):
     '''
     Run the RL train loop
     '''
-    logger.logout("observation: " + str([obs_names[i] for i in range(len(option.state_extractor.obs_setting)) if option.state_extractor.obs_setting[i] == 1]))
+    logger.logout("observation: " + str([COMPONENT_NAMES[i] for i in range(len(option.state_extractor.obs_setting)) if option.state_extractor.obs_setting[i] == 1]))
     for i in range(args.train.num_iters):  # total step
         full_results = collect_test_trials(logger, option, collector, args.policy.logging.max_terminate_step, i, args.policy.logging.initial_trials, False)
 

@@ -1,0 +1,19 @@
+---
+metaparam: 
+  multi_filename: ship_option_
+  log_endpoint: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam_logs/ship/lr2/
+  yaml_endpoint: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam_yamls/ship/lr2/
+  save_endpoint: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam/ship/lr2/
+  graph_endpoint: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam_graphs/ship/lr2/
+  bash_path: ship_lr2.sh
+  base_config: configs/Asteroids/rotation/action_ship_option.yaml
+  runfile: train_option.py
+  gpu: 1
+  match: False
+network:
+  optimizer:
+    lr: .0005,.0001,.00005,.00001
+policy:
+  learn:
+    grad_epoch: 50,200,300
+...

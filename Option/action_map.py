@@ -19,7 +19,7 @@ class PrimitiveActionMap():
         self.action_space.sample()
 
 class ActionMap():
-    def __init__(self, args, filtered_active_set, mapped_norm, mapped_select, discrete_primitive):
+    def __init__(self, args, filtered_active_set, mapped_norm, mapped_select, discrete_primitive, round_values, no_scale_last, sample_angle):
         ''' ActionMap manages the mapped space, relative mapped space and the policy space
         The policy space is always [-1,1] for continuous, (1,) for discrete
         The mapped space covers the space of behaviors
@@ -38,6 +38,10 @@ class ActionMap():
         self.discrete_primitive = discrete_primitive
         self.discrete_actions, self.action_space = self.param_space(discrete_primitive)
         self.discrete_control = args.discrete_params # if the parameter is sampled from a discrete dict
+        self.round_values = round_values
+        self.no_scale_last = no_scale_last
+        self.sample_angle = sample_angle
+        # self.use_round = args.use_round
 
         # initialize the policy space
         if self.discrete_actions:
@@ -68,7 +72,15 @@ class ActionMap():
         return self.mapped_norm.clip(self.mapped_select(state['factored_state']) + act)
 
     def _reverse_relative_action(self, state, act):
-        return self.mapped_select(state) - act
+        return act - self.mapped_select(state['factored_state'])
+
+    def _round_action(self, action):
+        new_action = list()
+        for i in range(action.shape[-1]):
+            idx = (np.abs(self.round_values[i] - action[i])).argmin()
+            new_action.append(self.round_values[i][idx])
+        return np.array(new_action)
+
 
     def map_action(self, act, batch):
         ''' 
@@ -76,10 +88,24 @@ class ActionMap():
         it does not apply exploration noise
         the action should be a vector, even if discrete
         '''
-        mapped_act = self._get_cont(pytorch_model.unwrap(act))
-        if self.use_relative_action: # mapped_act = act if relative actions are used
-            mapped_act = mapped_act * self.relative_scaling
-            mapped_act = self._convert_relative_action(batch.full_state, mapped_act)
+        act = pytorch_model.unwrap(act)
+        if self.discrete_actions: 
+            if not self.discrete_primitive: mapped_act = self._get_cont(act)
+            else: mapped_act = act
+        else:
+            if self.use_relative_action: # mapped_act = act if relative actions are used
+                mapped_act = act * self.relative_scaling
+                # print("scaled", mapped_act)
+                mapped_act = self._convert_relative_action(batch.full_state, mapped_act)
+                # print("converted", mapped_act, self.mapped_select(state['factored_state']), state['factored_state']["Gripper"])
+                if hasattr(self, "no_scale_last") and self.no_scale_last: mapped_act[...,-1] = (act[...,-1] + 1) / 2
+            else: # rescale based on non-relative actions
+                mapped_act = self.mapped_norm.reverse(act)
+        # print(mapped_act)
+        if hasattr(self, "sample_angle") and self.sample_angle: 
+            mapped_act[...,2] = np.sin(act[...,2] * np.pi)
+            mapped_act[...,3] = np.cos(act[...,2] * np.pi)
+        if hasattr(self, "round_values") and self.round_values is not None: mapped_act = self._round_action(mapped_act) # TODO: remove hasattr
         return mapped_act
 
     def reverse_map_action(self, mapped_act, batch):
@@ -88,12 +114,12 @@ class ActionMap():
         '''
         if self.use_relative_action: # converts relative actions maintaining value
             mapped_act = self._reverse_relative_action(batch.full_state, mapped_act)
+            mapped_act = mapped_act / self.relative_scaling
         act = self._get_discrete(mapped_act)
         return act
 
     def _get_cont(self, act):
-        if self.discrete_actions and not self.discrete_primitive: return self.filtered_active_set[int(act.squeeze())].copy()
-        return act
+        return self.filtered_active_set[int(act.squeeze())].copy()
 
     def _get_discrete(self, act):
         def find_closest(a):
@@ -104,7 +130,10 @@ class ActionMap():
                     closest = (i,dist)
             return closest[0]
         if self.discrete_actions:
+            if self.discrete_primitive:
+                return act
             return find_closest(act)
+        return act
 
     def sample_policy_space(self):
         '''

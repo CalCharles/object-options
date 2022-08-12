@@ -1,0 +1,16 @@
+---
+metaparam: 
+  multi_filename: ship_option_
+  log_endpoint: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam_logs/ship/network2/
+  yaml_endpoint: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam_yamls/ship/network2/
+  save_endpoint: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam/ship/network2/
+  graph_endpoint: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam_graphs/ship/network2/
+  bash_path: ship_network2.sh
+  base_config: configs/Asteroids/rotation/action_ship_option.yaml
+  runfile: train_option.py
+  gpu: 0
+  match: False
+network:
+  hidden_sizes: 128 128 128 128 128 128 128,512 512 512 512,1024 1024 1024
+  activation: sin,relu
+...

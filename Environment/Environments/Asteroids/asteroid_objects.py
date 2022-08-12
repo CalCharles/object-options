@@ -7,6 +7,7 @@ class Object:
 
 class Action(Object):
     def __init__(self):
+        super().__init__()
         self.name = "Action"
         self.action = 0
         self.interaction_trace = list()
@@ -18,12 +19,13 @@ class Action(Object):
         return np.array([self.action])
 
 def rotation_matrix(angle):
-    return np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]).T
+    return np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
 
-cardinal_angles = [0, np.pi/2, np.pi, 3* np.pi / 2]
+cardinal_angles = np.array([0, np.pi/2, np.pi, 3* np.pi / 2])
 
 class Ship(Object):
     def __init__(self, pos, angle, speed, movement_type, size=3):
+        super().__init__()
         self.name="Ship"
         self.pos = pos
         self.angle = angle
@@ -33,6 +35,8 @@ class Ship(Object):
         self.movement_type = movement_type
         self.pos_change = np.zeros(pos.shape)
         self.angle_change = np.zeros((1,))
+        self.fire_attempt = 0
+        self.laser_exist = 0
         self.update_tips()
 
     def get_coord_change(self, speed, angle = [[1], [0]]):
@@ -54,18 +58,19 @@ class Ship(Object):
             if action.action == 3: self.pos_change[1] -= self.speed
             if action.action == 4: self.pos_change[1] += self.speed
         if self.movement_type == "coordinate_turn":
+            self.angle_change = self.angle
             if action.action == 1: 
-                self.pos_change[0] -= self.speed
-                self.angle_change = cardinal_angles[0]
-            if action.action == 2: 
-                self.pos_change[0] += self.speed
-                self.angle_change = cardinal_angles[1]
-            if action.action == 3: 
-                self.pos_change[1] -= self.speed
-                self.angle_change = cardinal_angles[2]
-            if action.action == 4: 
                 self.pos_change[1] += self.speed
                 self.angle_change = cardinal_angles[3]
+            if action.action == 2: 
+                self.pos_change[1] -= self.speed
+                self.angle_change = cardinal_angles[1]
+            if action.action == 3: 
+                self.pos_change[0] -= self.speed
+                self.angle_change = cardinal_angles[2]
+            if action.action == 4: 
+                self.pos_change[0] += self.speed
+                self.angle_change = cardinal_angles[0]
         elif self.movement_type == "angle":
             if action.action == 1: self.pos_change += self.get_coord_change(-self.speed)
             if action.action == 2: self.pos_change -= self.get_coord_change(-self.speed)
@@ -74,13 +79,15 @@ class Ship(Object):
         elif self.movement_type == "row":
             if action.action == 3: self.pos_change[1] -= self.speed
             if action.action == 4: self.pos_change[1] += self.speed
+        self.fire_attempt = 1 if action.action == 5 else 0 
 
     def update_tips(self):
         self.tip = self.pos + self.get_coord_change(self.size).squeeze()
         self.right = self.pos + self.get_coord_change(self.size, angle=[[-1], [0.5]]).squeeze()
         self.left = self.pos + self.get_coord_change(self.size, angle=[[-1], [-0.5]]).squeeze()
 
-    def update(self):
+    def update(self, laser):
+        self.laser_exist = float(self.fire_attempt and laser.exist == 0)
         self.pos = np.clip(self.pos + self.pos_change, 0, 84)
         if self.movement_type == "coordinate_turn": newangle = self.angle_change
         else:
@@ -93,7 +100,8 @@ class Ship(Object):
         self.update_tips()
 
     def get_state(self):
-        return np.array(self.pos.tolist() + [np.sin(self.angle)] + [np.cos(self.angle)])
+        # if self.movement_type == "coordinate_turn": return np.array(self.pos.tolist() + [self.angle])
+        return np.array(self.pos.tolist() + [np.sin(self.angle)] + [np.cos(self.angle)] + [self.laser_exist])
 
 def intersect_general(center,size, start, vel=None, end=None):
     if vel is None:
@@ -128,6 +136,7 @@ def intersect_general(center,size, start, vel=None, end=None):
 
 class Laser(Object):
     def __init__(self, pos, speed, exist, size = 3):
+        super().__init__()
         self.name="Laser"
         self.pos = pos
         self.vel = np.zeros((2,))
@@ -178,8 +187,9 @@ class Laser(Object):
     def get_state(self):
         return np.array(self.pos.tolist() + self.vel.tolist() + [self.exist])
 
-class Asteroid:
+class Asteroid(Object):
     def __init__(self, pos, vel, exist, size, idx):
+        super().__init__()
         self.name = "Asteroid"+ str(idx)
         self.pos = pos
         self.vel = vel

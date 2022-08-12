@@ -1,0 +1,16 @@
+---
+metaparam: 
+  multi_filename: pusher_option_
+  log_endpoint: /hdd/datasets/object_data/sokoban/few_obs/hyperparam/hyperparam_logs/pusher/network2/
+  yaml_endpoint: /hdd/datasets/object_data/sokoban/few_obs/hyperparam/hyperparam_yamls/pusher/network2/
+  save_endpoint: /hdd/datasets/object_data/sokoban/few_obs/hyperparam/hyperparam/pusher/network2/
+  graph_endpoint: /hdd/datasets/object_data/sokoban/few_obs/hyperparam/hyperparam_graphs/pusher/network2/
+  bash_path: pusher_network2.sh
+  base_config: configs/Sokoban/few_obs/action_pusher_option.yaml
+  runfile: train_option.py
+  gpu: 0
+  match: False
+network:
+  hidden_sizes: 128 256 512,512 512 512,1024 1024
+  activation: sin,relu
+...

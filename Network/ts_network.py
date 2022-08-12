@@ -16,6 +16,7 @@ class TSNet(nn.Module):
         self.use_input_norm = False # set these to true
         self.continuous_critic = False if "continuous_critic" not in kwargs else kwargs["continuous_critic"]
         self.action_dim = 0 if "action_dim" not in kwargs else kwargs["action_dim"]
+        self.scale_logits = kwargs["scale_logits"] if "scale_logits" in kwargs else -1
 
     def cuda(self):
         super().cuda()
@@ -33,6 +34,8 @@ class TSNet(nn.Module):
         if not isinstance(obs, torch.Tensor):
             obs = pytorch_model.wrap(obs, dtype=torch.float, cuda=self.iscuda)
         logits = self.model(obs.reshape(obs.shape[0], -1))
+        # print(logits.shape, self.scale_logits)
+        if self.scale_logits > 0: logits = logits * self.scale_logits
         return logits, state
 
 class BasicNetwork(TSNet):
@@ -63,16 +66,19 @@ class RainbowNetwork(TSNet):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         kwargs = ObjDict(kwargs)
-        if kwargs['policy_type'] == "pair":
+        last_size = kwargs['hidden_sizes'][-1]
+        if kwargs['net_type'] == "pair":
             kwargs["aggregate_final"] = True
-            kwargs["num_outputs"] = kwargs['hidden_sizes'][-1]
+            kwargs['hidden_sizes'] = kwargs['hidden_sizes'][:-1]
+            kwargs["num_outputs"] = last_size
             self.model = PairNetwork(kwargs)
-        if kwargs['policy_type'] == "basic":
-            kwargs["num_outputs"] = kwargs['hidden_sizes'][-1]
+        if kwargs['net_type'] == "basic":
+            kwargs['hidden_sizes'] = kwargs['hidden_sizes'][:-1]
+            kwargs["num_outputs"] = last_size
             self.model = MLPNetwork(kwargs)
-        kwargs["num_inputs"] = kwargs['hidden_sizes'][-1]
+        kwargs["num_inputs"] = last_size
         self.num_atoms = kwargs['num_atoms']
-        kwargs['hidden_sizes'] = [512]
+        kwargs['hidden_sizes'] = [256]
         kwargs["num_outputs"] = self.num_atoms * self.output_dim
         self._is_dueling = kwargs['is_dueling']
         self.Q = MLPNetwork(kwargs)
@@ -83,7 +89,6 @@ class RainbowNetwork(TSNet):
 
     def forward(self, obs, state=None, info={}):
         # TODO: make this not hardcoded
-        obs = self.input_norm(obs)
 
         if self.continuous_critic and self.action_dim > 0: # the action values need to be at the front for pointnet type networks to work properly
             obs = torch.cat([obs[...,-self.action_dim:], obs[...,:obs.shape[-1] - self.action_dim]], dim=-1) 
@@ -95,7 +100,7 @@ class RainbowNetwork(TSNet):
         q = self.Q(hidden)
         q = q.view(-1, self.output_dim, self.num_atoms)
         if self._is_dueling:
-            v = self.V(obs)
+            v = self.V(hidden)
             v = v.view(-1, 1, self.num_atoms)
             logits = q - q.mean(dim=1, keepdim=True) + v
         else:

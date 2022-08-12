@@ -22,7 +22,8 @@ def generate_multiobject_norm(nl_dict, names, object_counts):
 	return (firstv, secondv) 
 
 class NormalizationModule():
-	def __init__(self, lim_dict, dynamics_dict, object_names, object_counts):
+	def __init__(self, lim_dict, dynamics_dict, object_names, object_counts, inter_names):
+		# @param inter_names is the ordering of the names for the interaction state
 		self.lim_dict = lim_dict # the bounds of positions for where an object can be
 		self.dynamics_dict = dynamics_dict # the bounds for the amount an object can change in a single timestep
 		# convert min and max in lim_dict to mean and range/2 in norm dict
@@ -37,42 +38,46 @@ class NormalizationModule():
 		self.parent_norm, self.parent_lim = self.norm_dict[self.object_names.primary_parent], self.lim_dict[self.object_names.primary_parent]
 		self.dynamics_norm, self.dynamics_lim = self.dynamics_norm_dict[self.object_names.target], self.dynamics_dict[self.object_names.target]
 		# interaction state norm
-		inter_names = self.object_names.parents + self.object_names.additional +  [self.object_names.target]
 		self.inter_norm, self.inter_lim = generate_multiobject_norm(self.norm_dict, inter_names, object_counts), generate_multiobject_norm(self.lim_dict, inter_names, object_counts)
-		self.additional_norm, self.additional_lim = np.concatenate([self.norm_dict[n] for n in self.object_names.additional], axis=-1) if len(self.object_names.additional) > 0 else None, np.concatenate([self.lim_dict[n] for n in self.object_names.additional], axis=-1) if len(self.object_names.additional) > 0 else None
+		self.additional_norm, self.additional_lim = generate_multiobject_norm(self.norm_dict, self.object_names.additional, object_counts) if len(self.object_names.additional) > 0 else None, generate_multiobject_norm(self.lim_dict, self.object_names.additional, object_counts) if len(self.object_names.additional) > 0 else None
+		self.additional_part_norm, self.additional_part_lim = [self.norm_dict[n] for n in self.object_names.additional] if len(self.object_names.additional) > 0 else None, [self.lim_dict[n] for n in self.object_names.additional] if len(self.object_names.additional) > 0 else None
 		
 		self.difference_norm, self.difference_lim = (np.zeros(self.norm_dict[self.object_names.target][0].shape), self.norm_dict[self.object_names.target][1] * 2), (self.target_lim[0] - self.target_lim[1], self.target_lim[0] + self.target_lim[1])
 		# relative norm is between the parent and the target
 		self.relative_norm = (self.norm_dict[self.object_names.primary_parent][0] - self.norm_dict[self.object_names.target][0], self.norm_dict[self.object_names.primary_parent][1] + self.norm_dict[self.object_names.target][1]  + 1e-6)
 		self.relative_lim = (self.relative_norm[0]-self.relative_norm[1], self.relative_norm[0] + self.relative_norm[1])
 		# gets the appropriate normalization values based on the target
-		self.norm_forms = {"target": self.target_norm, "inter": self.inter_norm, "parent": self.parent_norm, "additional": self.additional_norm, "diff": self.difference_norm, "dyn": self.dynamics_norm, "rel": self.relative_norm, "raw": self.raw_norm}
-		self.lim_forms = {"target": self.target_lim, "inter": self.inter_lim, "parent": self.parent_lim, "additional": self.additional_lim, "diff": self.difference_lim, "dyn": self.dynamics_lim, "rel": self.relative_lim, "raw": self.raw_lim}
+		self.norm_forms = {"target": self.target_norm, "inter": self.inter_norm, "parent": self.parent_norm, "additional": self.additional_norm, "additional_part": self.additional_part_norm, "diff": self.difference_norm, "dyn": self.dynamics_norm, "rel": self.relative_norm, "raw": self.raw_norm}
+		self.lim_forms = {"target": self.target_lim, "inter": self.inter_lim, "parent": self.parent_lim, "additional": self.additional_lim, "additional_part": self.additional_part_lim, "diff": self.difference_lim, "dyn": self.dynamics_lim, "rel": self.relative_lim, "raw": self.raw_lim}
 		# TODO: handle relative norm between block and obstacles (internal relative?)
+
+	def get_mean_var(self, form, idxes):
+		# logic for partial additional uss an integer after "additional"
+		if form.find("additional") != -1 and form != "additional": norm = self.norm_forms["additional_part"][int(form[len("additional"):])]
+		else: norm = self.norm_forms[form]
+		if norm is None: return state
+		mean = norm[0][idxes] if idxes is not None else norm[0]
+		var = norm[1][idxes] if idxes is not None else norm[1]
+		return mean, var
 
 	def __call__(self, state, form="target", idxes=None):
 		'''
 		takes the normalization of the state, the form decides which norm to use
 		valid forms: target, inter, parent, difference, relative
 		'''
-		norm = self.norm_forms[form]
-		if norm is None: return state
-		mean = norm[0][idxes] if idxes is not None else norm[0]
-		var = norm[1][idxes] if idxes is not None else norm[1]
+		mean, var = self.get_mean_var(form, idxes)
+		# print(state, mean,var, form)
 		return compute_norm(mean, var, state)
 
 	def reverse(self, state, form = "target", idxes=None):
-		norm = self.norm_forms[form]
-		if norm is None: return state
-		mean = norm[0][idxes] if idxes is not None else norm[0]
-		var = norm[1][idxes] if idxes is not None else norm[1]
+		mean, var = self.get_mean_var(form, idxes)
+		# print(state, mean, var, form)
 		return compute_reverse(mean, var, state)
 
 	def clip(self, state, form="target"):
-		lims = self.lim_forms[form]
+		if form.find("additional") != -1 and form != "additional": lims = self.lim_forms["additional_part"][int(form[len("additional"):])]
+		else: lims = self.lim_forms[form]
 		return np.clip(state, lims[0], lims[1])
-
-
 
 class MappedNorm(): # performs normalization for a masked out component
 	def __init__(self, lim_dict, dynamics_dict, target, mask):
@@ -80,16 +85,17 @@ class MappedNorm(): # performs normalization for a masked out component
 		self.norm_dict = {n: ((self.lim_dict[n][1] + self.lim_dict[n][0])/2, (self.lim_dict[n][1] - self.lim_dict[n][0])/2 + 1e-6) for n in lim_dict.keys()}
 		mask = mask.astype(bool)
 		self.mapped_norm, self.mapped_lim = (self.norm_dict[target][0][mask], self.norm_dict[target][1][mask]), (self.lim_dict[target][0][mask], self.lim_dict[target][1][mask])
+		self.mapped_dynamics = dynamics_dict[target][1][mask] # assumes dynamics dict is symetric
 		self.mask = mask
 
 	def norm(self, state):
-		mean = self.norm_dict[0]
-		var = self.norm_dict[1]
+		mean = self.mapped_norm[0]
+		var = self.mapped_norm[1]
 		return compute_norm(mean, var, state)
 
 	def reverse(self, state):
-		mean = self.norm_dict[0]
-		var = self.norm_dict[1]
+		mean = self.mapped_norm[0]
+		var = self.mapped_norm[1]
 		return compute_reverse(mean, var, state)
 
 	def clip(self, state, form="target"):

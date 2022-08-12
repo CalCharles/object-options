@@ -28,7 +28,8 @@ class RoboPushing(Environment):
         super().__init__()
         self.self_reset = True
         self.variant=variant
-        control_freq, horizon, num_obstacles, standard_reward, goal_reward, obstacle_reward, out_of_bounds_reward, mode  = variants[variant]
+        control_freq, var_horizon, num_obstacles, standard_reward, goal_reward, obstacle_reward, out_of_bounds_reward, mode  = variants[variant]
+        horizon = var_horizon if horizon < 0 else horizon
         self.mode = mode
         self.goal_reward = goal_reward
         controller = "JOINT_POSITION" if self.mode==JOINT_MODE else "OSC_POSE" # TODO: handles only two action spaces at the moment
@@ -47,10 +48,10 @@ class RoboPushing(Environment):
                 use_camera_obs=renderable,
                 hard_reset = False,
                 num_obstacles=num_obstacles,
-                standard_reward=standard_reward, 
-                goal_reward=goal_reward, 
-                obstacle_reward=obstacle_reward, 
-                out_of_bounds_reward=out_of_bounds_reward,
+                standard_reward=float(standard_reward), 
+                goal_reward=float(goal_reward), 
+                obstacle_reward=float(obstacle_reward), 
+                out_of_bounds_reward=float(out_of_bounds_reward),
                 hard_obstacles=mode == HARD_MODE,
                 keep_gripper_in_cube_plane=mode == PLANAR_MODE
             )
@@ -116,11 +117,14 @@ class RoboPushing(Environment):
             use_act = np.concatenate([action, [0, 0, 0]])
         return use_act
 
-    def step(self, action):
+    def step(self, action, render=False): # render will NOT change renderable, so it will still render or not render
         # step internal robosuite environment
         self.action = action
         use_act = self.set_action(action)
         next_obs, self.reward, self.done, info = self.env.step(use_act)
+        info["TimeLimit.truncated"] = False
+        if self.done:
+            info["TimeLimit.truncated"] = True
         if self.reward == self.goal_reward: # don't wait at the goal, just terminate
             self.done = True
             info["TimeLimit.truncated"] = False
@@ -139,7 +143,7 @@ class RoboPushing(Environment):
             self.timer = 0
         return obs, self.reward, self.done, info
 
-    def get_state(self):
+    def get_state(self, render=False):
         return copy.deepcopy(self.full_state)
 
     def reset(self):

@@ -41,7 +41,7 @@ class TransformerPairNetwork(Network):
         kwargs["hidden_sizes"] = self.hidden_sizes
         self.model = nn.ModuleList(self.layers)
         self.train()
-        self.reset_parameters()
+        self.reset_network_parameters()
 
     def forward(self, x):
         kv_x, fx, px, batch_size = self.key_network.slice_input(x)
@@ -88,7 +88,7 @@ class MultiheadedTransformerPairNetwork(Network):
         kwargs["hidden_sizes"] = self.hidden_sizes
         self.model = nn.ModuleList(self.layers)
         self.train()
-        self.reset_parameters()
+        self.reset_network_parameters()
 
     def forward(self, x):
         outputs = list()

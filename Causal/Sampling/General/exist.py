@@ -19,13 +19,25 @@ class ExistSampler(Sampler): # samples only from existing objects (last element,
         if len(target.shape) > 2: # we have batches
             samples, masks = list(), list()
             for tar in target:
-                sample = tar[np.random.choice(self.sample_single(tar).squeeze())]
-                samples.append(sample)
+                sidxes = self.sample_single(tar).squeeze()
+                if len(sidxes.shape) == 0:
+                    sidxes = np.array([sidxes])
+                if len(sidxes) == 0:
+                    sample = np.zeros(target.shape)
+                else:
+                    sample = tar[np.random.choice(sidxes)]
+                    samples.append(sample)
                 mask = np.zeros(sample.shape)
                 mask[-1] = 1
                 masks.append(mask)
         else:
-            samples = target[np.random.choice(self.sample_single(target).squeeze())]
+            sidxes = self.sample_single(target).squeeze()
+            if len(sidxes.shape) == 0:
+                sidxes = np.array([sidxes])
+            if len(sidxes) == 0:
+                samples = np.zeros(target.shape)
+            else:
+                samples = target[np.random.choice(sidxes)]
             masks = np.zeros(samples.shape)
             masks[-1] = 1
         return samples, masks

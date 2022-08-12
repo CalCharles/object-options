@@ -31,13 +31,14 @@
       passive_log_interval: 100
     active:
       active_log_interval: 100
-      inline_iters: 10 10 20000
+      inline_iters: 20 20 20000
       interaction_weighting: 100 -1
       interaction_schedule: 10000
       weighting: 0 200000 100 100000
   interaction_net:
     hidden_sizes: 128 128 128 128 128
     net_type: mlp
+    init_form: xnorm
     optimizer:
       lr: .0001
       alt_lr: .0001

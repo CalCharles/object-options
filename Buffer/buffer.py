@@ -15,7 +15,7 @@ class ParamReplayBuffer(ReplayBuffer):
     # TODO: parent is the action that specifies which parent to use
     _reserved_keys = ("obs", "act", "rew", "done", "obs_next", "info", "policy", "param", 
         "mask", "target", "next_target", "target_diff", "terminate", "true_reward", "true_done", "option_resample", 
-        "mapped_act", "inter", "trace", "inst_trace", "proximity", "inter_state", "parent_state", "additional_state", "time", "weight_binary")
+        "mapped_act", "inter", "trace", "inst_trace", "proximity", "proximity_inst", "inter_state", "parent_state", "additional_state", "time", "weight_binary")
 
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
         """Return a data batch: self[index].
@@ -58,6 +58,7 @@ class ParamReplayBuffer(ReplayBuffer):
             trace = self.trace[indice],
             inst_trace = self.inst_trace[indice],
             proximity = self.proximity[indice],
+            proximity_inst = self.proximity_inst[indice],
             inter_state = self.inter_state[indice],
             parent_state = self.parent_state[indice],
             additional_state = self.additional_state[indice],
@@ -68,7 +69,7 @@ class ParamReplayBuffer(ReplayBuffer):
 class ParamPriorityReplayBuffer(PrioritizedReplayBuffer): # not using double inheritance so exactly the same as above.
     _reserved_keys = ("obs", "act", "rew", "done", "obs_next", "info", "policy", "param", 
         "mask", "target", "next_target", "target_diff", "terminate", "true_reward", "true_done", "option_resample", 
-        "mapped_act", "inter", "trace", "inst_trace", "proximity", "inter_state", "parent_state", "additional_state", "time", "weight_binary")
+        "mapped_act", "inter", "trace", "inst_trace", "proximity", "proximity_inst", "inter_state", "parent_state", "additional_state", "time", "weight_binary")
 
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
         """Return a data batch: self[index].
@@ -111,6 +112,7 @@ class ParamPriorityReplayBuffer(PrioritizedReplayBuffer): # not using double inh
             trace = self.trace[indice],
             inst_trace = self.inst_trace[indice],
             proximity = self.proximity[indice],
+            proximity_inst = self.proximity_inst[indice],
             inter_state = self.inter_state[indice],
             parent_state = self.parent_state[indice],
             additional_state = self.additional_state[indice],
@@ -223,7 +225,7 @@ class InterWeightedReplayBuffer(ReplayBuffer):
     # TODO: parent is the action that specifies which parent to use
     _reserved_keys = ("obs", "act", "rew", "done", "true_done",
         "mask", "target", "next_target", "target_diff",
-        "inter", "trace", "inst_trace", "proximity", "inter_state", "parent_state", "additional_state", "weight_binary")
+        "inter", "trace", "inst_trace", "proximity", "proximity_inst", "inter_state", "parent_state", "additional_state", "weight_binary")
 
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
         """Return a data batch: self[index].
@@ -258,6 +260,7 @@ class InterWeightedReplayBuffer(ReplayBuffer):
             trace = self.trace[indice],
             inst_trace = self.inst_trace[indice],
             proximity = self.proximity[indice],
+            proximity_inst = self.proximity_inst[indice],
             inter_state = self.inter_state[indice],
             parent_state = self.parent_state[indice],
             additional_state = self.additional_state[indice],

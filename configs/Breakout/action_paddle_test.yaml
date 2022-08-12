@@ -13,7 +13,7 @@
     no_cuda: False
   train:
     train_edge: Action Paddle
-    num_iters: 600
+    num_iters: 100
   collect:
     buffer_len : 100
     test_episode: True

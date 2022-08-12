@@ -1,0 +1,84 @@
+---
+  record:
+    # record_rollouts: /nfs/data/calebc/object_data/breakout/testrun/paddle/
+    # record_rollouts: /hdd/datasets/object_data/robopushing/testrun/block
+    record_recycle: -1
+    # log_filename: logs/temp/block_train.log
+    load_dir: /nfs/data/calebc/object_data/robopushing/testrun/
+    # save_dir: /nfs/data/calebc/object_data/robopushing/testrun/
+    # checkpoint_dir: /hdd/datasets/object_data/robopushing/testrun/action_gripper_checkpoint
+    # pretrain_dir: /hdd/datasets/object_data/robopushing/testrun/action_gripper_checkpoint
+    save_interval: 100
+  environment:
+    env: RoboPushing
+    variant: default
+    time_cutoff: 300
+  torch:
+    gpu: 1
+    no_cuda: False
+  train:
+    train: True
+    pretrain_frames: 1000
+    num_steps: 100
+    num_frames: 1000
+    train_edge: Gripper Block
+    load_rollouts: /hdd/datasets/object_data/robopushing/testrun/random
+    num_iters: 10000
+    batch_size: 128
+  critic_net:
+  actor_net:
+  network:
+    hidden_sizes: 512 512 512
+    net_type: basic
+    activation_final: tanh
+    scale_logits: 50
+    optimizer:
+      lr: .0001
+      alt_lr: .0001
+      eps: .00001
+      alpha: 0.99
+      betas: 0.9 0.999
+      weight_decay: 0.00
+  sample:
+    sample_type: cent
+    sample_distance: 0.15
+    # sample_schedule: 200
+    # param_recycle: 0.1
+  extract:
+    single_obs_setting: 1 1 0 1 0 0
+    relative_obs_setting: 0 0 0 1
+  option:
+    term_form: param
+    term_as_done: True
+    epsilon_close: .007
+    param_norm: 3
+    constant_lambda: -1
+    param_lambda: 1
+    inter_lambda: 0
+    temporal_extend: 3
+    time_cutoff: 50
+  collect:
+    buffer_len : 100000
+    test_episode: True
+    max_steps: 1000
+    # stream_print_file: logs/robo/gb_option_stream.txt
+  hindsight:
+    use_her: True
+    early_stopping: 1
+    interaction_criteria: 2
+  policy:
+    learning_type: ddpg
+    epsilon_random: 0.01
+    logging:
+      log_interval: 10
+      train_log_maxlen: 5
+      test_log_maxlen: 50
+      initial_trials: 5
+      test_trials: 2
+      max_terminate_step: 1 30
+    learn:
+      post_random_iters: 100
+      grad_epoch: 100
+      sample_form: merged
+      select_positive: 0.3
+...

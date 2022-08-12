@@ -2,7 +2,7 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    # load_dir: /nfs/data/calebc/object_data/breakout/testrun/
+    load_dir: /nfs/data/calebc/object_data/breakout/testrun/
     # save_dir: /nfs/data/calebc/object_data/breakout/testrun/
   environment:
     env: Breakout
@@ -15,11 +15,11 @@
     num_frames: 10000
     train_test_order: time
     train_edge: Paddle Ball
-    load_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle2/
+    load_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle/
     num_iters: 1000
     batch_size: 256
   inter:
-    predict_dynamics: False
+    predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
     # load_intermediate: True

@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
-from Network.network_utils import get_acti
+from Network.network_utils import get_acti, reset_linconv, reset_parameters, count_layers
 
 ## end of normalization functions
 class Network(nn.Module):
@@ -28,40 +28,8 @@ class Network(nn.Module):
         self.iscuda = False
         return self
 
-    def reset_parameters(self):
-        # initializes the weights by iterating through ever layer of the model
-        relu_gain = nn.init.calculate_gain('relu')
-        for layer in self.model:
-            if type(layer) == nn.Conv2d:
-                if self.init_form == "orth": nn.init.orthogonal_(layer.weight.data, gain=nn.init.calculate_gain('relu'))
-                else: nn.init.kaiming_normal_(layer.weight, mode='fan_out', nonlinearity='relu') 
-            elif issubclass(type(layer), Network):
-                layer.reset_parameters()
-            elif type(layer) == nn.Parameter:
-                nn.init.uniform_(layer.data, 0.0, 0.2/np.prod(layer.data.shape))
-            elif type(layer) == nn.Linear or type(layer) == nn.Conv1d:
-                fulllayer = layer
-                if type(layer) != nn.ModuleList:
-                    fulllayer = [layer]
-                for layer in fulllayer:
-                    if self.init_form == "orth":
-                        nn.init.orthogonal_(layer.weight.data, gain=nn.init.calculate_gain('relu'))
-                    elif self.init_form == "uni":
-                         nn.init.uniform_(layer.weight.data, 0.0, 1 / layer.weight.data.shape[0])
-                    elif self.init_form == "smalluni":
-                        nn.init.uniform_(layer.weight.data, -.0001 / layer.weight.data.shape[0], .0001 / layer.weight.data.shape[0])
-                    elif self.init_form == "xnorm":
-                        torch.nn.init.xavier_normal_(layer.weight.data)
-                    elif self.init_form == "xuni":
-                        torch.nn.init.xavier_uniform_(layer.weight.data)
-                    elif self.init_form == "knorm":
-                        torch.nn.init.kaiming_normal_(layer.weight.data)
-                    elif self.init_form == "kuni":
-                        torch.nn.init.kaiming_uniform_(layer.weight.data)
-                    elif self.init_form == "eye":
-                        torch.nn.init.eye_(layer.weight.data)
-                    if hasattr(layer, 'bias') and layer.bias is not None:
-                        nn.init.uniform_(layer.bias.data, 0.0, 1e-6)
+    def reset_network_parameters(self, n_layers=-1):
+        return reset_parameters(self, self.init_form, n_layers=n_layers)
 
     def get_parameters(self):
         params = []

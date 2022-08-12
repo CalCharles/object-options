@@ -12,8 +12,8 @@ variants = {
 
 ranges = {
     "Action": [np.array([-1,-1,-1]).astype(np.float64), np.array([1,1,1]).astype(np.float64)],
-    "Gripper": [np.array([-0.3, -0.2, .83]).astype(np.float64), np.array([0.1, 0.2, 0.915]).astype(np.float64)],
-    "Block": [np.array([-0.2, -0.31, .81]).astype(np.float64), np.array([0.2, 0.21, .84]).astype(np.float64)],
+    "Gripper": [np.array([-0.3, -0.2, .831]).astype(np.float64), np.array([0.1, 0.2, 1]).astype(np.float64)],
+    "Block": [np.array([-0.2, -0.31, .82]).astype(np.float64), np.array([0.2, 0.21, .84]).astype(np.float64)],
     "Obstacle": [np.array([-0.27, -0.26, .82]).astype(np.float64), np.array([0.13, 0.26, 0.83]).astype(np.float64)],
     "Done": [np.array([0]).astype(np.float64), np.array([1]).astype(np.float64)],
     "Reward": [np.array([-100]).astype(np.float64), np.array([100]).astype(np.float64)]
@@ -22,7 +22,7 @@ ranges = {
 dynamics = {
     "Action": [np.array([-2,-2,-2]).astype(np.float64), np.array([2,2,2]).astype(np.float64)],
     "Gripper": [np.array([-0.05, -0.05, -0.03]).astype(np.float64), np.array([0.05, 0.05, 0.03]).astype(np.float64)],
-    "Block": [np.array([-0.05, -0.05, -.002]).astype(np.float64), np.array([0.05, 0.05, 0.002]).astype(np.float64)],
+    "Block": [np.array([-0.05, -0.05, -.05]).astype(np.float64), np.array([0.05, 0.05, 0.05]).astype(np.float64)],
     "Obstacle": [np.array([0, 0, 0]).astype(np.float64), np.array([0, 0, 0]).astype(np.float64)],
     "Done": [np.array([0]).astype(np.float64), np.array([1]).astype(np.float64)],
     "Reward": [np.array([-100]).astype(np.float64), np.array([100]).astype(np.float64)]

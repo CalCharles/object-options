@@ -1,0 +1,85 @@
+---
+  record:
+    # record_rollouts: /nfs/data/calebc/object_data/sokoban/few_obs/pusher/
+    record_rollouts: /hdd/datasets/object_data/sokoban/few_obs/pusher
+    record_recycle: -1
+    log_filename: logs/temp/paddle_train.log
+    load_dir: /nfs/data/calebc/object_data/sokoban/few_obs/testrun/
+    save_dir: /nfs/data/calebc/object_data/sokoban/few_obs/testrun/
+    # checkpoint_dir: /nfs/data/calebc/object_data/sokoban/few_obs/testrun/action_paddle_checkpoint
+    # load_checkpoint: /nfs/data/calebc/object_data/sokoban/few_obs/testrun_inline/action_paddle_checkpoint
+    save_interval: 1200
+  environment:
+    env: Sokoban
+    variant: few_obs
+  torch:
+    gpu: 0
+    no_cuda: False
+  train:
+    train: True
+    pretrain_frames: 10000
+    num_steps: 100
+    num_frames: 1000
+    train_edge: Action Obstacle Pusher
+    load_rollouts: /hdd/datasets/object_data/sokoban/few_obs/random
+    num_iters: 1000
+    batch_size: 128
+  critic_net:
+  actor_net:
+  network:
+    hidden_sizes: 128 256 512 1024
+    net_type: pair
+    activation_final: tanh
+    scale_logits: 30
+    optimizer:
+      lr: .0003
+      alt_lr: .0001
+      eps: .00001
+      alpha: 0.99
+      betas: 0.9 0.999
+      weight_decay: 0.00
+  sample:
+    sample_type: empty
+    sample_distance: 0.25
+    sample_schedule: 500
+    param_recycle: 0
+  extract:
+    single_obs_setting: 1 0 1 1 0 0
+    relative_obs_setting: 0 1 0 1
+  option:
+    term_form: param
+    term_as_done: True
+    epsilon_close: 0.5 0.5
+    param_norm: 3
+    constant_lambda: -0.1
+    param_lambda: 0.1
+    inter_lambda: 0
+    temporal_extend: 20
+    time_cutoff: 30
+  collect:
+    prioritized_replay: 0.4 0.4
+    buffer_len : 100000
+    test_episode: True
+    max_steps: 1000
+    stream_print_file: logs/sokoban/few_obs/ap_option_stream.txt
+    # display_frame: 1
+  hindsight:
+    use_her: True
+    early_stopping: 2
+  policy:
+    epsilon_random: 0.2
+    learning_type: rainbow
+    max_min_critic: -30 0
+    tau: 10000
+    logging:
+      log_interval: 10
+      train_log_maxlen: 5
+      test_log_maxlen: 50
+      initial_trials: 20
+      test_trials: 10
+      max_terminate_step: 1 30
+    learn:
+      post_random_iters: 200
+      grad_epoch: 200
+      sample_form: merged
+...

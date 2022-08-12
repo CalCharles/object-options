@@ -4,13 +4,13 @@
     # record_rollouts: /hdd/datasets/object_data/breakout/testrun/ball
     record_recycle: -1
     log_filename: logs/temp/big_block_train.log
-    load_dir: /nfs/data/calebc/object_data/breakout/testrun_inline/
+    load_dir: /nfs/data/calebc/object_data/breakout/testrun_bounce6/
     save_dir: /nfs/data/calebc/object_data/breakout/big_block/
     # checkpoint_dir: /nfs/data/calebc/object_data/breakout/testrun/paddle_ball_checkpoint
     save_interval: 100 #
   environment:
     env: Breakout
-    variant: negative_rand_row
+    variant: big_block
     render: True
   torch:
     gpu: 0
@@ -18,7 +18,7 @@
   train:
     dummy: True
     train: True
-    pretrain_frames: 10000 # 
+    pretrain_frames: 1000 # 
     num_steps: 300 #
     num_frames: 1000
     train_edge: Ball Block
@@ -29,7 +29,7 @@
   actor_net:
   network:
     hidden_sizes: 128 128 128 128 128 128
-    net_type: pair
+    net_type: basic
     optimizer:
       lr: .0001
       alt_lr: .0001
@@ -41,15 +41,16 @@
     sample_type: exist
     param_recycle: 0.1
   extract:
-    obs_setting: 0 0 0 1 0 1 0 0 # param, additional, inter, parent, relative, target, param_relative, diff
+    single_obs_setting: 0 1 0 1 0 0
+    relative_obs_setting: 0 0 0 0
   option:
     term_form: reward
     term_as_done: True
     epsilon_close: 0.5
     param_norm: 1
-    constant_lambda: -1
-    param_lambda: 200
-    inter_lambda: 1
+    constant_lambda: 0
+    true_lambda: 1
+    inter_lambda: 0
     temporal_extend: 300
     time_cutoff: -1
     interaction_as_termination: True
@@ -60,6 +61,7 @@
     prioritized_replay: 0.2 0.4
     aggregator:
       sum_rewards: False
+    stream_print_file: logs/breakout/big_stream.txt
   hindsight:
     use_her: False
     select_positive: 0.1

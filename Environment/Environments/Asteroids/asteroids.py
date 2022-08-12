@@ -7,6 +7,7 @@ from Environment.environment import Environment
 from Environment.Environments.Asteroids.asteroid_objects import *
 from Environment.Environments.Asteroids.asteroid_specs import *
 from Record.file_management import numpy_factored
+from State.angle_calculator import sincos_to_angle
 from gym import spaces
 
 
@@ -45,13 +46,17 @@ class Asteroids(Environment):
         # running values
         self.itr = 0
         self.total_score = 0
+        self.reset_counter= 0
 
         # asign variant values
-        self.num_asteroids, self.asteroid_size, self.asteroid_speed, self.asteroid_size_variance, self.asteroid_variance, self.ship_variance, self.ship_speed, self.movement_type, self.laser_speed, self.hit_reward, self.shot_penalty, self.crash_penalty, self.completion_reward = asteroid_variants[variant]
+        self.num_asteroids, self.asteroid_size, self.asteroid_speed, self.asteroid_size_variance, \
+                    self.asteroid_variance, self.ship_variance, self.ship_speed, self.movement_type, \
+                    self.laser_speed, self.hit_reward, self.shot_penalty, self.crash_penalty, \
+                    self.completion_reward, self.max_steps = asteroid_variants[variant]
 
         # factorized state properties
         self.object_names = ["Action", "Ship", "Laser", "Asteroid", 'Done', "Reward"]
-        self.object_sizes = {"Action": 1, "Ship": 4, "Laser": 5, "Asteroid": 5, 'Done': 1, "Reward": 1}
+        self.object_sizes = {"Action": 1, "Ship": 5, "Laser": 5, "Asteroid": 5, 'Done': 1, "Reward": 1}
         self.object_name_dict = dict() # initialized in reset
 
         # spec ranges
@@ -78,11 +83,14 @@ class Asteroids(Environment):
         self.action_obj = Action()
         self.ship = Ship(np.array([np.random.rand() * self.ship_variance * 84 for i in range(2)]), np.array(0), self.ship_speed, self.movement_type)
         self.asteroids = [Asteroid(self.get_asteroid_position([self.asteroid_variance * 84, self.asteroid_variance * 84]), rand_sample([self.asteroid_speed, self.asteroid_speed]), 1, self.asteroid_size + np.round(np.random.rand() * self.asteroid_size_variance), i) for i in range(self.num_asteroids)]
+        if len(self.asteroids) == 1: self.asteroids[0].name = "Asteroid" # if only one asteroid, use "Asteroid" instead of "Asteroid0"
         self.laser = Laser(np.zeros(2), self.laser_speed, 0)
         self.objects = [self.action_obj] + [self.ship] + [self.laser] + self.asteroids
         self.object_name_dict = {**{"Action": self.action_obj, "Ship":self.ship, "Laser": self.laser}, **{self.asteroids[i].name: self.asteroids[i] for i in range(len(self.asteroids))}}
         self.hit_counter = 0
         self.shot_counter = 0
+        self.reset_counter = 0
+        return self.get_state(render=True)
 
     def render(self):
         self.frame = np.zeros((84,84), np.uint8)
@@ -116,6 +124,7 @@ class Asteroids(Environment):
     def step(self, action, render=False):
         self.reward, self.done = 0.0, False
         self.clear_interactions()
+        self.reset_counter += 1
         for i in range(self.frameskip):
             self.action_obj.step(action)
             self.ship.step(self.action_obj)
@@ -127,7 +136,7 @@ class Asteroids(Environment):
                 hit = asteroid.update()
                 self.hit_counter += int(hit)
                 self.reward += float(hit) * self.hit_reward
-            self.ship.update()
+            self.ship.update(self.laser)
             for asteroid in self.asteroids:
                 self.reward += self.ship.intersect(asteroid) * self.crash_penalty
             self.laser.update()
@@ -135,32 +144,21 @@ class Asteroids(Environment):
         if asteroid_count == 0:
             self.reward += self.completion_reward
             self.done = True
+        trunc = False
+        if self.reset_counter == self.max_steps:
+            self.done = True
+            trunc = True
         # print(asteroid_count, self.reward)
-        info = {"lives": self.lives, "TimeLimit.truncated": False, "total_score": self.num_asteroids - asteroid_count}
+        info = {"lives": self.lives, "TimeLimit.truncated": trunc, "total_score": self.num_asteroids - asteroid_count}
         full_state = self.get_state(render)
         self.itr += 1
         if self.done: self.reset()
 
         return full_state, self.reward, self.done, info
 
-    def toString(self, extracted_state):
-        estring = "ITR:" + str(self.itr) + "\t"
-        for i, obj in enumerate(self.objects):
-            estring += obj.name + ":" + " ".join(map(str, extracted_state[obj.name])) + "\t" # TODO: attributes are limited to single floats
-        estring += "Reward:" + str(self.reward) + "\t"
-        estring += "Done:" + str(int(self.done)) + "\t"
-        return estring
-
     def set_from_factored_state(self, factored_state, seed_counter=-1, render=False):
         self.ship.pos = factored_state["Ship"][:2]
-        vangle = np.arctan(factored_state["Ship"][2] / factored_state["Ship"][3])
-        if factored_state["Ship"][3] < 0:
-            if vangle < 0:
-                vangle = vangle - np.pi/2
-            else:
-                vangle = vangle + np.pi/2
-        if vangle < 0: self.ship.angle = 2 * np.pi - vangle
-        else: self.ship.angle = vangle
+        self.ship.angle = sincos_to_angle(factored_state["Ship"][2], factored_state["Ship"][3])
         self.ship.update_tips()
 
         for asteroid in self.asteroids:
@@ -174,6 +172,7 @@ class Asteroids(Environment):
         self.laser.update_bottom_top()
         self.reward = factored_state["Reward"]
         self.done = factored_state["Done"]
+        self.reset_counter = 0
 
     def current_trace(self, names):
         targets = [self.object_name_dict[names.target]] if type(self.object_name_dict[names.target]) != list else self.object_name_dict[names.target]
@@ -196,19 +195,19 @@ class Asteroids(Environment):
         frame = self.render()
         frame = cv2.resize(frame, (frame.shape[0] * 4, frame.shape[1] * 4))
         cv2.imshow('frame',frame)
-        key = cv2.waitKey(300)
-        action = 0 
+        key = cv2.waitKey(100)
+        action = 6
         if key == ord('q'):
             action = -1
         elif key == ord('z'):
             action = 0
-        elif key == ord('a'):
+        elif key == ord('d'):
             action = 3
         elif key == ord('w'):
             action = 2
         elif key == ord('s'):
             action = 1
-        elif key == ord('d'):
+        elif key == ord('a'):
             action = 4
         elif key == ord(' '):
             action = 5

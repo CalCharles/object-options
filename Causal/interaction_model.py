@@ -12,6 +12,7 @@ from Network.distributional_network import DiagGaussianForwardNetwork, Interacti
 from Network.network_utils import pytorch_model, cuda_string
 from Causal.interaction_test import InteractionTesting
 from Causal.Utils.instance_handling import compute_likelihood
+from Causal.Utils.interaction_selectors import CausalExtractor
 from Causal.active_mask import ActiveMasking
 from Environment.Normalization.norm import NormalizationModule
 
@@ -36,17 +37,17 @@ def load_interaction(pth, name, device=-1):
         return model
     return None
 
-def get_params(model, full_args, is_pair):
+def get_params(model, full_args, is_pair, multi_instanced):
     active_model_args = copy.deepcopy(full_args.interaction_net)
-    active_model_args.num_inputs = model.inter_select.output_size()
-    active_model_args.num_outputs = model.target_select.output_size()
+    active_model_args.num_inputs = model.extractor.total_inter_size
+    active_model_args.num_outputs = model.extractor.total_target_size
 
     passive_model_args = copy.deepcopy(full_args.interaction_net)
-    passive_model_args.num_inputs = model.target_select.output_size()
-    passive_model_args.num_outputs = model.target_select.output_size()
+    passive_model_args.num_inputs = model.extractor.total_target_size
+    passive_model_args.num_outputs = model.extractor.total_target_size
 
     interaction_model_args = copy.deepcopy(full_args.interaction_net)
-    interaction_model_args.num_inputs = model.inter_select.output_size()
+    interaction_model_args.num_inputs = model.extractor.total_inter_size
     interaction_model_args.num_outputs = 1
     
     if is_pair:
@@ -54,9 +55,17 @@ def get_params(model, full_args, is_pair):
         pair.object_dim = model.obj_dim
         pair.first_obj_dim = model.first_obj_dim
         pair.post_dim = -1
-        pair.aggregate_final = False
+        if model.extractor.target_instanced:
+            pair.aggregate_final = False # we are multi-instanced in outputs
+        else:
+            pair.aggregate_final = True # we are multi-instanced, but outputting a single value
         active_model_args.pair, passive_model_args.pair, interaction_model_args.pair = copy.deepcopy(pair), copy.deepcopy(pair), copy.deepcopy(pair)
+        if not multi_instanced: # passive model won't be a pairnet TODO: add additional to passive model
+            passive_model_args.net_type = "mlp" # TODO: defaults to MLP
+            print("passive", passive_model_args)
         passive_model_args.pair.first_obj_dim = 0
+        passive_model_args.pair.difference_first = False # difference first cannot be true since there is no first, at least for now
+    print("active_model_args", active_model_args)
     return active_model_args, passive_model_args, interaction_model_args
 
 def make_name(object_names):
@@ -69,42 +78,38 @@ class NeuralInteractionForwardModel(nn.Module):
         # set input and output
         self.name = make_name(args.object_names)
         self.names = args.object_names
-        self.inter_select = args.inter_select
-        self.target_select = args.target_select
-        self.parent_selectors = args.parent_selectors
-        self.parent_select = args.parent_select
-        self.additional_select = args.additional_select
+        self.extractor = CausalExtractor(self.names, environment)
+        self.target_select, self.full_parent_select, self.additional_select, self.additional_selectors, \
+            self.padi_selector, self.parent_select, self.inter_select = self.extractor.get_selectors()
         self.controllable = args.controllable
 
         # if we are predicting the dynamics
         self.predict_dynamics = args.inter.predict_dynamics
         
         # construct the active model
-        self.first_obj_dim = np.sum([self.parent_selectors[p].output_size() for p in self.names.parents]) # the first object dim is the combined length of the parents
-        self.obj_dim = self.target_select.output_size() # the selector gets the size of a single instance
-        self.additional_dim = environment.object_sizes[self.names.additional[0]] if len(self.names.additional) > 0 else 0# all additional objects must have the same dimension
-        active_model_args, passive_model_args, interaction_model_args = get_params(self, args, args.interaction_net.net_type == "pair")
+        self.padi_first_obj_dim, self.first_obj_dim, self.target_dim, self.obj_dim, self.padi_obj_dim = self.extractor._get_dims(environment)
         self.multi_instanced = environment.object_instanced[self.names.target] > 1 # TODO: might need multi-instanced for parents also, but defined differently
         self.multi_parents = environment.object_instanced[self.names.primary_parent] > 1
         self.multi_additional = environment.object_instanced[self.names.additional[0]] > 1 if len(self.names.additional) > 0 else False
+        self.active_model_args, self.passive_model_args, self.interaction_model_args = get_params(self, args, args.interaction_net.net_type == "pair", self.multi_instanced)
 
         # set the distributions
         self.dist = assign_distribution("Gaussian") # TODO: only one kind of dist at the moment
 
         # set the forward model
-        self.active_model = DiagGaussianForwardNetwork(active_model_args)
+        self.active_model = DiagGaussianForwardNetwork(self.active_model_args)
 
         # set the passive model
-        self.passive_model = DiagGaussianForwardNetwork(passive_model_args)
+        self.passive_model = DiagGaussianForwardNetwork(self.passive_model_args)
 
         # construct the interaction model        
-        self.interaction_model = InteractionNetwork(interaction_model_args)
+        self.interaction_model = InteractionNetwork(self.interaction_model_args)
 
         # set the testing module
         self.test = InteractionTesting(args.inter.interaction_testing)
 
         # set the normalization function
-        self.norm = NormalizationModule(environment.object_range, environment.object_dynamics, args.object_names, environment.object_instanced)
+        self.norm, self.extractor = self.regenerate(environment)
 
         # set the masking module to None as a placeholder
         self.mask = None
@@ -117,10 +122,25 @@ class NeuralInteractionForwardModel(nn.Module):
         # set up cuda
         self.cuda() if args.torch.cuda else self.cpu()
 
-    def regenerate_norm(self, environment):
-        self.norm = NormalizationModule(environment.object_range, environment.object_dynamics, self.names, environment.object_instanced)
-        if self.mask is not None: self.mask.regenerate_norm(self.norm)
-        return self.norm
+    def regenerate(self, environment):
+        self.extractor = CausalExtractor(self.names, environment)
+        self.target_select, self.full_parent_select, self.additional_select, self.additional_selectors, \
+            self.padi_selector, self.parent_select, self.inter_select = self.extractor.get_selectors()
+        self.norm = NormalizationModule(environment.object_range, environment.object_dynamics, self.names, environment.object_instanced, self.extractor.active)
+        if hasattr(self, "mask") and self.mask is not None: self.mask.regenerate_norm(self.norm)
+        return self.norm, self.extractor
+
+    def reset_network(self, net = None):
+        if net == "interaction":
+            self.interaction_model.reset_parameters()
+            net = self.interaction_model
+        elif net == "active": 
+            self.active_model.reset_parameters()
+            net = self.active_model
+        elif net == "passive":
+            self.passive_model.reset_parameters()
+            net = self.passive_model
+        return net
 
     def save(self, pth):
         torch.save(self.cpu(), os.path.join(create_directory(pth), self.name + "_inter_model.pt"))
@@ -159,9 +179,10 @@ class NeuralInteractionForwardModel(nn.Module):
             tar_state = pytorch_model.wrap(self.norm(self.target_select(state)), cuda=self.iscuda)
         return inp_state, tar_state
 
-    def predict_next_state(self, state, normalized=False):
+    def predict_next_state(self, state, normalized=False, difference=False):
         # returns the interaction value and the predicted next state (if interaction is low there is more error risk)
         # state is either a single flattened state, or batch x state size, or factored_state with sufficient keys
+        # @param difference returns the dynamics prediction instead of the active prediction, not used if the full model is not a dynamics predictor
         inp_state, tar_state = self._wrap_state(state)
 
         rv = self.norm.reverse
@@ -170,11 +191,14 @@ class NeuralInteractionForwardModel(nn.Module):
 
         # if predicting dynamics, add the mean of the model to the target state
         if self.predict_dynamics:
-            fpred, ppred = rv(tar_state) + rv(self.active_model(inp_state)[0], form="dyn"), rv(tar_state) + rv(self.passive_model(tar_state)[0], form="dyn")
+            if difference:
+                fpred, ppred = rv(self.active_model(inp_state)[0], form="dyn"), rv(self.passive_model(tar_state)[0], form="dyn")
+            else:
+                fpred, ppred = rv(tar_state) + rv(self.active_model(inp_state)[0], form="dyn"), rv(tar_state) + rv(self.passive_model(tar_state)[0], form="dyn")
         else:
             fpred, ppred = rv(self.active_model(inp_state)[0]), rv(self.passive_model(tar_state)[0])
         
-        if normalized: fpred, ppred = self.norm(fpred), self.norm(ppred)
+        if normalized: fpred, ppred = self.norm(fpred, form="dyn" if difference else "target"), self.norm(ppred, form="dyn" if difference else "target")
 
         # TODO: remove this conditional with appropriate slicing
         # select active or passive based on inter value
@@ -203,10 +227,27 @@ class NeuralInteractionForwardModel(nn.Module):
     def get_active_mask(self):
         return self.test.selection_binary
 
-    def interaction(self, val, prenormalize=False): # val is either a batch, or a ndarray of inter_state. Does NOT unwrap, Does NOT normalize
+    def interaction(self, val, target=None, next_target=None, target_diff=None, prenormalize=False, use_binary=False): # val is either a batch, or a ndarray of inter_state. Does NOT unwrap, Does NOT normalize
+        if type(val) != Batch:
+            bat = Batch()
+            bat.inter_state = val
+            bat.target = target
+            bat.next_target = next_target
+            bat.target_diff = target_diff
+        else:
+            bat = val
         if type(val) != np.ndarray: val = val.inter_state # if not an array, assume it is a Batch
-        if prenormalize: val = self.norm(val, form="inter")
-        return self.interaction_model(pytorch_model.wrap(val, cuda=self.iscuda))
+        if prenormalize: 
+            bat = self.normalize_batch(bat)
+
+        if use_binary:
+            _, _, inter, _, _, _, active_log_probs, passive_log_probs = self.likelihoods(bat)
+            binary = self.test.compute_binary(- active_log_probs.sum(dim=-1),
+                                                - passive_log_probs.sum(dim=-1)).unsqueeze(-1)
+            return binary
+        else:
+            val = bat.inter_state
+            return self.interaction_model(pytorch_model.wrap(val, cuda=self.iscuda))
 
     def _target_dists(self, batch, params):
         target = batch.target_diff if self.predict_dynamics else batch.next_target

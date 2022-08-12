@@ -53,24 +53,31 @@ class TemporalAggregator():
         self.current_data.update(inter_state=[data.inter_state], next_target=[data.next_target], target=[data.target], target_diff=[data.target_diff], parent_state = [data.parent_state], additional_state=[data.additional_state])
         
         # if a true done happened, the NEXT data point will need to be recorded
-        added = False
         # if we just resampled (meaning temporal extension occurred), or a done or termination
-        # if np.linalg.norm(self.current_data.full_state.factored_state.Paddle - self.current_data.full_state.factored_state.Ball) < 7 or np.any(self.current_data.trace):
+        # if np.linalg.norm(self.current_data.full_state.factored_state.Paddle - self.current_data.full_state.factored_state.Ball) < 7 or np.any(self.current_data.trace) or np.any(self.current_data.inter):
+        # if np.any(self.current_data.trace) or np.any(self.current_data.inter):
         #     print(self.current_data.target, self.current_data.next_target, self.current_data.param, self.current_data.trace, self.current_data.inter, self.current_data.rew, self.current_data.action_chain)
-        if ((np.any(data.ext_term) and not self.only_termination) or # going to resample a new action
+        # print((np.any(data.ext_term) and not self.only_termination), # going to resample a new action
+        #     np.any(data.done),
+        #     np.any(data.terminate), data.true_done, self.temporal_skip, self.current_data.inter, self.current_data.parent_state, self.current_data.obs, self.current_data.obs_next)
+        # print("seen", np.any(data.ext_term), self.current_data.time, self.current_data.target, self.current_data.next_target, self.current_data.obs, self.current_data.obs_next)
+
+        added = ((np.any(data.ext_term) and not self.only_termination) or # going to resample a new action
             np.any(data.done)
-            or np.any(data.terminate)):
+            or np.any(data.terminate))
+        if added:
             next_data = copy.deepcopy(self.current_data)
             self.keep_next = True
             # temporal skip is a chance to flush out done values
             if not self.temporal_skip:
                 added = True
+                # print(next_data.time, next_data.target, next_data.next_target, next_data.obs, next_data.obs_next)
                 self.ptr, ep_rew, ep_len, ep_idx = buffer.add(
                         next_data, buffer_ids=ready_env_ids)
             self.time_counter = 0
 
-            # skip the next value if a done or it would get double counted
-            self.temporal_skip = np.any(data.true_done)
+        # skip the next value if a done or it would get double counted
+        self.temporal_skip = np.any(data.next_true_done) and added
         # if np.any(self.current_data.inter) or data.inter or np.linalg.norm(self.current_data.full_state.factored_state.Paddle - self.current_data.full_state.factored_state.Ball) < 6:
         #     print("add inter", added, self.current_data.inter, self.current_data.terminate, data.inter, np.any(data.terminate), data.target, data.next_target)
         self.time_counter += 1

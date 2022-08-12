@@ -1,0 +1,91 @@
+---
+  record:
+    # record_rollouts: /hdd/datasets/calebc/object_data/sokoban/block/
+    # record_recycle: -1
+    # log_filename: /hdd/datasets/calebc/object_data/sokoban/logs/temp/block_train.log
+    load_dir: /nfs/data/calebc/object_data/sokoban/few_obs/testrun_block/
+    save_dir: /nfs/data/calebc/object_data/sokoban/testrun_block_temp/
+    # checkpoint_dir: /nfs/data/calebc/object_data/sokoban/testrun/action_paddle_checkpoint
+    # load_checkpoint: /nfs/data/calebc/object_data/sokoban/testrun_inline/action_paddle_checkpoint
+    # presave_graph: True
+    save_interval: 1
+  environment:
+    env: Sokoban
+    variant: few_obs
+  torch:
+    gpu: 2
+    no_cuda: False
+  train:
+    train: True
+    num_steps: 100
+    pretrain_frames: 100
+    load_rollouts: /hdd/datasets/object_data/sokoban/few_obs/pusher
+    train_edge: Pusher Action Obstacle Block
+    num_iters: 5000
+    batch_size: 32
+  critic_net:
+  actor_net:
+  network:
+    hidden_sizes: 128 256 256 1024
+    net_type: pair
+    activation_final: tanh
+    scale_logits: 1
+    optimizer:
+      lr: .0003
+      alt_lr: .0001
+      eps: .00001
+      alpha: 0.99
+      betas: 0.9 0.999
+      weight_decay: 0.0001
+    pair:
+      final_layers: 128
+  sample:
+    sample_type: empty
+    sample_distance: 0.15
+    sample_schedule: 500
+    param_recycle: 0
+  extract:
+    single_obs_setting: 1 0 1 1 0 0
+    relative_obs_setting: 0 1 0 1
+  option:
+    dummy_interaction: base
+    term_form: param
+    term_as_done: True
+    epsilon_close: 0.5 0.5
+    param_norm: 1
+    constant_lambda: -1
+    param_lambda: 1
+    inter_lambda: 0
+    temporal_extend: 4
+    time_cutoff: 50
+  collect:
+    prioritized_replay: 0.4 0.4
+    buffer_len : 100000
+    test_episode: True
+    max_steps: 1000
+    # display_frame: 3
+    # stream_print_file: logs/sokoban/pb_stream.txt
+  hindsight:
+    use_her: True
+    early_stopping: 2
+    interaction_criteria: 2
+  policy:
+    epsilon_random: 0.2
+    learning_type: ddpg
+    ground_truth: Pusher
+    logging:
+      log_interval: 1
+      train_log_maxlen: 5
+      test_log_maxlen: 50
+      initial_trials: 2
+      test_trials: 1
+      max_terminate_step: 1 50
+    learn:
+      grad_epoch: 200
+      sample_form: merged
+  action:
+    use_relative_action: True
+    relative_action_ratio: 0.3
+    round: True
+
+...

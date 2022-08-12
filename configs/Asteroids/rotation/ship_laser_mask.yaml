@@ -1,0 +1,19 @@
+---
+  record:
+    load_dir: /nfs/data/calebc/object_data/asteroids/testrun/
+    save_dir: /nfs/data/calebc/object_data/asteroids/testrun_laser/
+  environment:
+    env: Asteroids
+    variant: default
+  torch:
+    gpu: 1
+    no_cuda: False
+  train:
+    train_edge: Ship Action Laser
+    load_rollouts: /hdd/datasets/calebc/object_data/asteroids/ship/
+    num_frames: 10000
+  mask:
+    min_sample_difference: 0.1
+    var_cutoff: 0.02
+    sample_grid: False
+...

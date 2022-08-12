@@ -2,9 +2,9 @@ import numpy as np
 
 ranges = {
 	"Action": [np.array([0]).astype(np.float64), np.array([3]).astype(np.float64)],
-	"Paddle": [np.array([71.9, 7.5, 0, 0, 0.9]).astype(np.float64), np.array([72.1, 71, 0, 0, 1.1]).astype(np.float64)],
+	"Paddle": [np.array([71.9, 7.5, 0, 0, 0.9]).astype(np.float64), np.array([72.1, 75.5, 0, 0, 1.1]).astype(np.float64)],
 	"Ball": [np.array([0, 0, -2, -1, 0.9]).astype(np.float64), np.array([84, 84, 2, 1, 1.1]).astype(np.float64)],
-	"Block": [np.array([10, 0, 0, 0, 0]).astype(np.float64), np.array([58, 84, 0, 0, 1]).astype(np.float64)],
+	"Block": [np.array([10, 0, 0, 0, -1]).astype(np.float64), np.array([58, 84, 0, 0, 1]).astype(np.float64)],
 	"Done": [np.array([0]).astype(np.float64), np.array([1]).astype(np.float64)],
 	"Reward": [np.array([-100]).astype(np.float64), np.array([100]).astype(np.float64)]
 }
@@ -49,7 +49,7 @@ breakout_variants = {"default": (0,5, 20,4, -1, "", -1, 0,0, 0,-10, False),
                     "row_nobreak": (0,1,10,4,10,"", -1, 0,0, 0,-1, False), 
                     "small_nobreak": (0,2,10,4,15,"", -1, 0,0, 0,-1, False),
                     "full_nobreak": (0,5,20,4,115,"", -1, 0,0, 0,-1, False),
-                    "big_block": (1,1,1,20,-1,"", -1,0,0, 0,-10, True),
+                    "big_block": (1,1,1,20,-1,"", -1,0,0, 10,-10, True),
                     "single_block": (1,1,1,4,-1,"", -1,-1,0, 0,-10, True),
                     "negative_split_full": (0,5,20,4,75,"side", -1,0,0, 0,-20, False),
                     "negative_split_small": (0,2,10,4,15,"side", -1,0,0, 0,-20, False),

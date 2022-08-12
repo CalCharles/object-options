@@ -1,0 +1,30 @@
+---
+  record:
+    # record_rollouts: /nfs/data/calebc/object_data/robopushing/testrun/paddle/
+    # record_rollouts: /hdd/datasets/object_data/robopushing/testrun/paddle
+    record_recycle: -1
+    log_filename: logs/temp/gripper_test.log
+    load_dir: /nfs/data/calebc/object_data/robopushing/testrun/
+  environment:
+    env: RoboPushing
+    variant: default
+    time_cutoff: 200
+  torch:
+    gpu: 0
+    no_cuda: False
+  train:
+    train_edge: Action Gripper
+    num_iters: 600
+  collect:
+    buffer_len : 100
+    test_episode: True
+    max_steps: 1000
+  policy:
+    logging:
+      log_interval: 10
+      test_log_maxlen: 50
+      test_trials: 10
+      max_terminate_step: 1 30
+  sample:
+    param_recycle: 0.1
+...

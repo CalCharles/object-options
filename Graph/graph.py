@@ -34,6 +34,7 @@ class Graph:
 			node.interaction = None
 		save_to_pickle(os.path.join(save_dir, "graph.gm"), self)
 		for node in self.nodes.values():
+			print(inter_option[node.name])
 			node.interaction, node.option, next_option = inter_option[node.name]
 			if node.option is not None: node.option.next_option = next_option
 
@@ -46,6 +47,7 @@ def load_graph(load_dir, device):
 	for node in graph.nodes.values():
 		node.interaction = load_interaction(load_dir, node.name, device) # returns none if there is no interaction model in the directory
 		node.option = load_option(load_dir, node.name, node.interaction, device) # returns none if there is no option in the directory
+		# print(load_name, node.name, node.option, node.intteraction)
 		# reassigns to the latest interaction model, if changed
 		if node.option is not None and node.interaction is not None:
 			node.option.assign_interaction_model(node.interaction)

@@ -24,7 +24,7 @@
     # save_intermediate: True
     compare_trace: True
     passive:
-      passive_iters: 30000
+      passive_iters: 40000
       passive_log_interval: 100
       pretrain_active: True
     active:

@@ -1,20 +1,20 @@
 ---
   record:
     # record_rollouts: /nfs/data/calebc/object_data/breakout/testrun/paddle/
-    record_rollouts: /hdd/datasets/object_data/robopushing/testrun/gripper2
+    record_rollouts: /hdd/datasets/object_data/robopushing/testrun/gripper
     record_recycle: -1
-    log_filename: logs/temp/gripper_train2.log
+    log_filename: logs/temp/gripper_train.log
     load_dir: /nfs/data/calebc/object_data/robopushing/testrun/
-    save_dir: /nfs/data/calebc/object_data/robopushing/testrun2/
-    checkpoint_dir: /hdd/datasets/object_data/robopushing/testrun/action_gripper_checkpoint2
+    save_dir: /nfs/data/calebc/object_data/robopushing/testrun/
+    checkpoint_dir: /hdd/datasets/object_data/robopushing/testrun/action_gripper_checkpoint
     # pretrain_dir: /hdd/datasets/object_data/robopushing/testrun/action_gripper_checkpoint
     save_interval: 100
   environment:
     env: RoboPushing
     variant: default
-    time_cutoff: 30
+    time_cutoff: 200
   torch:
-    gpu: 0
+    gpu: 1
     no_cuda: False
   train:
     train: True
@@ -43,11 +43,12 @@
     sample_schedule: 200
     param_recycle: 0.1
   extract:
-    obs_setting: 1 0 0 0 0 1 1 0
+    single_obs_setting: 1 0 0 1 0 0
+    relative_obs_setting: 0 0 0 1
   option:
     term_form: param
     term_as_done: True
-    epsilon_close: .005
+    epsilon_close: .003
     param_norm: 3
     constant_lambda: -1
     param_lambda: 1
@@ -58,6 +59,7 @@
     buffer_len : 100000
     test_episode: True
     max_steps: 1000
+    stream_print_file: logs/robo/ag_option_stream.txt
   hindsight:
     use_her: True
   policy:

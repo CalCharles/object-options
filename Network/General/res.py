@@ -16,7 +16,7 @@ class BasicResNetwork(Network):
             even_layer + [last_layer])
         self.model = nn.ModuleList(layers)
         self.train()
-        self.reset_parameters()
+        self.reset_network_parameters()
 
     def forward(self, x):
         for i, l in enumerate(self.model):

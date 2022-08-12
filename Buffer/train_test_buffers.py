@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from Record.file_management import read_obj_dumps, load_from_pickle, save_to_pickle
 from Buffer.fill_buffer import fill_buffer
 from Buffer.buffer import InterWeightedReplayBuffer
@@ -24,7 +25,7 @@ def generate_buffers(environment, args, object_names, full_model, train=True):
     data = read_obj_dumps(args.train.load_rollouts, i=-1, rng = args.train.num_frames, filename='object_dumps.txt')
 
     # get the buffers
-    buffer = fill_buffer(environment, data, args, object_names, full_model.norm)
+    buffer = fill_buffer(environment, data, args, object_names, full_model.norm, full_model.predict_dynamics)
     if not train: return buffer
 
     # get indices for train/test, there are various settings for this
@@ -35,6 +36,6 @@ def generate_buffers(environment, args, object_names, full_model, train=True):
     set_batch(train_buffer, buffer[train_indices])
     test_buffer = InterWeightedReplayBuffer(len(test_indices), stack_num=1)
     set_batch(test_buffer, buffer[test_indices])
-    if args.inter.save_intermediate: save_to_pickle("/hdd/datasets/object_data/temp/full_rollouts.pkl", buffer)
+    if args.inter.save_intermediate: save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name + "_" + full_model.name + "_full_rollouts.pkl"), buffer)
     del buffer
     return train_buffer, test_buffer

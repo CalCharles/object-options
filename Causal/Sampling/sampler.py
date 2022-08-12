@@ -2,6 +2,8 @@ class Sampler():
     def __init__(self, **kwargs):
         self.mask = kwargs["mask"]
         self.target_selector = kwargs["target_select"]
+        self.parent_selector = kwargs["parent_select"]
+        self.additional_selector = kwargs["additional_select"]
         self.test_sampler = True if "test_sampler" in kwargs and kwargs["test_sampler"] else False
 
     def update(self):

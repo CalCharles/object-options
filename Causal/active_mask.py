@@ -3,7 +3,7 @@ from State.feature_selector import broadcast
 from Network.network_utils import pytorch_model
 
 class ActiveMasking():
-    def __init__(self, rollouts, interaction_model, min_sample_difference, var_cutoff, parent_active, parent_max_num, num_samples=30, sample_grid=True):
+    def __init__(self, rollouts, interaction_model, min_sample_difference, var_cutoff, parent_active, parent_max_num, num_samples=30, sample_grid=True, dynamics_difference=False):
         
         # uses the limit values of the norm to form a convex set of possible values
         self.tar_name, self.par_name = interaction_model.names.target, interaction_model.names.primary_parent
@@ -16,7 +16,7 @@ class ActiveMasking():
         self.sample_grid = sample_grid
         self.min_sample_difference = min_sample_difference
         self.var_cutoff = np.array([var_cutoff[0] for i in range(len(self.limits[0]))]) if len(var_cutoff) == 1 else np.array(var_cutoff)
-        self.active_mask = self.determine_active_set(rollouts, interaction_model, parent_limits, parent_active, parent_max_num)
+        self.active_mask = self.determine_active_set(rollouts, interaction_model, parent_limits, parent_active, parent_max_num, dynamics_difference)
         print("active_mask", self.active_mask)
         self.active_set = self.collect_samples(rollouts, interaction_model)
         self.filtered_active_set = self.filter_active()
@@ -30,7 +30,7 @@ class ActiveMasking():
         # not used, a possible alternative to hardcoded variance cutoffs
         return np.std(rollouts.target_diff[interaction_model.test(rollouts.inter)], axis=-1)
 
-    def determine_active_set(self, rollouts, interaction_model, parent_limits, parent_active, parent_max_num):
+    def determine_active_set(self, rollouts, interaction_model, parent_limits, parent_active, parent_max_num, dynamics_difference):
         # generates a mask over which components of state change with different values of the parent object
         # parent_active is the active mask for the parent object
         diffs = list()
@@ -50,19 +50,22 @@ class ActiveMasking():
                     parent_sample = np.vstack([s.flatten() for s in spaces_set]).T
                 else:
                     parent_sample = np.stack([np.random.rand(*parent_limits[0].shape) * parent_limits[1] + parent_limits[0] for j in range(self.num_samples)])
-
                 # assign parent, and then 
                 sampled_states = list()
                 for sample in parent_sample:
                     inter_state = batch.inter_state.copy()
                     sample = interaction_model.norm(sample, idxes = np.nonzero(parent_active)[0], form = "parent")
                     sampled_states.append(interaction_model.inter_select.reverse(batch.inter_state.copy(), sample, names=[self.par_name], mask=parent_active))
-                sampled_states, broad_target = np.stack(sampled_states, axis=0), broadcast(batch.next_target, len(sampled_states), cat=False) 
+                difference = interaction_model.predict_dynamics and dynamics_difference
+                tar_val = batch.target_diff if difference else batch.next_target
+                sampled_states, broad_target = np.stack(sampled_states, axis=0), broadcast(tar_val, len(sampled_states), cat=False) 
 
                 # evaluate on the new values
-                inter_sam, pred = interaction_model.predict_next_state((sampled_states, broad_target), normalized=True)
+                inter_sam, pred = interaction_model.predict_next_state((sampled_states, broad_target), normalized=True, difference = difference)
+                # print(pred, broad_target, difference)
                 # if at least one interaction occurs, appends the maximum change seen
                 if inter + inter_sam.sum() > 1:
+                    # print(np.max(np.abs(pred - broad_target), axis=0), pred, tar_val, interaction_model.norm(pred, form="dyn"), interaction_model.norm(tar_val, form="dyn"))
                     diffs.append(np.max(np.abs(pred - broad_target), axis=0))
                     total_interactions += 1
 

@@ -4,7 +4,7 @@ import numpy as np
 from Record.file_management import create_directory
 from State.feature_selector import construct_object_selector
 from Environment.Normalization.norm import NormalizationModule
-from Causal.utils import interaction_selectors
+from Causal.Utils.interaction_selectors import CausalExtractor
 
 
 class ActionMask():
@@ -43,21 +43,26 @@ class DummyInteraction(): # general dummy interaction
     def __init__(self, args, object_names, environment, obj_dim, mask=None):
         self.name = object_names.target
         self.names = object_names
-        self.target_select, self.parent_selectors, self.additional_select, self.parent_select, self.inter_select = construct_selectors(object_names, environment)
+        self.extractor = CausalExtractor(object_names, environment)
+        self.target_selector, self.full_parent_selector, self.additional_select, \
+            self.additional_selectors, self.padi_selector, self.parent_select, self.inter_selector = self.extractor.get_selectors()
         self.active_mask = np.ones(obj_dim) if mask is None else mask
         self.obj_dim = obj_dim
         self.active_set = list()
         self.mask = DummyMask(obj_dim, object_names)
-        self.norm = self.regenerate_norm(environment)
+        self.norm, self.extractor = self.regenerate(environment)
         self.multi_instanced = environment.object_instanced[object_names.target] > 1
         self.predict_dynamics = False
         self.position_masks = environment.position_masks
         self.proximity_epsilon = args.inter.proximity_epsilon
 
-    def regenerate_norm(self, environment):
-        self.norm = NormalizationModule(environment.object_range, environment.object_dynamics, self.names, environment.object_instanced)
-        if self.mask is not None: self.mask.regenerate_norm(self.norm)
-        return self.norm
+    def regenerate(self, environment):
+        self.extractor = CausalExtractor(self.names, environment)
+        self.target_select, self.full_parent_select, self.additional_select, self.additional_selectors, \
+            self.padi_selector, self.parent_select, self.inter_select = self.extractor.get_selectors()
+        self.norm = NormalizationModule(environment.object_range, environment.object_dynamics, self.names, environment.object_instanced, self.extractor.active)
+        if hasattr(self, "mask") and self.mask is not None: self.mask.regenerate_norm(self.norm)
+        return self.norm, self.extractor
 
     def save(self, pth):
         torch.save(self, os.path.join(create_directory(pth), self.name + "_inter_model.pt"))
@@ -69,7 +74,7 @@ class DummyInteraction(): # general dummy interaction
     def cpu(self):
         return self
 
-    def interaction(self, val): 
+    def interaction(self, val, target, next_target): 
         if type(val) != np.ndarray: # if batches, use a value difference
             inter = np.linalg.norm(val.next_target - val.target) > 0.01
             return inter

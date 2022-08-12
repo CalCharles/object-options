@@ -7,7 +7,7 @@
     env: RoboPushing
     variant: default
   torch:
-    gpu: 0
+    gpu: 1
     no_cuda: False
   train:
     train_edge: Action Gripper

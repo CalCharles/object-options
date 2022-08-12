@@ -23,7 +23,7 @@ def get_command_args():
     parser.add_argument('--time-cutoff', type=int, default=-1,
                         help='time cutoff for environment resets, defaults -1 (no cutoff)')
     parser.add_argument('--seed', type=int, default=-1,
-                        help='number of frames to run')
+                        help='random seed for the environment, set to a random number in contsruction')
     parser.add_argument('--demonstrate', action='store_true', default=False,
                         help='get the data from demonstrations or from random motion')
     # torch parameters
@@ -33,8 +33,10 @@ def get_command_args():
                         help='the gpu device to run on')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='no cuda')
+    parser.add_argument('--torch-seed', type=int, default=-1,
+                        help='seed for torch, set to a random number in contsruction')
     # shared train args
-    parser.add_argument('--dummy', action ='store_true', default=False,
+    parser.add_argument('--dummy', default="",
                         help='trains in dummy mode, for running baselines or running final layer options')
     parser.add_argument('--train', action ='store_true', default=False,
                         help='usually included, trains the network')
@@ -57,6 +59,8 @@ def get_command_args():
                         help='number of samples to take for identifying active components')
     parser.add_argument('--sample-grid', action='store_true', default=False,
                         help='samples parent values from a grid (rather than a fixed number of uniformly random samples)')
+    parser.add_argument('--dynamics-difference', action='store_true', default=False,
+                        help='uses the diffrence of dyanmics values rather than the difference of base values')
 
     # peripheral arguments
     parser.add_argument('--load-intermediate', action ='store_true', default=False,
@@ -115,6 +119,8 @@ def get_command_args():
                         help='The activate function for intermediate layers of the network')
     parser.add_argument('--activation-final', default = "none",
                         help='The activation function for final layer of the network')
+    parser.add_argument('--scale-logits', type=float, default=-1,
+                        help='scales the final output by scale-logits if positive, -1 if unused')
     # pair network arguments
     parser.add_argument('--post-channel', action ='store_true', default=False,
                         help='has a channel to transmit information late')
@@ -137,15 +143,43 @@ def get_command_args():
                         help='Adam optimizer betas (default: (0.9, 0.999))')
     parser.add_argument('--weight-decay', type=float, default=0.00,
                         help='Adam optimizer l2 norm constant (default: 0.01)')
+    # policy args
+    parser.add_argument('--learning-type', default = "dqn",
+                        help='how the policy learns, options: dqn, sac, rainbow, ddpg, ppo')
+    parser.add_argument('--epsilon-random', type=float, default=0.10,
+                        help='rate for taking random actions (default: 0.1)')
+    parser.add_argument('--epsilon-schedule', type=int, default=-1,
+                        help='rate epsilon random decays (-1 not used)')
+    parser.add_argument('--num-atoms', type=int, default=51,
+                        help='number of atoms for rainbow')
+    parser.add_argument('--grad-epoch', type=int, default=10,
+                        help='number of grad epochs for learning per iterations')
+    parser.add_argument('--sample-form', default = "merged",
+                        help='how the data is sampled, merged, her, base')
+    parser.add_argument('--discount-factor', type=float, default=0.99,
+                        help='also gamma in RL, the future discount factor')
+    parser.add_argument('--lookahead', type=int, default=2,
+                        help='number of steps for RL lookahead')
+    parser.add_argument('--max-critic', type=int, default=-1,
+                        help='max value the critic can take, not really implemented except for rainbow')
+    parser.add_argument('--reward-normalization', action ='store_true', default=False,
+                        help='normalizes the reward values')
+    parser.add_argument('--tau', type=float, default=0.005,
+                        help='tau value for dqn momentum (default: 0.005)')
+    parser.add_argument('--sac-alpha', type=float, default=0.2,
+                        help='alpha value for sac')
     # state setting
-    parser.add_argument('--obs-setting', type=int, nargs='+', default=[0,0,0,0,0,0,0,0],
-                        help='7-tuple of param, additional, inter, parent, relative, target, param_relative, diff')
-
+    parser.add_argument('--single-obs-setting', type=int, nargs='+', default=[0,0,0,0,0,0],
+                        help='6-tuple of "param", "parent", "additional", "target", "inter", "diff"')
+    parser.add_argument('--relative-obs-setting', type=int, nargs='+', default=[0,0,0,0],
+                        help='4-tuple of "parent_relative", "additional_relative", "parent_param", "param_relative"')
     # rew term arguments
     parser.add_argument('--term-form', default = "param",
                         help='the termination/reward function type (comb, term)')
     parser.add_argument('--term-as-done', action ='store_true', default=False,
                         help='if a termination occurs, sends a done signal')
+    parser.add_argument('--trunc-true', action ='store_true', default=False,
+                        help='truncates the true reward signal')
     parser.add_argument('--true-done', action ='store_true', default=False,
                         help='if a true done occurs, sends a done signal')
     parser.add_argument('--epsilon-close', type=float, default=-1,
@@ -164,6 +198,8 @@ def get_command_args():
     # term arguments
     parser.add_argument('--interaction-as-termination', action ='store_true', default=False,
                         help='treats interactions as termination signals')
+    parser.add_argument('--use-binary', action ='store_true', default=False,
+                        help='uses the interaction binary instead of the interaction model')
     # termination manager arguments
     parser.add_argument('--temporal-extend', type=int, default=-1,
                         help='the number of steps before requiring a resampled action (default: -1)')
@@ -180,6 +216,25 @@ def get_command_args():
                         help='the total number of episodes to trial with random actions every log-interval iterations (default: 0)')
     parser.add_argument('--max-terminate-step', type=float, nargs=2, default=(1, 30),
                         help='terminates after reaching either mts[0] terminations or mts[1] steps (default: (0.9, 0.999))')
+    # inline interaction training
+    parser.add_argument("--interaction-config", default="",
+                        help='location of config file for interaction training (overriden by other inline args)')
+    parser.add_argument("--inpolicy-iters", type=int, default=5000,
+                        help='numbe of iterations of training for inpolicy training')
+    parser.add_argument("--inpolicy-schedule", type=int, default=-1,
+                        help='how often to run inpolicy training')
+    parser.add_argument("--inpolicy-times", type=int, default=-1,
+                        help='number of times  to do inpolicy training (saves time, -1 not used)')
+    parser.add_argument("--policy-intrain-passive", action='store_true', default=False,
+                        help='trains the passive model along with the interaction one')
+    parser.add_argument("--intrain-weighting", type=float, nargs='+', default=[-13, 1, 1, -1],
+                        help='weighting values for binary cutoffs for passive error weighting')
+    parser.add_argument("--save-inline", type=float, default=False,
+                        help='whether to save the intrained values')
+    parser.add_argument("--policy-inline-iters", type=int, nargs='+', default=[5, 1, 1000],
+                        help='inline iters for training the interaction network')
+    parser.add_argument("--reset-weights", type=int, nargs='+', default=[0,0,0],
+                        help='resets the weights of networks: interaction, active, passive')
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda
@@ -192,5 +247,6 @@ def get_args():
     if len(args.command.config) > 0:
         args = read_config(args.command.config)
         args.config = config
-    if args.environment.seed == -1: args.environment.seed = np.random.randint(10000) # randomly assign seed
+    if args.environment.seed == -1: args.environment.seed = np.random.randint(100000) # randomly assign seed
+    if args.torch.torch_seed == -1: args.torch.torch_seed = np.random.randint(100000) # randomly assign seed
     return args

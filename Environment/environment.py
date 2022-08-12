@@ -141,3 +141,14 @@ class Environment():
         gives an image and gets a keystroke action
         '''
         return 0
+
+    def toString(self, extracted_state):
+        '''
+        convers an extracted state into a string for printing. Note this might be overriden since self.objects is not a guaranteed attribute
+        '''
+        estring = "ITR:" + str(self.itr) + "\t"
+        for i, obj in enumerate(self.objects):
+            estring += obj.name + ":" + " ".join(map(str, extracted_state[obj.name])) + "\t" # TODO: attributes are limited to single floats
+        estring += "Reward:" + str(float(extracted_state["Reward"])) + "\t"
+        estring += "Done:" + str(int(extracted_state["Done"])) + "\t"
+        return estring

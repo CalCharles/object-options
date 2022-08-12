@@ -31,7 +31,7 @@ class forward_logger(Logger):
         self.l1_average_true_error = list()
 
     def log(self, i, loss, raw_likelihood, weighted_likelihood, 
-                    raw_likelihood_expanded, trace, weight_rate,
+                    raw_likelihood_expanded, trace, weight_rate, dones,
                     params, targets, interaction_likelihoods, full_model):
         self.loss.append(pytorch_model.unwrap(loss))
         if raw_likelihood is not None: self.raw_likelihood.append(pytorch_model.unwrap(raw_likelihood))
@@ -68,7 +68,7 @@ class forward_logger(Logger):
             if len(self.l1_average_weighted_error) > 0: logging_str += f'\nl1 weighted: {np.mean(self.l1_average_weighted_error, axis=0)}'
             if len(self.l1_average_true_error) > 0: logging_str += f'\nl1 true: {np.mean(self.l1_average_true_error, axis=0)}'
             if len(self.weight_rates) > 0: logging_str += f'\npercent (weight, trace): {np.mean(self.weight_rates)}, {np.mean(self.trace_rates)}'
-            logging_str += f"\ntarget: {full_model.norm.reverse(pytorch_model.unwrap(targets[0]), form='dyn' if full_model.predict_dynamics else 'target')}\n"
+            logging_str += f"\ntarget: {full_model.norm.reverse(pytorch_model.unwrap(targets[0]), form='dyn' if full_model.predict_dynamics else 'target')}, {dones[0]}\n"
             logging_str += f"mean: {full_model.norm.reverse(pytorch_model.unwrap(params[0][0]), form='dyn' if full_model.predict_dynamics else 'target')}\n"
             logging_str += f"variance: {full_model.norm.reverse(pytorch_model.unwrap(params[1][0]), form='dyn' if full_model.predict_dynamics else 'diff')}"
             logging.info(logging_str)

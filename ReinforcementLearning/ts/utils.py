@@ -7,10 +7,12 @@ dActor, dCritic = Actor, Critic
 import tianshou as ts
 from tianshou.exploration import GaussianNoise, OUNoise
 from tianshou.data import Batch, ReplayBuffer
-from Network.network_utils import pytorch_model
+from Network.network_utils import pytorch_model, reset_parameters, count_layers
 from Network.ts_network import networks
 
-rand_actor = ["sac"]
+_rand_actor = ["sac"]
+_actor_critic = ['ddpg', 'sac']
+_double_critic = ['sac']
 
 def reassign_optim(algo_policy, critic_lr, actor_lr):
     if hasattr(algo_policy, "optim"):
@@ -26,20 +28,21 @@ def reassign_optim(algo_policy, critic_lr, actor_lr):
     if hasattr(algo_policy, "alpha_optim"):
         algo_policy.alpha_optim = torch.optim.Adam(_alpha, lr=1e-4) # TODO alpha learning rate not hardcoded
 
-
 def _assign_device(algo_policy, algo_name, discrete_actions, device):
     '''
-    Tianshou stores the device on a variable inside the internal models. This must be pudated when changing CUDA/CPU devices
+    Tianshou stores the device on a variable inside the internal models. This must be updated when changing CUDA/CPU devices
     '''
     if type(device) == int:
         if device < -1: device = 'cpu'
         else: device = 'cuda:' + str(device)
     if hasattr(algo_policy, "actor"):
-        if not discrete_actions and algo_name in rand_actor:
+        if not discrete_actions and algo_name in _rand_actor:
             algo_policy.actor.mu.device = device
             algo_policy.actor.sigma.device = device
         else:
             algo_policy.actor.last.device = device
+        if hasattr(algo_policy.actor, "_max"):
+            algo_policy.actor._max = algo_policy.actor._max.to(device)
         algo_policy.actor.device = device
     if hasattr(algo_policy, "critic"):
         algo_policy.critic.last.device = device
@@ -51,6 +54,35 @@ def _assign_device(algo_policy, algo_name, discrete_actions, device):
         algo_policy.critic2.last.device = device
         algo_policy.critic2.device = device
     algo_policy.device = device
+
+def reset_params(reset_layers, algo_policy, discrete_actions, init_form, algo_name):
+    if reset_layers < 0:
+        return
+    elif reset_layers == 0: # use zero to reset all layers
+        reset_layers = 10000 # a large number
+    reset_at = reset_layers
+    if hasattr(algo_policy, "actor"):
+        if not discrete_actions and algo_name in _rand_actor:
+            reset_parameters(algo_policy.actor.mu, init_form)
+            reset_parameters(algo_policy.actor.sigma, init_form)
+            reset_at -= count_layers(algo_policy.actor.mu)
+        else:
+            reset_parameters(algo_policy.actor.last, init_form)
+            reset_at -= count_layers(algo_policy.actor.last)
+        reset_parameters(algo_policy.actor.preprocess, init_form, reset_at)
+    reset_at = reset_layers
+    if hasattr(algo_policy, "critic"):
+        reset_parameters(algo_policy.critic.last, init_form, reset_at)
+        reset_parameters(algo_policy.critic.last, init_form, reset_at - count_layers(algo_policy.critic.last))
+    reset_at = reset_layers
+    if hasattr(algo_policy, "critic1"):
+        reset_parameters(algo_policy.critic1.last, init_form, reset_at)
+        reset_parameters(algo_policy.critic1.last, init_form, reset_at - count_layers(algo_policy.critic.last))
+    reset_at = reset_layers
+    if hasattr(algo_policy, "critic2"):
+        reset_parameters(algo_policy.critic2.last, init_form, reset_at)
+        reset_parameters(algo_policy.critic2.last, init_form, reset_at - count_layers(algo_policy.critic.last))
+
 
 def _init_critic(args, NetType, discrete_actions, action_shape, input_shape, final_layer, device, nets_optims):
     # discrete actions have action_shape outputs, while continuous have the actions as input
@@ -95,11 +127,13 @@ def init_networks(args, input_shape, action_shape, discrete_actions):
         nets_optims += [actor, actor_optim]
 
     # initialize critic
-    NetType = networks[args.critic_net.net_type] # TODO: have two sets of arguments
+    NetType = networks[args.critic_net.net_type] if args.policy.learning_type != "rainbow" else networks["rainbow"] # TODO: have two sets of arguments
+    args.critic_net.pair.first_obj_dim += action_shape * int(not discrete_actions)
     args.critic_net.hidden_sizes = np.array(args.critic_net.hidden_sizes).astype(int)
     args.critic_net.cuda = args.torch.cuda
+    args.critic_net.num_atoms, args.critic_net.is_dueling = args.policy.rainbow.num_atoms, args.policy.rainbow.is_dueling
     _init_critic(args.critic_net, NetType, discrete_actions, action_shape, input_shape, final_layer, device, nets_optims)
-    if args.policy.learning_type == "sac": _init_critic(args, NetType, discrete_actions, action_shape, input_shape, final_layer, device, nets_optims)
+    if args.policy.learning_type == "sac": _init_critic(args.critic_net, NetType, discrete_actions, action_shape, input_shape, final_layer, device, nets_optims)
 
     if args.policy.learning_type == "sac" and args.sac_alpha == -1:
         args.sac_alpha = (-action_shape, torch.zeros(1, requires_grad=True, device=device), torch.optim.Adam([log_alpha], lr=1e-4) )
@@ -111,9 +145,9 @@ def init_algorithm(args, nets, action_space, discrete_actions):
         policy = ts.policy.DQNPolicy(*nets, discount_factor=args.policy.discount_factor, estimation_step=args.policy.lookahead, target_update_freq=int(args.policy.tau))
         policy.set_eps(args.policy.epsilon_random)
     elif args.policy.learning_type == "rainbow":
-        assert args.policy.max_critic != 0
+        # assert args.policy.max_min_critic != 0
         policy = ts.policy.RainbowPolicy(*nets, discount_factor=args.policy.discount_factor, estimation_step=args.policy.lookahead,
-         target_update_freq=int(args.policy.tau), v_min=-args.policy.max_critic, v_max=args.policy.max_critic, num_atoms=args.policy.num_atoms)
+         target_update_freq=int(args.policy.tau), v_min=args.policy.max_min_critic[0], v_max=args.policy.max_min_critic[1], num_atoms=args.policy.rainbow.num_atoms)
     elif args.policy.learning_type == "ppo": 
         if discrete_actions:
             policy = ts.policy.PPOPolicy(*nets, torch.distributions.Categorical, discount_factor=args.policy.discount_factor, max_grad_norm=None,

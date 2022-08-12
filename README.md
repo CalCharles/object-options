@@ -19,104 +19,22 @@ copy mujoco key to ~/.mujoco/mjkey.txt
 pip install -r requirements.txt
 https://robosuite.ai/docs/installation.html
 
+Breakout: get perfect paddle policy
+get perfect ball bouncing policy with inline training
 
-Options:
-	Reward, termination, done: WRITTEN
-	option temporal extension: WRITTEN
-	Action map: WRITTEN
-	policy tianshou interface: WRITTEN
+Robopushing: retrain interaction
+get gripper policy
+get block policy
 
-	Networks: WRITTEN
-		Policy:
+Sokoban: get block policy
 
-	RL
-	collector
-		aggregator: WRITTEN
-		collect: WRITTEN
+Asteroids: get ship policy
 
-	train: WRITTEN
+CT asteroids: get ship policy
 
-	hindsight management: WRITTEN
-		hindsight collector
-
-Shared components:
-State
-	tianshou rollout wrapper: WRITTEN
-		getitem(index) -> batch
-		sample with weights(length, weights) -> batch
-	fill_buffer: WRITTEN
-		fill_buffer(list of ordered factored state) -> tianshou buffer
-	dataset reader: WRITTEN
-		read_obj_dumps(path to directory, start index, number of samples, filename) -> list of factored states
-	State management:
-		state extractor: WRITTEN
-			get_raw
-			get_obs
-			get_target
-			get_inter
-			get_diff
-		normalizer: WRITTEN
-	factored_state: a dict with object name: ndarray, either a single state or a batch of states
-	feature selector: WRITTEN
-		assign feature(delta value, factored_state) -> mutate factored state to the values in delta value
-		__call__(factored state) -> ndarray of desired value
-Environment: WRITTEN
-	Environment wrapper
-		attributes:
-			object_sizes
-			norm_values
-		set_save, save
-		step
-		reset
-		get_state
-Networks: WRITTEN
-	Networks:
-		MLP
-		Conv
-		Pair
-
-Active passive model rewrite:
-	Networks: WRITTEN
-		forward(interaction state nparray, target state nparray): mean, variance  
-		interaction(interaction state nparray): binary
-	interaction model: WRITTEN
-		attributes:
-			interaction state extractor, target state extractor, parent state extractor(s), controllable state extractor
-			testing module
-		hypothesize(factored state dict, next factored state dict): binary, active forward, passive forward
-		check_interaction(interaction_floats) -> interaction binaries (calls the testing module)
-		get_active_mask() -> binary mask (pulls from testing module)
-	weighting system: WRITTEN
-	training module: WRITTEN
-		fill_rollouts(path string): r.inter, r.target, r.next_target
-		train(rollout tianshou rollout, interaction model, training parameters object dict/namespace): full model
-	testing module: WRITTEN
-		interaction binary test(active forward distribution, passive forward distribution, target nparray): binaries
-		interaction test(interaction_binary nparray): binaries
-	
-	mask module: WRITTEN
-		determine active set(rollouts, interaction model): active mask nparray
-		collect samples(rollouts, interaction model, active mask nparray): active mask nparray
-	
-
-	feature explorer: POSTPONED
-		search
-	sampler: WRITTEN
-		attributes:
-			mask
-			sample_able
-		sample
-
-Code run:
-	generate random data
-	Train Interaction: WRITTEN
-	fill active model: WRITTEN
-	args
-	train option
-	test option
 
 Run Breakout Training:
-python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/breakout/
+python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/breakout/random/
 
 Run Robopushing training:
 python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/ --num-frames 5000
@@ -124,5 +42,54 @@ python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/obje
 Run Asteroids training:
 python generate_random.py --env Asteroids --record-rollouts /hdd/datasets/object_data/asteroids/random/ --num-frames 10000
 
+python generate_random.py --env Asteroids --record-rollouts /hdd/datasets/object_data/asteroids/coordinate_turn/random/ --variant coordinate_turn --num-frames 10000
+
+
+Run Sokoban training:
+python generate_random.py --env Sokoban --record-rollouts /hdd/datasets/object_data/Sokoban/random/ --num-frames 10000
 
 python generate_random.py --env Asteroids --demonstrate --num-frames 5000
+
+
+
+todos:
+Asteroids: change action space to choose angle instead of sin-cos space
+Existence hindsight
+Make alignment angles 
+buffer checks: check laser firing hindsight
+Sampling checks: reachable angle
+	reachable location
+	laser starts at ship
+interaction checks: on fire and nowhere else
+Sokoban: Unit test obstacle avoidance 
+Stuck resets
+Displacement hindsight
+Sampling checks: pusher sample reachable --DONE
+	block sample reachable
+interaction checks: on block push and nowhere else
+Buffer checks: checks block moving hindsight and trajectories after random
+Bfs range 
+Both: Train iterations immediately after random --DONE
+	One trajectory unit test --DONE
+	Action remapping (round) --DONE
+	Network resets --DONE
+	Ground truth movement for Asteroids and Sokoban to train second level policies --Written, requires testing
+	Human option controller --DONE
+	hindsight random resampling for parameter --WRITTEN
+	Hyperparameter tuning programmatic: gamma, lr, sampling, termination rewards --DONE
+	Network parameter tuning: depth, width, activations --DONE
+	Hyperparameters: lookahead, network_resets --DONE
+	Binaries instead of interaction model -- DONE
+	Hyperparameters: hindsight local reset
+	dummy interaction models for laser and block
+	make components optional at first
+	Random network distillation
+	Value stochastic policy
+	Hyperparametersrandom network distillation, hindsight random resampling, rounded actions, network resets, sac/ddpg, 
+	Policy smoothness criteria: penalize max action change relative to position
+	truncation on dones, even time cutoff
+	Penalize no-movement
+	Action entropy reward
+	Learned Sampling for temporal proximity
+
+

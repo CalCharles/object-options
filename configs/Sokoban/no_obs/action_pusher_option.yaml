@@ -1,0 +1,79 @@
+---
+  record:
+    # record_rollouts: /nfs/data/calebc/object_data/sokoban/no_obs/pusher/
+    # record_rollouts: /hdd/datasets/object_data/sokoban/no_obs/pusher
+    record_recycle: -1
+    log_filename: logs/temp/sokoban_noobs_train.log
+    load_dir: /nfs/data/calebc/object_data/sokoban/no_obs/testrun/
+    save_dir: /nfs/data/calebc/object_data/sokoban/no_obs/testrun/
+    # checkpoint_dir: /nfs/data/calebc/object_data/sokoban/no_obs/testrun/action_paddle_checkpoint
+    # load_checkpoint: /nfs/data/calebc/object_data/sokoban/no_obs/testrun_inline/action_paddle_checkpoint
+    save_interval: 1200
+  environment:
+    env: Sokoban
+    variant: no_obs
+  torch:
+    gpu: 0
+    no_cuda: False
+  train:
+    train: True
+    pretrain_frames: 1000
+    num_steps: 100
+    num_frames: 1000
+    train_edge: Action Pusher
+    load_rollouts: /hdd/datasets/object_data/sokoban/no_obs/random
+    num_iters: 1200
+    batch_size: 64
+  critic_net:
+  actor_net:
+  network:
+    hidden_sizes: 256 256 512
+    net_type: basic
+    activation_final: tanh
+    scale_logits: 50
+    optimizer:
+      lr: .0001
+      alt_lr: .0001
+      eps: .00001
+      alpha: 0.99
+      betas: 0.9 0.999
+      weight_decay: 0.00
+  sample:
+    sample_type: cent
+    sample_distance: 0.3
+    sample_schedule: 200
+    param_recycle: 2
+  extract:
+    single_obs_setting: 1 0 1 1 0 0
+    relative_obs_setting: 0 1 0 1
+  option:
+    term_form: param
+    term_as_done: True
+    epsilon_close: 0.5 0.5
+    param_norm: 1
+    constant_lambda: -1
+    param_lambda: 1
+    inter_lambda: 0
+    temporal_extend: 20
+    time_cutoff: 50
+  collect:
+    prioritized_replay: 0.6 0.4
+    buffer_len : 100000
+    test_episode: True
+    max_steps: 1000
+    display_frame: 1
+  hindsight:
+    use_her: True
+  policy:
+    epsilon_random: 0.1
+    logging:
+      log_interval: 50
+      train_log_maxlen: 5
+      test_log_maxlen: 50
+      initial_trials: 20
+      test_trials: 10
+      max_terminate_step: 1 30
+    learn:
+      grad_epoch: 200
+      sample_form: merged
+...

@@ -1,0 +1,20 @@
+---
+metaparam: 
+  multi_filename: ball_option_
+  log_endpoint: /hdd/datasets/object_data/breakout/hyperparam/hyperparam_logs/ball/lr/
+  yaml_endpoint: /hdd/datasets/object_data/breakout/hyperparam/hyperparam_yamls/ball/lr/
+  save_endpoint: /hdd/datasets/object_data/breakout/hyperparam/hyperparam/ball/lr/
+  graph_endpoint: /hdd/datasets/object_data/breakout/hyperparam/hyperparam_graphs/ball/lr/
+  bash_path: ball_lr.sh
+  base_config: configs/Breakout/angle_hyperparam/paddle_ball_option_inline.yaml
+  runfile: train_option.py
+  gpu: 3
+  match: False
+train:
+  num_iters: 4000
+  batch_size: 128,512
+network:
+  optimizer:
+    lr: .0005,.0001,.00003
+    weight_decay: 0.00,.0001
+...

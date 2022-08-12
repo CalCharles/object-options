@@ -57,7 +57,8 @@ class Sokoban(Environment):
         self.reset()
 
     def generate_fill(self, class_type, idx, offset=0, max_adjacent=4):
-        while True:
+        obj = None
+        for i in range(1000):
             pos = np.array([np.random.randint(0+offset, self.num_rows - offset), np.random.randint(0+offset, self.num_columns -offset)])
             if self.occupancy_matrix[pos[0]][pos[1]] is None:
                 if max_adjacent < 4: # check adjacent cells for objects
@@ -67,7 +68,7 @@ class Sokoban(Environment):
                         int(pos[0] - 1 == -1 or self.occupancy_matrix[pos[0]-1][pos[1]] is not None))
                     if total_adjacent > max_adjacent:
                         continue
-                obj = class_type(pos, idx, self.bounds)
+                obj = class_type(pos, idx, self.bound)
                 self.occupancy_matrix[pos[0]][pos[1]] = obj
                 # print(class_type, pos)
                 break
@@ -75,28 +76,33 @@ class Sokoban(Environment):
 
     def reset_occupancy(self): # resets the occupancy matrix assuming that the obstacles, blocks, and pusher and non-overlapping
         self.occupancy_matrix = [[None for i in range(self.num_columns)] for j in range(self.num_rows)]
+        self.occupancy_matrix[self.pusher.pos[0]][self.pusher.pos[1]] = self.pusher
         for obs in self.obstacles:
             self.occupancy_matrix[obs.pos[0]][obs.pos[1]] = obs
         for blk in self.blocks:
             self.occupancy_matrix[blk.pos[0]][blk.pos[1]] = blk
         for tar in self.targets:
             if self.occupancy_matrix[tar.pos[0]][tar.pos[1]] != None:
-                self.occupancy_matrix[tar.pos[0]][tar.pos[1]] = ()
-            self.occupancy_matrix[obs.pos[0]][obs.pos[1]] = obs
+                self.occupancy_matrix[tar.pos[0]][tar.pos[1]] = (self.occupancy_matrix[tar.pos[0]][tar.pos[1]], tar)
 
     def reset(self):
         if len(self.preset) > 0: # we are selecting resets from a preset group
             self.load_sokoban(self.preset)
         else: # load a random stage based on the inputs
             self.action = Action()
-            self.bounds = [Bound(self.num_rows, 0), Bound(self.num_columns, 1)]
+            self.bound = Bound((self.num_rows, self.num_columns))
             self.occupancy_matrix = [[None for i in range(RNG)] for j in range(RNG)]
-            self.pusher = Pusher(np.array([np.random.randint(self.num_rows), np.random.randint(self.num_columns)]), self.bounds)
+            self.pusher = Pusher(np.array([np.random.randint(self.num_rows), np.random.randint(self.num_columns)]), self.bound)
             self.occupancy_matrix[self.pusher.pos[0]][self.pusher.pos[1]] = self.pusher
             self.obstacles = [self.generate_fill(Obstacle, i) for i in range(self.num_obstacles)]
+            if len(self.obstacles) == 1: self.obstacles[0].name = "Obstacle"
             self.blocks = [self.generate_fill(Block, i, offset = 1, max_adjacent=1) for i in range(self.num_blocks)]
+            if len(self.blocks) == 1: self.blocks[0].name = "Block"
             self.targets = [self.generate_fill(Target, i, max_adjacent=3) for i in range(self.num_targets)]
-            self.objects = [self.action] + [self.pusher] + self.obstacles + self.blocks + self.targets + self.bounds
+            if len(self.targets) == 1: self.targets[0].name = "Target"
+            self.objects = [self.action] + [self.pusher] + self.obstacles + self.blocks + self.targets + [self.bound]
+            if np.any([o is None for o in self.objects]): self.reset() # we could not generate a functional occupancy
+        self.object_name_dict = {"Action": self.action, "Bound": self.bound, "Pusher": self.pusher, "Obstacle": self.obstacles, "Block": self.blocks, "Target": self.targets}
         self.steps = 0
         return self.get_state()
 
@@ -159,7 +165,6 @@ class Sokoban(Environment):
                 self.occupancy_matrix[int(new_block.pos[0])][int(new_block.pos[1])] = (new_block, obj_at_target)
             else:
                 self.occupancy_matrix[int(new_block.pos[0])][int(new_block.pos[1])] = new_block
-        
         # move the pusher if necessary
         # print("old push", old_pusher, self.occupancy_matrix[old_pusher[0]][old_pusher[1]], type(self.occupancy_matrix[old_pusher[0]][old_pusher[1]]), type(self.occupancy_matrix[old_pusher[0]][old_pusher[1]]) == tuple)
         if type(self.occupancy_matrix[old_pusher[0]][old_pusher[1]]) == tuple:
@@ -206,33 +211,29 @@ class Sokoban(Environment):
         self.reward = int(self.done) # get one reward if done
         self.done = self.done or self.steps == self.step_limit
         trunc = self.steps == self.step_limit
-        state = self.get_state()
-        print(self.steps, self.step_limit, self.done, self.reward)
+        state = self.get_state(render=render)
+
         if self.done: self.reset()
         # print("end", self.occupancy_matrix[old_push[0]][old_push[1]])
         return state, self.reward, self.done, {"TimeLimit.truncated": trunc}
 
-    def toString(self, extracted_state):
-        estring = "ITR:" + str(self.itr) + "\t"
-        for i, obj in enumerate(self.objects):
-            estring += obj.name + ":" + " ".join(map(str, extracted_state[obj.name])) + "\t" # TODO: attributes are limited to single floats
-        estring += "Reward:" + str(self.reward) + "\t"
-        estring += "Done:" + str(int(self.done)) + "\t"
-        return estring
-
     def set_from_factored_state(self, factored_state, seed_counter=-1, render=False):
-        self.pusher.pos = factored_state["pusher"]
+        self.pusher.pos = np.array(factored_state["Pusher"]).astype(int)
 
         for obstacle in self.obstacles:
-            obstacle.pos = factored_state[obstacle.name]
+            obstacle.pos = np.array(factored_state[obstacle.name]).astype(int)
         for block in self.blocks:
-            block.pos = factored_state[block.name]
+            block.pos = np.array(factored_state[block.name]).astype(int)
         for target in self.targets:
-            target.pos = factored_state[target.name][:2]
+            target.pos = np.array(factored_state[target.name][:2]).astype(int)
             target.attribute = factored_state[target.name][2]
-
         self.reward = factored_state["Reward"]
         self.done = factored_state["Done"]
+        self.reset_occupancy()
+        # self.render()
+        # frame2 = cv2.resize(self.frame, (self.frame.shape[0] * 30, self.frame.shape[1] * 30), interpolation = cv2.INTER_NEAREST)
+        # cv2.imshow('frame2',frame2)
+        # key = cv2.waitKey(5000)
 
     def current_trace(self, names):
         targets = [self.object_name_dict[names.target]] if type(self.object_name_dict[names.target]) != list else self.object_name_dict[names.target]
@@ -253,11 +254,11 @@ class Sokoban(Environment):
     def demonstrate(self):
         action = 0
         frame = self.render()
-        print(frame)
-        frame = cv2.resize(frame, (frame.shape[0] * 30, frame.shape[1] * 30), interpolation = cv2.INTER_NEAREST)
-        cv2.imshow('frame',frame)
+        # print(frame)
+        # frame = cv2.resize(frame, (frame.shape[0] * 30, frame.shape[1] * 30), interpolation = cv2.INTER_NEAREST)
+        # cv2.imshow('frame',frame)
         frame2 = self.render_occupancy()
-        print(frame2)
+        # print(frame2)
         frame2 = cv2.resize(frame2, (frame2.shape[0] * 30, frame2.shape[1] * 30), interpolation = cv2.INTER_NEAREST)
         cv2.imshow('frame2',frame2)
         key = cv2.waitKey(5000)

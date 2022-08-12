@@ -27,7 +27,7 @@ def initialize_environment(args, record_args):
         from Environment.Environments.RoboPushing.robopushing_screen import RoboPushing
 
         args.continuous = True
-        environment = RoboPushing(variant=args.variant, renderable=args.render)
+        environment = RoboPushing(variant=args.variant, horizon=args.horizon, renderable=args.render)
         environment.seed(args.seed)
     elif args.env.find("RoboStick") != -1:
         from Environment.Environments.RoboPushing.robostick_screen import RoboStick
@@ -35,7 +35,7 @@ def initialize_environment(args, record_args):
         args.continuous = True
         environment = RoboStick(variant=args.variant, horizon=args.time_cutoff, renderable=args.render)
         environment.seed(args.seed)
-    record = FullRecord(0, record_args.record_rollouts, record_args.record_recycle, args.render) if len(record_args.record_rollouts) != 0 else None
+    record = FullRecord(0, record_args.record_rollouts, record_args.record_recycle, args.render) if record_args is not None and len(record_args.record_rollouts) != 0 else None
     args.environment = environment
     args.record = record
     return environment, record

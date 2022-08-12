@@ -10,3 +10,7 @@ class Logger():
     def logout(self, log_string):
         logging.info(log_string)
         print(log_string)
+
+    def logval(self, val):
+        logging.info(str(val))
+        print(val)

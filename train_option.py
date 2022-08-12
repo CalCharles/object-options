@@ -14,12 +14,15 @@ from ReinforcementLearning.policy import Policy
 from Collect.collector import OptionCollector
 from ReinforcementLearning.train_RL import trainRL
 from ReinforcementLearning.utils.RL_logger import RLLogger
+from ReinforcementLearning.GroundTruth.ground_truth_vals import ground_truth
 from Hindsight.hindsight import Hindsight
 from Option.temporal_extension_manager import TemporalExtensionManager
 from Causal.Training.inline_trainer import InlineTrainer
 
 if __name__ == '__main__':
     args = get_args()
+    print(args)
+    torch.manual_seed(args.torch.torch_seed)
     torch.cuda.set_device(args.torch.gpu)
     np.set_printoptions(threshold=3000, linewidth=120, precision=4, suppress=True)
     torch.set_printoptions(precision=4, sci_mode=False)
@@ -38,10 +41,15 @@ if __name__ == '__main__':
     # interaction might be dummy or real
     parent_option, parent_interaction, interaction_model = instantiate_interaction(args, graph, environment, object_names)
     models.interaction_model = interaction_model
+    if len(args.policy.ground_truth) != 0: # TODO: right now, ground truth has to be for the parent option
+        args.action_map_object = parent_option.action_map
+        parent_policy = parent_option.policy
+        parent_option.policy = ground_truth[args.policy.ground_truth](parent_option.policy.discrete_actions, parent_option.state_extractor.total_size, 
+                                                                parent_option.action_map.policy_action_space, args, parent_policy)
 
     # the sampler samples goal states for the option to move to
-    models.sampler = instantiate_sampler(args, interaction_model)
-    models.test_sampler = instantiate_sampler(args, interaction_model)
+    models.sampler = instantiate_sampler(args, interaction_model, environment)
+    models.test_sampler = instantiate_sampler(args, interaction_model, environment)
 
     # the state extractor converts a factored state into the appropriate state for the option
     models.state_extractor = instantiate_extractor(args, interaction_model, environment, object_names)
@@ -62,7 +70,7 @@ if __name__ == '__main__':
     args.actor_net.pair.post_dim = -1 if args.actor_net.pair.post_dim == -1 else models.state_extractor.post_dim
     args.critic_net.pair.post_dim = -1 if args.critic_net.pair.post_dim == -1 else models.state_extractor.post_dim
     policy = Policy(models.action_map.discrete_actions, models.state_extractor.total_size, models.action_map.policy_action_space, args)
-    
+
     option = Option(args, policy, models, parent_option) if len(args.record.load_checkpoint) == 0 else graph.nodes[object_names.target].option
     if args.torch.cuda: option.cuda(device=args.torch.gpu)
     train_buffer, test_buffer = instantiate_buffers(args, models)
@@ -70,15 +78,17 @@ if __name__ == '__main__':
     args.collect.env_reset = environment.self_reset
     hindsight = Hindsight(args, option, interaction_model) if args.hindsight.use_her else None
     train_collector = OptionCollector(policy, environment, train_buffer, args.policy.epsilon_random > 0, option, hindsight, False, interaction_model.multi_instanced, record, args)
-    test_collector = OptionCollector(policy, environment, test_buffer, False, option, None, True, interaction_model.multi_instanced, None, args)
+    test_collector = OptionCollector(policy, test_environment, test_buffer, False, option, None, True, interaction_model.multi_instanced, None, args)
 
     graph.nodes[object_names.target].option = option
-    train_logger = RLLogger(object_names.target + "_train", args.record.record_rollouts, args.policy.logging.log_interval, args.policy.logging.train_log_maxlen, args.record.log_filename)
-    test_logger = RLLogger(object_names.target + "_test", args.record.record_rollouts, args.policy.logging.log_interval, args.policy.logging.test_log_maxlen)
-    initial_logger = RLLogger(object_names.target + "_initial", args.record.record_rollouts, args.policy.logging.log_interval, 2)
+    if args.record.presave_graph: graph.save(args.record.save_dir)
+    train_logger = RLLogger(object_names.target + "_train", args.record.record_graphs, args.policy.logging.log_interval, args.policy.logging.train_log_maxlen, args.record.log_filename)
+    test_logger = RLLogger(object_names.target + "_test", args.record.record_graphs, args.policy.logging.log_interval, args.policy.logging.test_log_maxlen)
+    initial_logger = RLLogger(object_names.target + "_initial", args.record.record_graphs, args.policy.logging.log_interval, 2)
     logging.info("config: " + str(args))
+    option.zero_below_grads(True)
     trainRL(args, train_collector, test_collector, option, graph, (train_logger, test_logger, initial_logger))
 
-    graph.save(args.record.save_dir)
+    if len(args.record.save_dir) > 0: graph.save(args.record.save_dir)
 
 
