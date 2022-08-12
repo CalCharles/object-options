@@ -20,7 +20,7 @@ if __name__ == "__main__":
                         help='amount of frameskip, 1=no frameskip')
     parser.add_argument('--variant', default="default",
                         help='environment variant to use')
-    parser.add_argument('--time-cutoff', type=int, default=-1,
+    parser.add_argument('--horizon', type=int, default=-1,
                         help='time cutoff for environment resets, defaults -1 (no cutoff)')
     parser.add_argument('--num-frames', type=int, default=1000,
                         help='number of frames to run')
