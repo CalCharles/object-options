@@ -1,0 +1,22 @@
+---
+metaparam: 
+  multi_filename: block_option_
+  log_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_logs/block/freq/
+  yaml_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_yamls/block/freq/
+  save_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam/block/freq/
+  graph_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_graphs/block/freq/
+  bash_path: bashes/block_freq.sh
+  base_config: configs/RoboPushing/gripper_block_option.yaml
+  runfile: train_option.py
+  gpu: 2
+  match: False
+train:
+  num_iters: 3000
+policy:
+  lookahead: 2,5,10
+  primacy:
+    reset_layers: 4
+    reset_frequency: 300,1000
+    primacy_iters: 50
+    stop_resets: 3000
+...

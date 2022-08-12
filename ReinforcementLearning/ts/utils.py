@@ -73,15 +73,15 @@ def reset_params(reset_layers, algo_policy, discrete_actions, init_form, algo_na
     reset_at = reset_layers
     if hasattr(algo_policy, "critic"):
         reset_parameters(algo_policy.critic.last, init_form, reset_at)
-        reset_parameters(algo_policy.critic.last, init_form, reset_at - count_layers(algo_policy.critic.last))
+        reset_parameters(algo_policy.critic, init_form, reset_at - count_layers(algo_policy.critic.last))
     reset_at = reset_layers
     if hasattr(algo_policy, "critic1"):
         reset_parameters(algo_policy.critic1.last, init_form, reset_at)
-        reset_parameters(algo_policy.critic1.last, init_form, reset_at - count_layers(algo_policy.critic.last))
+        reset_parameters(algo_policy.critic1, init_form, reset_at - count_layers(algo_policy.critic1.last))
     reset_at = reset_layers
     if hasattr(algo_policy, "critic2"):
         reset_parameters(algo_policy.critic2.last, init_form, reset_at)
-        reset_parameters(algo_policy.critic2.last, init_form, reset_at - count_layers(algo_policy.critic.last))
+        reset_parameters(algo_policy.critic2, init_form, reset_at - count_layers(algo_policy.critic2.last))
 
 
 def _init_critic(args, NetType, discrete_actions, action_shape, input_shape, final_layer, device, nets_optims):
@@ -135,8 +135,8 @@ def init_networks(args, input_shape, action_shape, discrete_actions):
     _init_critic(args.critic_net, NetType, discrete_actions, action_shape, input_shape, final_layer, device, nets_optims)
     if args.policy.learning_type == "sac": _init_critic(args.critic_net, NetType, discrete_actions, action_shape, input_shape, final_layer, device, nets_optims)
 
-    if args.policy.learning_type == "sac" and args.sac_alpha == -1:
-        args.sac_alpha = (-action_shape, torch.zeros(1, requires_grad=True, device=device), torch.optim.Adam([log_alpha], lr=1e-4) )
+    if args.policy.learning_type == "sac" and args.policy.sac_alpha == -1:
+        args.policy.sac_alpha = (-action_shape, torch.zeros(1, requires_grad=True, device=device), torch.optim.Adam([log_alpha], lr=1e-4) )
     return nets_optims
 
 def init_algorithm(args, nets, action_space, discrete_actions):
@@ -173,7 +173,7 @@ def init_algorithm(args, nets, action_space, discrete_actions):
                     *nets, tau=args.policy.tau, gamma=args.policy.discount_factor, alpha=args.policy.sac_alpha, estimation_step=args.policy.lookahead,
                     reward_normalization=args.policy.reward_normalization, deterministic_eval=args.policy.deterministic_eval)
         else:
-            policy = ts.policy.SACPolicy(*nets, tau=args.policy.tau, gamma=args.policy.policy.discount_factor, alpha=args.policy.sac_alpha,
+            policy = ts.policy.SACPolicy(*nets, tau=args.policy.tau, gamma=args.policy.discount_factor, alpha=args.policy.sac_alpha,
                                                 exploration_noise=args.policy.epsilon_random,
                                                 estimation_step=args.policy.lookahead, action_space=action_space,
                                                 action_bound_method='clip', deterministic_eval=args.policy.deterministic_eval)

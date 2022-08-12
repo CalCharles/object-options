@@ -9,6 +9,7 @@ from Buffer.buffer import ParamPriorityReplayBuffer, ParamReplayBuffer, ParamPri
 from Causal.dummy_interactions import dummy_interactions
 
 def instantiate_buffers(args, models):
+    print(args.collect.prioritized_replay)
     if len(args.collect.prioritized_replay) > 0:
         if models.inline_trainer.train: train_buffer = ParamPrioWeightedReplayBuffer(args.collect.buffer_len, stack_num=1, alpha=args.collect.prioritized_replay[0], beta=args.collect.prioritized_replay[1])
         else: train_buffer = ParamPriorityReplayBuffer(args.collect.buffer_len, stack_num=1, alpha=args.collect.prioritized_replay[0], beta=args.collect.prioritized_replay[1])

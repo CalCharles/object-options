@@ -1,0 +1,19 @@
+---
+metaparam: 
+  multi_filename: block_option_
+  log_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_logs/block/lr/
+  yaml_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_yamls/block/lr/
+  save_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam/block/lr/
+  graph_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_graphs/block/lr/
+  bash_path: bashes/block_lr.sh
+  base_config: configs/RoboPushing/gripper_block_option.yaml
+  runfile: train_option.py
+  gpu: 0
+  match: False
+train:
+  num_iters: 3000
+network:
+  optimizer:
+    lr: .0005,.0001
+    weight_decay: 0.00,.0001
+...

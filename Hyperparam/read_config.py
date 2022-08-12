@@ -180,6 +180,7 @@ expected_args = {
         "reward_normalization": False,
         "tau": 0.005,
         "sac_alpha": 0.2,
+        "deterministic_eval": False,
         "logging": {
             "log_interval": 5,
             "train_log_maxlen": 0,
@@ -241,7 +242,7 @@ def construct_namespace(data):
                 if type(exp_dict[key]) == float: add_dict[key] = float(add_dict[key])
                 # handling special characters
                 if add_dict[key] == "None": add_dict[key] = None
-                elif add_dict[key] == "[]": add_dict[key] = list()
+                elif add_dict[key] == "[]" or (type(add_dict[key]) == list and len(add_dict[key]) == 0): add_dict[key] = list()
                 elif type(exp_dict[key]) == list and key in data_dict:
                     if type(data_dict[key]) != str:
                         add_dict[key] = [data_dict[key]]

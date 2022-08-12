@@ -1,0 +1,24 @@
+---
+metaparam: 
+  multi_filename: block_option_
+  log_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_logs/block/reset/
+  yaml_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_yamls/block/reset/
+  save_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam/block/reset/
+  graph_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_graphs/block/reset/
+  bash_path: bashes/block_reset.sh
+  base_config: configs/RoboPushing/gripper_block_option.yaml
+  runfile: train_option.py
+  gpu: 3
+  match: False
+train:
+  num_iters: 3000
+policy:
+  lookahead: 2,5,10
+  learn:
+    grad_epoch: 50,100
+  primacy:
+    reset_layers: 4
+    reset_frequency: 300
+    primacy_iters: 50
+    stop_resets: 3000
+...

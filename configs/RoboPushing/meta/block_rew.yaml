@@ -1,0 +1,19 @@
+---
+metaparam: 
+  multi_filename: block_option_
+  log_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_logs/block/rew/
+  yaml_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_yamls/block/rew/
+  save_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam/block/rew/
+  graph_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_graphs/block/rew/
+  bash_path: bashes/block_rew.sh
+  base_config: configs/RoboPushing/gripper_block_option.yaml
+  runfile: train_option.py
+  gpu: 0
+  match: False
+train:
+  num_iters: 3000
+option:
+  temporal_extend: 2,3
+option:
+  constant_lambda: -0.1,-0.5,-1
+...

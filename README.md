@@ -1,8 +1,17 @@
 Implementation of HOOD
 
 # Installation creating conda environment 
-conda create -n rbt python=3.8
-conda activate rbt
+conda create -n obj python=3.8
+conda activate obj
+# Installing Robosuite with pushing domain (from source)
+git clone https://github.com/kvablack/robosuite.git
+conda activate obj
+cd robosuite
+copy mujoco download to: ~/.mujoco/mujoco200
+copy mujoco key to ~/.mujoco/mjkey.txt
+pip install -r requirements.txt
+https://robosuite.ai/docs/installation.html
+# install remaining components
 conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
 pip install tianshou / pip install git+https://github.com/thu-ml/tianshou.git@master --upgrade
 conda install imageio
@@ -10,14 +19,6 @@ pip install opencv-python
 conda install psutil
 pip install pyyaml
 
-# Installing Robosuite with pushing domain (from source)
-git clone https://github.com/kvablack/robosuite.git
-conda activate rbt
-cd robosuite
-copy mujoco download to: ~/.mujoco/mujoco200
-copy mujoco key to ~/.mujoco/mjkey.txt
-pip install -r requirements.txt
-https://robosuite.ai/docs/installation.html
 
 Breakout: get perfect paddle policy
 get perfect ball bouncing policy with inline training
@@ -38,6 +39,8 @@ python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_
 
 Run Robopushing training:
 python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/ --num-frames 5000
+python generate_random.py --env RoboPushing --record-rollouts ../data/object_data/robopushing/random/ --num-frames 5000
+
 
 Run Asteroids training:
 python generate_random.py --env Asteroids --record-rollouts /hdd/datasets/object_data/asteroids/random/ --num-frames 10000

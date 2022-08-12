@@ -1,0 +1,18 @@
+---
+metaparam: 
+  multi_filename: block_option_
+  log_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_logs/block/learn/
+  yaml_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_yamls/block/learn/
+  save_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam/block/learn/
+  graph_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_graphs/block/learn/
+  bash_path: bashes/block_learn.sh
+  base_config: configs/RoboPushing/gripper_block_option.yaml
+  runfile: train_option.py
+  gpu: 1
+  match: False
+train:
+  num_iters: 3000
+policy:
+  learning_type: ddpg,sac
+  epsilon_random: 0.1,0.2,0.25
+...
