@@ -16,8 +16,10 @@ class BinaryParameterizedOptionControl(RTD):
         self.epsilon_close = np.array(kwargs['epsilon_close']).squeeze()
         self.norm_p = kwargs['param_norm']
         self.constant_lambda = kwargs['constant_lambda']
+        self.true_lambda = kwargs["true_lambda"]
 
     def compute_rew_term_done(self, inter_state, target, next_target, target_diff, param, mask, true_done, true_reward):
         inside = check_close(self.epsilon_close, self.norm_p, next_target, param, mask)
         term, rew = inside.copy(), inside.copy().astype(np.float64)
-        return term, rew + self.constant_lambda, np.array(True)
+        true_reward_component = true_reward.squeeze() * self.true_lambda if hasattr(self, "true_lambda") else 0
+        return term, rew + self.constant_lambda + true_reward_component, np.array(True)

@@ -53,6 +53,7 @@ def write_multi_config(multi_pth):
     runfile = data["metaparam"]["runfile"]
     gpu = data["metaparam"]["gpu"]
     match = data["metaparam"]["match"]
+    num_trials = data["metaparam"]["num_trials"]
     base_config = read_config(data["metaparam"]["base_config"])
     del data["metaparam"]
 
@@ -117,7 +118,7 @@ def write_multi_config(multi_pth):
                 set_val[name_path[-1]] = setv
 
 
-    def create_config(base_config, combination, idx):
+    def create_config(base_config, combination, num_trials, idx):
         config = copy.deepcopy(base_config)
         for c, setting, name_path in zip(combination, all_settings_grid, name_paths):
             set_val = config
@@ -128,13 +129,19 @@ def write_multi_config(multi_pth):
             set_val[name_path[-1]] = setting[c]
             print(name_path[-1], setting[c])
         name = multi_filename + "_".join([str(c) for c in combination])
-        config.record.record_graphs = os.path.join(graph_endpoint, name)
-        config.record.log_filename = os.path.join(log_endpoint, name + '.log')
-        config.record.save_dir = os.path.join(save_endpoint, name)
-        config.torch.gpu = gpu
-        config.collect.stream_print_file = os.path.join(log_endpoint, name + '_stream.txt')
-        config.hyperparam = ObjDict()
-        config.hyperparam.name_orders = ["+".join(name_path) for name_path in name_paths]
+        trial_configs, trial_names = list(), list()
+        for n in num_trials:
+            tconfig = copy.deepcopy(config)
+            tname = name + "_trial_" + str(n)
+            tconfig.record.record_graphs = os.path.join(graph_endpoint, tname)
+            tconfig.record.log_filename = os.path.join(log_endpoint, tname + '.log')
+            tconfig.record.save_dir = os.path.join(save_endpoint, tname)
+            tconfig.torch.gpu = gpu
+            tconfig.collect.stream_print_file = os.path.join(log_endpoint, tname + '_stream.txt')
+            tconfig.hyperparam = ObjDict()
+            tconfig.hyperparam.name_orders = ["+".join(name_path) for name_path in name_paths]
+            trial_configs.append(tconfig)
+            trial_name.append(tname)
         return name, config
     
     # get corresponding config dicts and names for the files
@@ -142,9 +149,9 @@ def write_multi_config(multi_pth):
     all_names = list()
     print(comb_array)
     for i, combination in enumerate(comb_array):
-        name, config = create_config(base_config, combination, i)
-        all_args.append(config)
-        all_names.append(name)
+        names, configs = create_config(base_config, combination, i)
+        all_args += configs
+        all_names += names
 
     # write the config files to locations
     config_names = list()

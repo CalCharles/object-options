@@ -3,9 +3,10 @@
     # record_rollouts: /nfs/data/calebc/object_data/breakout/testrun/paddle/
     # record_rollouts: /hdd/datasets/object_data/robopushing/testrun/block
     record_recycle: -1
-    log_filename: logs/temp/block_train.log
+    log_filename: logs/temp/block_train6.log
     load_dir: /nfs/data/calebc/object_data/robopushing/testrun/
-    save_dir: /nfs/data/calebc/object_data/robopushing/testrun_block2/
+    save_dir: /nfs/data/calebc/object_data/robopushing/testrun_block6/
+    record_graphs: /nfs/data/calebc/object_data/robopushing/testrun_graphs6/
     # checkpoint_dir: /hdd/datasets/object_data/robopushing/testrun/action_gripper_checkpoint
     # pretrain_dir: /hdd/datasets/object_data/robopushing/testrun/action_gripper_checkpoint
     presave_graph: True
@@ -25,7 +26,7 @@
     train_edge: Gripper Block
     load_rollouts: /hdd/datasets/object_data/robopushing/testrun/random
     num_iters: 10000
-    batch_size: 128
+    batch_size: 256
   critic_net:
   actor_net:
   network:
@@ -62,18 +63,26 @@
       sum_rewards: False
   collect:
     buffer_len : 100000
+    # prioritized_replay: 0.3 0.4
     test_episode: True
     max_steps: 1000
-    stream_print_file: logs/robo/gb_option_stream2.txt
+    stream_print_file: logs/robo/gb_option_stream6.txt
   hindsight:
     use_her: True
     early_stopping: 1
     interaction_criteria: 2
+    # select_positive: 0.3
   policy:
     learning_type: ddpg
     epsilon_random: 0.01
+    lookahead: 5
+    primacy:
+      reset_layers: 3
+      reset_frequency: 1000
+      primacy_iters: 50
+      stop_resets: 5000
     logging:
-      log_interval: 10
+      log_interval: 100
       train_log_maxlen: 30
       test_log_maxlen: 50
       initial_trials: 20
@@ -83,7 +92,6 @@
       post_random_iters: 250
       grad_epoch: 100
       sample_form: merged
-      select_positive: 0.5
   action:
     use_relative_action: True
     relative_action_ratio: 0.15

@@ -171,7 +171,7 @@ class Hindsight():
                                 # print("adding", her_batch.target, her_batch.next_target, her_batch.inter, her_batch.old_inter, her_batch.rew, her_batch.done, her_batch.param)
                                 self.at, ep_rew, ep_len, ep_idx = her_buffer.add(her_batch, buffer_ids=[0])
                                 early_stopping_counter += int(np.any(her_batch.done))
-                                if early_stopping_counter > self.early_stopping:
+                                if early_stopping_counter >= self.early_stopping:
                                     break
                 # else:
                 #     print("queue len", len(add_queue))
