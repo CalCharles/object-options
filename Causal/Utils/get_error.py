@@ -29,6 +29,7 @@ error_types = ObjDict({error_names[i]: i for i in range(len(error_names))})
 outputs = lambda x: x > error_types.ACTIVE_LIKELIHOOD 
 
 def check_proximity(full_model, parent_state, target, normalized=False):
+    num_batch = parent_state.shape[0] if len(parent_state.shape) > 1 else 1
     parent_pos = np.where(full_model.position_masks[full_model.names.primary_parent])[0]
     target_pos = np.where(full_model.position_masks[full_model.names.target])[0]
     parent = parent_state[...,parent_pos] # TODO: assumes parent state is unnormalized
