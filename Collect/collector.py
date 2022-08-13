@@ -247,9 +247,19 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         hit_count, miss_count,drop_count = 0,0,0
         start_time = time.time()
         used_new_param = new_param
+        perf_times =dict()
+        perf_times["action"] = 0
+        perf_times["step"] = 0
+        perf_times["term"] = 0
+        perf_times["inline"] = 0
+        perf_times["process"] = 0
+        perf_times["record"] = 0
+        perf_times["aggregate"] = 0
+        perf_times["total"] = 0
         param, mask, new_param = self.adjust_param(new_param)
         if new_param: print("new param start", param)
         while True:
+            tc_start = time.time()
             self.counter += 1
             # set parameter for this run, if necessary
             param, mask, new_param = self.adjust_param()
@@ -265,6 +275,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
                     display_param(frame.astype(float) / 256.0, None, rescale=10)
                     action = np.array([float(v) for v in input("value: ").split(' ')])
             with torch.no_grad(): act, action_chain, result, state_chain, masks, resampled = self.option.extended_action_sample(self.data, state_chain, self.data.terminations, self.data.ext_terms, random=random, force=force, action=action)
+            tc_action = time.time()
             self._policy_state_update(result)
             self.data.update(true_action=[action_chain[0]], act=[act], mapped_act=[action_chain[-1]], option_resample=[resampled], action_chain = action_chain)
             
@@ -278,6 +289,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             # print(action_remap, self.data.full_state.factored_state.Action)
             next_full_state = obs_next[0] # only handling one environment
             true_done, true_reward = done, rew
+            tc_step = time.time()
 
             # update the target, next target, obs, next_obs pair, state components
             obs = self.state_extractor.get_obs(self.data.last_full_state[0], self.data.full_state[0], param[0], mask[0]) # one environment reliance
@@ -299,16 +311,17 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             info[0]["TimeLimit.truncated"] = bool(self.trunc_true * true_done + info[0]["TimeLimit.truncated"]) # if we want to treat environment resets as truncations
             self.option.update(act, action_chain, terminations, masks, update_policy=not self.test)
             # print(inter_state, self.option.interaction_model.predict_next_state(self.data.full_state))
-
+            tc_term = time.time()
             # update inline training values
             proximity, proximity_inst, binaries = self.option.inline_trainer.set_values(self.data)
+            tc_inline = time.time()
 
             # update hit-miss values
             rews += rew
             hit = False
             if term or done: hit, hit_count, miss_count, drop_count = self.update_statistics(hit_count, miss_count, drop_count, np.any(true_done) and not np.any(term))
 
-            # update the current values
+            # update the current values TODO: next_full_state is time expensive (.001 sec per iteration). It should be stored separately
             self.data.update(next_full_state=[next_full_state], true_done=last_true_done, next_true_done=true_done, true_reward=true_reward, 
                 param=param, mask = mask, info = info, inter = [inter], time=[1], trace = [np.any(self.environment.current_trace(self.names))],
                 inst_trace=self.environment.current_trace(self.names), proximity=[proximity.squeeze()], 
@@ -323,7 +336,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
                     done=self.data.done,
                     info=self.data.info,
                 ))
-
+            tc_process = time.time()
             # render calls not usually used in our case
             if render:
                 self.env.render()
@@ -339,7 +352,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             #     self.data.done, self.data.true_done, true_done, self.data.terminate, cutoff, self.environment.steps)
             # self.last_rec = copy.deepcopy(self.data.full_state)
             if self.record is not None: self.record.save(self.data[0].full_state['factored_state'], self.data[0].full_state["raw_state"], self.environment.toString)
-
+            tc_record = time.time()
             # we keep a buffer with all of the values
             self.data.done = np.array([self.data.done[0].astype(float)])
             full_ptr, ep_rew, ep_len, ep_idx = self.full_buffer.add(self.data)
@@ -352,7 +365,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             # print(self.data.target, not self.test, self.hindsight is not None)
             if not self.test and self.hindsight is not None: self.her_at = self.her_collect(self.her_buffer, next_data, self.data, added)
             if self.display_frame > 0: self.show_param(param if self.display_frame < 3 else action_chain[-1], self.environment.render())
-
+            tc_aggregate = time.time()
             # collect statistics
             step_count += len(ready_env_ids)
 
@@ -375,7 +388,16 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             self.data.target = self.data.next_target
             self.data.obs = self.data.obs_next
             last_true_done = true_done
-
+            tc_complete = time.time()
+            # print(f"times: action {tc_action - tc_start}, step {tc_step - tc_action} term {tc_term - tc_step} inline {tc_inline - tc_term} process {tc_process - tc_inline} record {tc_record - tc_process} aggregate {tc_aggregate - tc_complete} total {tc_complete - tc_start}")
+            perf_times["action"] = perf_times["action"] + tc_action - tc_start 
+            perf_times["step"] = perf_times["step"] + tc_step - tc_action 
+            perf_times["term"] = perf_times["term"] + tc_term - tc_step 
+            perf_times["inline"] = perf_times["inline"] + tc_inline - tc_term 
+            perf_times["process"] = perf_times["process"] + tc_process - tc_inline 
+            perf_times["record"] = perf_times["record"] + tc_record - tc_process 
+            perf_times["aggregate"] = perf_times["aggregate"] + tc_aggregate - tc_complete 
+            perf_times["total"] = perf_times["total"] + tc_complete - tc_start
             # controls breaking from the loop
             if (n_step and step_count >= n_step):
                 break
@@ -399,4 +421,5 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             "rews": rews,
             "terminate": (not np.any(true_done)) and np.any(term) and self.terminate_reset,
             "info": info,
+            "perf": perf_times
         }

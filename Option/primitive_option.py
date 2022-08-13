@@ -1,4 +1,5 @@
 import numpy as np
+import time
 from Option.option import Option
 from Option.action_map import PrimitiveActionMap
 from State.object_dict import ObjDict
@@ -62,9 +63,11 @@ class PrimitiveOption(Option): # primitive discrete actions
         return interaction_model
 
     def sample_action_chain(self, batch, state, random=False, use_model=False): # param is an int denoting the primitive action, not protected (could send a faulty param)
+        # start = time.time()
         sq_param = batch['param'].squeeze()
         if random: sq_param = self.action_map.sample()
         chain = [np.array(sq_param)]
+        # print("primitive", time.time() -start)
         return sq_param, chain, None, list(), [np.ones(sq_param.shape)] # chain is the action as an int, policy batch is None, state chain is a list, resampled is True
 
     def terminate_reward_chain(self, state, next_state, param, chain, mask=None, masks=None, true_done= None, true_reward=None, needs_reward=False, ):

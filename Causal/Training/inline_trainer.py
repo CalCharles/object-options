@@ -7,13 +7,14 @@ import torch.nn.functional as F
 import torch.optim as optim
 from collections import Counter
 from Causal.Utils.weighting import get_weights, passive_binary
-from Causal.Utils.get_error import error_types, get_error, compute_error
+from Causal.Utils.get_error import error_types, get_error, compute_error, check_proximity
 from Causal.Training.train_combined import train_combined
 from Causal.Training.train_full import initialize_optimizer
 from Causal.dummy_interaction import DummyInteraction
 from Network.network_utils import pytorch_model, run_optimizer
 from Hyperparam.read_config import read_config
 from State.object_dict import ObjDict
+from tianshou.data import Batch
 
 class InlineTrainer():
     def __init__(self, args, interaction_model, terminate_reward):
@@ -42,14 +43,25 @@ class InlineTrainer():
             self.interaction_optimizer = initialize_optimizer(self.interaction_model.interaction_model, self.interaction_args.interaction_net.optimizer, self.interaction_args.interaction_net.optimizer.alt_lr)
 
     def set_values(self, data):
-        proximity = compute_error(self.interaction_model, error_types.PROXIMITY, data, prenormalize=True)
-        proximity_inst = compute_error(self.interaction_model, error_types.PROXIMITY, data, prenormalize=True, reduced=False) # the same as above if not multiinstanced
-        done = compute_error(self.interaction_model, error_types.DONE, data) # the same as above if not multiinstanced
-        if type(self.interaction_model) == DummyInteraction:
+        tc_start = time.time()
+        proximity = check_proximity(self.interaction_model, data.target, data.parent_state)#compute_error(self.interaction_model, error_types.PROXIMITY, data, prenormalize=True)
+        proximity_inst = compute_error(self.interaction_model, error_types.PROXIMITY, data, prenormalize=True, reduced=False) if self.interaction_model.multi_instanced else copy.deepcopy(proximity) # the same as above if not multiinstanced
+        tc_proximity = time.time()
+        done = data.done#compute_error(self.interaction_model, error_types.DONE, data) # the same as above if not multiinstanced
+        tc_done = time.time()
+        if type(self.interaction_model) == DummyInteraction or not self.train: # since these values are expensive, don't use them if not training
             binaries = np.ones(proximity.shape)
         else:
-            passive_error = - compute_error(self.interaction_model, error_types.PASSIVE_LIKELIHOOD, data, prenormalize=True)
+            new_data = Batch(target = self.interaction_model.norm(data.target), target_diff = self.interaction_model.norm(data.target_diff, form="diff"), next_target = self.interaction_model.norm(data.next_target))
+            tc_create = time.time()
+            passive_error = - pytorch_model.unwrap(self.interaction_model.passive_likelihoods(new_data)[-1].sum().unsqueeze(-1).unsqueeze(-1)) # TODO: fails for multi-instanced
+            tc_error = time.time()
+            # passive_error = -compute_error(self.interaction_model, error_types.PASSIVE_LIKELIHOOD, data, prenormalize=True)
             binaries = passive_binary(passive_error, self.weighting, proximity, done)
+            tc_bin = time.time()
+            # print(f"bin calc create {tc_create - tc_done} error {tc_error - tc_create} bin {tc_bin -tc_error}")
+        tc_binaries = time.time()
+        # print(f"inline: prox: {tc_proximity - tc_start}, done: {tc_done - tc_proximity}, binaries: {tc_binaries - tc_done}, total: {tc_binaries -tc_start}")
         # print(data.full_state.factored_state.Paddle, data.full_state.factored_state.Ball,data.next_full_state.factored_state.Ball, proximity, binaries)
         return proximity, proximity_inst, binaries
 

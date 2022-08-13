@@ -28,6 +28,22 @@ error_types = ObjDict({error_names[i]: i for i in range(len(error_names))})
 
 outputs = lambda x: x > error_types.ACTIVE_LIKELIHOOD 
 
+def check_proximity(full_model, parent_state, target, normalized=False):
+    parent_pos = np.where(full_model.position_masks[full_model.names.primary_parent])[0]
+    target_pos = np.where(full_model.position_masks[full_model.names.target])[0]
+    parent = parent_state[...,parent_pos] # TODO: assumes parent state is unnormalized
+    if full_model.multi_instanced: # assumes a single parent
+        target = full_model.norm.reverse(target) if normalized else target# norms first because norm expects a certain shape
+        target = split_instances(target, full_model.obj_dim)[...,target_pos]
+        parent = broadcast(parent, target.shape[1], cat=False).transpose(1,0,2) if len(target.shape) == 3 else broadcast(parent, target.shape[0], cat=False) # broadcast parent for every child
+        diff = np.linalg.norm(parent-target, ord=1, axis=-1)
+        if reduced: return np.expand_dims(np.min(diff, axis=-1) < full_model.proximity_epsilon, -1) if full_model.proximity_epsilon > 0 else np.ones((num_batch, 1)).astype(bool)
+        else: return diff < full_model.proximity_epsilon if full_model.proximity_epsilon > 0 else np.ones((num_batch, target.shape[1])).astype(bool)
+    else: target = target[...,target_pos]
+    target = full_model.norm.reverse(target, idxes=target_pos) if normalized else target
+    return np.expand_dims(np.linalg.norm(parent-target, ord=1, axis=-1) < full_model.proximity_epsilon, -1) if full_model.proximity_epsilon > 0 else np.ones((num_batch, 1)).astype(bool) # returns binarized differences
+
+
 def compute_error(full_model, error_type, part, normalized = False, reduced=True, prenormalize=False):
     # @param part is the segment of rollout data
     # @param normalized asked for normalized outputs and comparisons
@@ -94,19 +110,7 @@ def compute_error(full_model, error_type, part, normalized = False, reduced=True
         return binaries
 
     if error_type == error_types.PROXIMITY:
-        parent_pos = np.where(full_model.position_masks[full_model.names.primary_parent])[0]
-        target_pos = np.where(full_model.position_masks[full_model.names.target])[0]
-        parent = part.parent_state[...,parent_pos] # TODO: assumes parent state is unnormalized
-        if full_model.multi_instanced: # assumes a single parent
-            target = full_model.norm.reverse(part.target) # norms first because norm expects a certain shape
-            target = split_instances(target, full_model.obj_dim)[...,target_pos]
-            parent = broadcast(parent, target.shape[1], cat=False).transpose(1,0,2) if len(target.shape) == 3 else broadcast(parent, target.shape[0], cat=False) # broadcast parent for every child
-            diff = np.linalg.norm(parent-target, ord=1, axis=-1)
-            if reduced: return np.expand_dims(np.min(diff, axis=-1) < full_model.proximity_epsilon, -1) if full_model.proximity_epsilon > 0 else np.ones((num_batch, 1)).astype(bool)
-            else: return diff < full_model.proximity_epsilon if full_model.proximity_epsilon > 0 else np.ones((num_batch, target.shape[1])).astype(bool)
-        else: target = part.target[...,target_pos]
-        target = full_model.norm.reverse(target, idxes=target_pos)
-        return np.expand_dims(np.linalg.norm(parent-target, ord=1, axis=-1) < full_model.proximity_epsilon, -1) if full_model.proximity_epsilon > 0 else np.ones((num_batch, 1)).astype(bool) # returns binarized differences
+        return check_proximity(full_model, part.parent_state, part.target)
     
     if error_type == error_types.TRACE: return part.trace
     if error_type == error_types.DONE: return part.done

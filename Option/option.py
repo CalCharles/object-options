@@ -97,13 +97,25 @@ class Option():
         if self.next_option is not None and hasattr(self.next_option.terminate_reward, "compute_done"): self.next_option.terminate_reward.compute_done.time_cutoff = self.temporal_extension_manager.ext_cutoff
 
     def _set_next_option(self, batch, mapped_act):
-        next_batch = copy.deepcopy(batch)
-        next_batch["mask"] = [self.next_option.sampler.mask.active_mask]
-        next_batch["param"] = self.state_extractor.expand_param(mapped_act, self.next_option.sampler.mask.active_mask)
-        next_batch['obs'] = self.next_option.state_extractor.get_obs(batch["last_full_state"], batch["full_state"], next_batch["param"], next_batch["mask"])
+        start = time.time()
+        mask, param, obs = batch.mask, batch.param, batch.obs
+        batch["mask"] = [self.next_option.sampler.mask.active_mask]
+        batch["param"] = self.state_extractor.expand_param(mapped_act, self.next_option.sampler.mask.active_mask)
+        batch['obs'] = self.next_option.state_extractor.get_obs(batch["last_full_state"], batch["full_state"], batch["param"], batch["mask"])
         # if self.name == "Block":
-        #     print("deciding action",self.name, next_batch["param"], batch["full_state"]["factored_state"]["Gripper"], self.next_option.state_extractor.reverse_obs_norm(next_batch['obs'], mask=next_batch['mask']))
-        return next_batch
+        #     print("deciding action",self.name, batch["param"], batch["full_state"]["factored_state"]["Gripper"], self.next_option.state_extractor.reverse_obs_norm(batch['obs'], mask=batch['mask']))
+        # print("setting", time.time() - start)
+        return batch, mask, param, obs
+
+    def _reset_current_option(self, batch, mask, param, obs):
+        start = time.time()
+        batch.update(mask=mask, param=param,obs=obs)
+        # batch["mask"] = mask
+        # batch["param"] = param
+        # batch['obs'] = obs
+        # print("setting", time.time() - start)
+        return batch
+
 
     def extended_action_sample(self, batch, state_chain, term_chain, ext_terms, random=False, use_model=False, force=None, action=None):
         '''
@@ -113,9 +125,10 @@ class Option():
         needs_sample, act, chain, policy_batch, state, masks = self.temporal_extension_manager.check(term_chain[-1], ext_terms[-1])
         if needs_sample: result_tuple = self.sample_action_chain(batch, state_chain, random=random, action=action)
         else: # if we don't need a new sample
-            next_batch = self._set_next_option(batch, chain[-1])
-            new_act, rem_chain, pol_batch, rem_state, rem_masks, last_resmp = self.next_option.extended_action_sample(next_batch, state_chain, term_chain[:-1], ext_terms[:-1], random=False, use_model=use_model)
+            batch, mask, param, obs = self._set_next_option(batch, chain[-1])
+            new_act, rem_chain, pol_batch, rem_state, rem_masks, last_resmp = self.next_option.extended_action_sample(batch, state_chain, term_chain[:-1], ext_terms[:-1], random=False, use_model=use_model)
             result_tuple = (act, rem_chain + [chain[-1]], policy_batch, rem_state + [state[-1]] if state is not None else None, rem_masks + [masks[0]])
+            batch = self._reset_current_option(batch, mask, param, obs)
         return (*result_tuple, needs_sample)
 
     def sample_action_chain(self, batch, state_chain, random=False, action=None): # TODO: change this to match the TS parameter format, in particular, make sure that forward returns the desired components in RLOutput
@@ -127,6 +140,7 @@ class Option():
         @param action is a mapped action which forces the param to be that action.
         '''
         # if self.name == "Ball": print(self.name, batch.obs)
+        start = time.time()
         if action is not None:
             act = self.action_map.reverse_map_action(action, batch[0])
             mapped_act = self.action_map.map_action(act, batch[0])
@@ -138,14 +152,21 @@ class Option():
         else:
             policy_batch = self.policy.forward(batch, state_chain[-1] if state_chain is not None else None)
             state = policy_batch.state
+            # print("forward", time.time() - start)
             act, mapped_act = pytorch_model.unwrap(policy_batch.act[0]), self.action_map.map_action(policy_batch.act[0], batch[0])
         # if self.name == "Block": print("actions", act, mapped_act)
         chain = [mapped_act.squeeze()]
         # recursively propagate action up the chain
+        # print("compute", self.name, time.time() - start)
+        compute = time.time()
         if self.next_option is not None:
-            next_batch = self._set_next_option(batch, mapped_act)
+            next_batch, cur_mask, cur_param, cur_obs = self._set_next_option(batch, mapped_act)
             next_policy_act, rem_chain, result, rem_state_chain, last_masks = self.next_option.sample_action_chain(next_batch, state_chain[-1] if state_chain is not None else None) # , random=random # TODO: only sample top level randomly, if we resampled make sure not to temporally extend the next layer
             chain, state, masks = rem_chain + chain, rem_state_chain + [state], last_masks + [batch.mask[0]] # TODO: mask is not set from the policy
+            batch = self._reset_current_option(batch, cur_mask, cur_param, cur_obs)
+
+        # print("next", self.name, time.time() - compute)
+        # print("total", self.name, time.time() - start)
         return act, chain, policy_batch, state, masks
 
     def reset(self, full_state):

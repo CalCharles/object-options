@@ -42,16 +42,19 @@ def trainRL(args, train_collector, test_collector, option, graph,  loggers):
             train_logger.log_losses(losses)
             train_logger.print_losses(i)
             
-
     for i in range(args.train.num_iters):  # total step
+        tc_iter_start = time.time()
         collect_result = train_collector.collect(n_step=args.train.num_steps, demonstrate = args.collect.demonstrate_option) # TODO: make n-episode a usable parameter for collect
-        train_logger.log_results(collect_result)
+        tc_collect = time.time()
 
+        train_logger.log_results(collect_result)
+        tc_logging = time.time()
         if i % args.policy.logging.log_interval == 0:
             collect_test_trials(test_logger, option, test_collector, args.policy.logging.max_terminate_step, i, args.policy.logging.initial_trials, False)
         # train option.policy with a sampled batch data from buffer
-
+        tc_test = time.time()
         losses = option.policy.update(args.train.batch_size, train_collector.buffer, train_collector.her_buffer)
+        tc_train = time.time()
         train_logger.log_losses(losses)
         if option.inline_trainer.train: option.inline_trainer.run_train(i, train_collector.full_buffer)
 
@@ -60,11 +63,16 @@ def trainRL(args, train_collector, test_collector, option, graph,  loggers):
         test_logger.print_log(i)
         if i % (args.policy.logging.log_interval * 2) == 0:
             buffer_printouts(args, train_collector, option)
+
+        tc_print = time.time()
+
         if args.record.save_interval > 0 and (i+1) % args.record.save_interval == 0:
             if len(args.record.save_dir) > 0: option.save(args.record.save_dir)
             if len(args.record.checkpoint_dir) > 0:
                 graph.save(args.record.checkpoint_dir)
                 train_collector.save(args.record.checkpoint_dir, "RL_buffers.bf")
+
+        tc_save = time.time()
         if args.policy.primacy.reset_frequency > 0 and i % args.policy.primacy.reset_frequency == 0 and i != 0 and i < args.policy.primacy.stop_resets:
             option.policy.reset_select_params()
             if args.policy.primacy.primacy_iters > 0:
@@ -72,6 +80,12 @@ def trainRL(args, train_collector, test_collector, option, graph,  loggers):
                     losses = option.policy.update(args.train.batch_size, train_collector.buffer, train_collector.her_buffer)
                     train_logger.log_losses(losses)
                     train_logger.print_losses(i)
+        tc_primacy = time.time()
+
+        perf_times = collect_result["perf"]
+        print(f"times: collect {tc_collect - tc_iter_start}, logging {tc_logging - tc_collect}, test {tc_test - tc_logging}, train \
+            {tc_train - tc_test}, print {tc_print - tc_train}, save {tc_save - tc_print}, total {tc_primacy - tc_iter_start}")
+        print(f"action {perf_times['action']} step {perf_times['step']} term {perf_times['term']} inline {perf_times['inline']} process {perf_times['process']} record {perf_times['record']} aggregate {perf_times['aggregate']} total {perf_times['total']}")
 
     if args.record.save_interval > 0: 
         option.save(args.record.save_dir)

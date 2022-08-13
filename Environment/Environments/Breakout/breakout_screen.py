@@ -90,6 +90,9 @@ class Breakout(Environment):
         self.since_last_bounce = 0
         self.choices = list()
         self.reset()
+        self.safe_distance = self.ball.height + max(self.paddle.height, self.block_height) + 4
+        self.low_block = self.block_height * self.num_rows + 22 + self.safe_distance
+        self.paddle_height = self.paddle.pos[0]
         self.num_remove = self.get_num(True)
 
     def assign_assessment_stat(self):
@@ -194,6 +197,9 @@ class Breakout(Environment):
                 self.blocks.append(neg_block)
         else:
             self.blocks = [Block(np.array([17,15 + np.random.randint(4) * 15]), 1, -1, (0,0), size = 6)]
+            self.block_height = self.blocks[0].height
+            self.block_width = self.blocks[0].width
+            self.num_rows = 1
 
     def reset_default(self): 
         '''
@@ -318,12 +324,21 @@ class Breakout(Environment):
         for i in range(self.frameskip):
             # perform the object dynamics, updating block reward accordingly
             self.actions.take_action(action)
-            for obj1 in self.animate:
-                for obj2 in self.objects:
-                    if obj1.name == obj2.name:
-                        continue
-                    else:
-                        hit += self.interaction_effects(obj1, obj2)
+            self.paddle.interact(self.actions)
+            for wall in self.walls:
+                self.ball.interact(wall)
+            self.ball.interact(self.paddle)
+            if self.ball.pos[0] < self.low_block:
+                for block in self.blocks:
+                    hit += self.interaction_effects(self.ball, block)
+                    # print(block.pos)
+            # # old logic
+            # for obj1 in self.animate:
+            #     for obj2 in self.objects:
+            #         if obj1.name == obj2.name:
+            #             continue
+            #         else:
+            #             hit += self.interaction_effects(obj1, obj2)
             for ani_obj in self.animate:
                 ani_obj.move()
 

@@ -78,7 +78,7 @@
       reset_layers: 3
     logging:
       log_interval: 10
-      train_log_maxlen: 5
+      train_log_maxlen: 100
       test_log_maxlen: 50
       initial_trials: 1 #
       test_trials: 1 #

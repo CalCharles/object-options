@@ -123,7 +123,7 @@ class Policy(nn.Module):
         '''
         Matches the call for the forward of another algorithm method. Calls 
         '''
-        batch = copy.deepcopy(batch) # make sure input norm does not alter the input batch
+        # batch = copy.deepcopy(batch) # make sure input norm does not alter the input batch
         vals = self.algo_policy(batch, state = state, input=input, **kwargs)
         return vals
 
