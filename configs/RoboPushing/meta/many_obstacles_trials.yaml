@@ -1,0 +1,17 @@
+---
+metaparam: 
+  multi_filename: final_eval2_
+  log_endpoint: ../datasets/object_data/robopushing/evaluation/evaluation_logs/many_obstacles/
+  yaml_endpoint: ../datasets/object_data/robopushing/evaluation/evaluation_yamls/many_obstacles/
+  save_endpoint: ../datasets/object_data/robopushing/evaluation/evaluation/many_obstacles/
+  graph_endpoint: ../datasets/object_data/robopushing/evaluation/evaluation_graphs/many_obstacles/
+  bash_path: bashes/final_eval.sh
+  base_config: configs/RoboPushing/robopush_policy.yaml
+  runfile: train_option.py
+  gpu: 1
+  cycle_gpu: 4
+  match: False
+  num_trials: 12
+train:
+  num_iters: 3300
+...
