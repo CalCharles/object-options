@@ -30,20 +30,20 @@
   critic_net:
   actor_net:
   network:
-    hidden_sizes: 512 512 512
+    hidden_sizes: 512 512 512 512
     net_type: basic
     activation_final: tanh
     scale_logits: 1
     optimizer:
-      lr: .0001
+      lr: .0005
       alt_lr: .0001
       eps: .00001
       alpha: 0.99
       betas: 0.9 0.999
-      weight_decay: 0.00001
+      weight_decay: 0.0001
   sample:
     sample_type: cent
-    sample_distance: 0.15
+    sample_distance: 0.2
     # sample_schedule: 200
     # param_recycle: 0.1
   extract:
@@ -75,9 +75,9 @@
   policy:
     learning_type: ddpg
     epsilon_random: 0.01
-    lookahead: 5
+    lookahead: 10
     primacy:
-      reset_layers: 3
+      reset_layers: 4
       reset_frequency: 1000
       primacy_iters: 50
       stop_resets: 5000
@@ -90,7 +90,7 @@
       max_terminate_step: 1 30
     learn:
       post_random_iters: 250
-      grad_epoch: 100
+      grad_epoch: 50
       sample_form: merged
   action:
     use_relative_action: True

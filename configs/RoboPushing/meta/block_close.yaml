@@ -1,0 +1,23 @@
+---
+metaparam: 
+  multi_filename: block_option_
+  log_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_logs/block/net/
+  yaml_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_yamls/block/net/
+  save_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam/block/net/
+  graph_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_graphs/block/net/
+  bash_path: bashes/block_net.sh
+  base_config: configs/RoboPushing/gripper_block_option.yaml
+  runfile: train_option.py
+  gpu: 0
+  cycle_gpu: 4
+  match: False
+  num_trials: 3
+train:
+  num_iters: 3000
+network:
+  hidden_sizes: 512 512 512 512,2048 2048 2048
+policy:
+  learning_type: ddpg,sac
+option:
+  epsilon_close: .007,0.01,0.015
+...
