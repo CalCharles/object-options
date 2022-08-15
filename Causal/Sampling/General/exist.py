@@ -40,4 +40,5 @@ class ExistSampler(Sampler): # samples only from existing objects (last element,
                 samples = target[np.random.choice(sidxes)]
             masks = np.zeros(samples.shape)
             masks[-1] = 1
+            self.param = samples
         return samples, masks

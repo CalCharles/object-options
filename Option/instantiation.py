@@ -47,6 +47,7 @@ def instantiate_interaction(args, graph, environment, object_names):
 
     # gets the interaction model for the current control object
     if len(args.train.dummy) != 0: # train in dummy mode
+        print(args.train.dummy)
         interaction_model = dummy_interactions[args.train.dummy](args, object_names, environment, environment.object_sizes[object_names.target])
     else:
         interaction_model = graph.nodes[object_names.target].interaction

@@ -76,8 +76,8 @@ breakout_variants = {"default": (0,5, 20,4, -1, "", -1, 0,0, 0,-10, False),
                     "center_medium": (3,3,15,4,-1,"", -1,-1,0, 5,-75, False),
                     "center_large": (3,4,15,4,-1,"", -1,-1, 0,20,-100, False),
                     "center_full": (3,5,20,4,-1,"", -1,-2, 0,20,-120, False),
-                    "harden_single": (4,3,10,4,-1,"", -1,-1,10,0,-10, True),
-                    "proximity": (0,4,15,60,"", -1, 0,0, 0,-10, True)}
+                    "harden_single": (4,5,12,4,-1,"", -1,-1,10,0,-10, True),
+                    "proximity": (0,4,15,60,0,"", -1, 0,0, 0,-10, True)}
 def adjacent(i,j):
     return [(i-1,j-1), (i, j-1), (i, j+1), (i-1, j), (i-1,j+1),
             (i, j-2), (i-1, j-2), (i-2, j-2), (i-2, j-1), (i-2, j), (i-2, j+1), (i-2, j+2), (i-1, j+2), (i-2, j+2)]

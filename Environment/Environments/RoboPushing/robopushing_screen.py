@@ -81,8 +81,8 @@ class RoboPushing(Environment):
         self.extracted_state = None
 
         # factorized state properties
-        self.object_names = ["Action", "Gripper", "Block", 'Obstacle', 'Done', "Reward"] # must be initialized, a list of names that controls the ordering of things
-        self.object_sizes = {"Action": limit, "Gripper": 3, "Block": 3, "Obstacle": 3, "Done": 1, "Reward": 1} # must be initialized, a dictionary of name to length of the state
+        self.object_names = ["Action", "Gripper", "Block", 'Obstacle',"Target", 'Done', "Reward"] # must be initialized, a list of names that controls the ordering of things
+        self.object_sizes = {"Action": limit, "Gripper": 3, "Block": 3, "Obstacle": 3,"Target": 3, "Done": 1, "Reward": 1} # must be initialized, a dictionary of name to length of the state
         self.object_range = ranges # the minimum and maximum values for a given feature of an object
         self.object_dynamics = dynamics
 
@@ -101,6 +101,7 @@ class RoboPushing(Environment):
     def set_named_state(self, obs_dict):
         obs_dict['Action'], obs_dict['Gripper'], obs_dict['Block'], obs_dict['Target'] = self.action, obs_dict['robot0_eef_pos'], obs_dict['cube_pos'], obs_dict['goal_pos']# assign the appropriate values
         for i in range(self.num_obstacles):
+            # print("settin", obs_dict[f"obstacle{i}_pos"])
             obs_dict['Obstacle' + str(i)] = obs_dict[f"obstacle{i}_pos"]
         obs_dict['Reward'], obs_dict['Done'] = [self.reward], [self.done]
 
@@ -126,12 +127,14 @@ class RoboPushing(Environment):
         if self.done:
             info["TimeLimit.truncated"] = True
         if self.reward == self.goal_reward: # don't wait at the goal, just terminate
+            print("hit goal", next_obs["cube_pos"], next_obs["goal_pos"])
             self.done = True
             info["TimeLimit.truncated"] = False
         # set state
         self.set_named_state(next_obs) # mutates next_obs
         img = next_obs["frontview_image"][::-1] if self.renderable else None
         obs = self.construct_full_state(next_obs, img)
+        # print(np.array([obs['factored_state']["Obstacle" + str(i)] for i in range(15)]))
         self.frame = self.full_state['raw_state']
 
         # step timers 
@@ -141,6 +144,7 @@ class RoboPushing(Environment):
         if self.done:
             self.reset()
             self.timer = 0
+        # print("step",self.env, np.array([obs['factored_state']["Obstacle" + str(i)] for i in range(15)]))
         return obs, self.reward, self.done, info
 
     def get_state(self, render=False):

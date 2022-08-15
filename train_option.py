@@ -5,7 +5,7 @@ from arguments import get_args
 from Environment.Environments.initialize_environment import initialize_environment
 from Record.file_management import read_obj_dumps, load_from_pickle, save_to_pickle
 from train_interaction import generate_buffers
-from Graph.graph import Graph, load_graph
+from Graph.graph import Graph, load_graph, Node
 from State.object_dict import ObjDict
 from train_interaction import init_names
 from Option.option import Option
@@ -71,7 +71,10 @@ if __name__ == '__main__':
     args.critic_net.pair.post_dim = -1 if args.critic_net.pair.post_dim == -1 else models.state_extractor.post_dim
     policy = Policy(models.action_map.discrete_actions, models.state_extractor.total_size, models.action_map.policy_action_space, args)
 
-    option = Option(args, policy, models, parent_option) if len(args.record.load_checkpoint) == 0 else graph.nodes[object_names.target].option
+    target_name = object_names.target
+    if len(args.train.override_name) > 0:
+        target_name = args.train.override_name
+    option = Option(args, policy, models, parent_option) if len(args.record.load_checkpoint) == 0 else graph.nodes[target_name].option
     if args.torch.cuda: option.cuda(device=args.torch.gpu)
     train_buffer, test_buffer = instantiate_buffers(args, models)
 
@@ -80,7 +83,10 @@ if __name__ == '__main__':
     train_collector = OptionCollector(policy, environment, train_buffer, args.policy.epsilon_random > 0, option, hindsight, False, interaction_model.multi_instanced, record, args)
     test_collector = OptionCollector(policy, test_environment, test_buffer, False, option, None, True, interaction_model.multi_instanced, None, args)
 
-    graph.nodes[object_names.target].option = option
+    if target_name not in graph.nodes: 
+        graph.nodes[target_name] = Node(target_name)
+        graph.nodes[target_name].interaction = interaction_model
+    graph.nodes[target_name].option = option
     if args.record.presave_graph: graph.save(args.record.save_dir)
     train_logger = RLLogger(object_names.target + "_train", args.record.record_graphs, args.policy.logging.log_interval, args.policy.logging.train_log_maxlen, args.record.log_filename)
     test_logger = RLLogger(object_names.target + "_test", args.record.record_graphs, args.policy.logging.log_interval, args.policy.logging.test_log_maxlen)

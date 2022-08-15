@@ -72,6 +72,7 @@ class TemporalAggregator():
             if not self.temporal_skip:
                 added = True
                 # print(next_data.time, next_data.target, next_data.next_target, next_data.obs, next_data.obs_next)
+                # print(next_data.time, next_data.param, next_data.next_target, next_data.mapped_act, next_data.rew, next_data.terminate, next_data.done, next_data.true_done)
                 self.ptr, ep_rew, ep_len, ep_idx = buffer.add(
                         next_data, buffer_ids=ready_env_ids)
             self.time_counter = 0

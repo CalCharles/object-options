@@ -1,8 +1,10 @@
 import sys, time
 import argparse
 from Environment.Environments.initialize_environment import initialize_environment
-from Record.file_management import display_frame
+from Record.file_management import display_frame, display_param
+from Causal.Sampling.sampling import samplers
 import numpy as np
+from State.feature_selector import construct_object_selector
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate random data from an environment')
@@ -33,11 +35,15 @@ if __name__ == "__main__":
     args.render = args.demonstrate or args.render
     # first argument is num frames, second argument is save path
     environment, record = initialize_environment(args, args)
+    if args.variant == "proximity":
+        environment.sampler = samplers["exist"](obj_dim=5, target_select=construct_object_selector(["Block"], environment),parent_select=None,additional_select=None,test_sampler=False,mask=None)
+        environment.reset()
     start = time.time()
     for i in range(args.num_frames):
         action = environment.action_space.sample() if not args.demonstrate else environment.demonstrate()
         full_state, reward, done, info = environment.step(action, render=args.render)
-        if args.render and args.display_frame: display_frame(full_state['raw_state'], waitkey=100)
+        if args.render and args.variant == "proximity" and args.display_frame: display_param(full_state['raw_state'], param=environment.sampler.param[:2], waitkey=100, rescale = 10, dot=False)
+        elif args.render and args.display_frame: display_frame(full_state['raw_state'], rescale=10, waitkey=30)
         if record is not None: record.save(full_state['factored_state'], full_state["raw_state"], environment.toString)
         if i % 1000 == 0: print(i, "fps", i / (time.time() - start))
     print("fps", args.num_frames / (time.time() - start))

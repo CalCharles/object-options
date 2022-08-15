@@ -180,7 +180,7 @@ def get_raw_data(pth, i=0, rng=-1):
     return frames
 
 def display_frame(frame, waitkey=10, rescale=-1):
-    if rescale > 0: frame = cv2.resize(frame, (frame.shape[0] * 30, frame.shape[1] * 30), interpolation = cv2.INTER_NEAREST)
+    if rescale > 0: frame = cv2.resize(frame, (frame.shape[0] * rescale, frame.shape[1] * rescale), interpolation = cv2.INTER_NEAREST)
     cv2.imshow('image',frame)
     cv2.waitKey(waitkey) # waits until a key is pressed
 
@@ -202,10 +202,12 @@ def display_param(frame, param, waitkey=10, rescale=-1, dot=True):
             cv2.line(frame, loc.astype(int), (loc + 2 * angle).astype(int), color,2)
         else:
             if dot:
-                frame[np.round(loc).astype(int)[0], np.round(loc).astype(int)[1]] += color
+                frame[np.round(loc).astype(int)[0], np.round(loc).astype(int)[1]] += np.array(color).astype(np.int8)
             else:
-                cv2.circle(frame, loc.astype(int), 3, color, 3)
+                loc[0], loc[1] = loc[1], loc[0]
+                cv2.circle(frame, loc.astype(int), 3, color, 1)
 
     if rescale > 0: frame = cv2.resize(frame, (frame.shape[0] * rescale, frame.shape[1] * rescale), interpolation = cv2.INTER_NEAREST)
-    cv2.imshow('image',frame)
+    cv2.imshow('param_image',frame)
     cv2.waitKey(int(waitkey)) # waits until a key is pressed
+    return frame

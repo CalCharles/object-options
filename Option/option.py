@@ -20,7 +20,7 @@ def load_option(load_dir, name, interaction_model=None, device=-1):
 class Option():
     def __init__(self, args, policy, models, next_option):
         # parameters for saving
-        self.name = args.object_names.target
+        self.name = args.object_names.target if len(args.train.override_name) <= 0 else args.train.override_name
         self.train_epsilon = args.policy.epsilon_random
 
         # primary models
@@ -162,9 +162,8 @@ class Option():
         if self.next_option is not None:
             next_batch, cur_mask, cur_param, cur_obs = self._set_next_option(batch, mapped_act)
             next_policy_act, rem_chain, result, rem_state_chain, last_masks = self.next_option.sample_action_chain(next_batch, state_chain[-1] if state_chain is not None else None) # , random=random # TODO: only sample top level randomly, if we resampled make sure not to temporally extend the next layer
-            chain, state, masks = rem_chain + chain, rem_state_chain + [state], last_masks + [batch.mask[0]] # TODO: mask is not set from the policy
+            chain, state, masks = rem_chain + chain, rem_state_chain + [state], last_masks + [cur_mask] # TODO: mask is not set from the policy
             batch = self._reset_current_option(batch, cur_mask, cur_param, cur_obs)
-
         # print("next", self.name, time.time() - compute)
         # print("total", self.name, time.time() - start)
         return act, chain, policy_batch, state, masks
@@ -190,7 +189,7 @@ class Option():
         # recursively get all of the dones and rewards
         if self.next_option is not None: # lower levels should have masks the same as the active mask( fully trained)
             next_param, next_mask = chain[-1], mask_chain[-2]
-            next_param = self.state_extractor.expand_param(next_param, self.next_option.sampler.mask.active_mask)
+            next_param = self.state_extractor.expand_param(next_param, self.next_option.sampler.mask.active_mask) # TODO: shouldn't this be next_mask?
             last_done, last_rewards, last_termination, _, _ = self.next_option.terminate_reward_chain(full_state, next_full_state, next_param, chain[:len(chain)-1], next_mask, mask_chain[:len(mask_chain)-1], true_done=true_done, true_reward=true_reward)
             # print(self.name, last_done, last_rewards, last_termination)
         # slightly confusing: inter_state is normalized, but next_target is not, because of how goal state is handled

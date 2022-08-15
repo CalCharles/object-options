@@ -63,6 +63,7 @@ expected_args = {
         "train": False,
         "num_frames": 0,
         "train_edge": list(),
+        "override_name": "",
         "load_rollouts": "",
         "train_test_ratio": 0.9,
         "train_test_order": "random",
@@ -112,7 +113,7 @@ expected_args = {
     },
     "extract": {
         "single_obs_setting": [0, 0, 0, 0, 0, 0],
-        "relative_obs_setting": [0, 0, 0, 0],
+        "relative_obs_setting": [0, 0, 0, 0, 0],
         "combine_param_mask": True
     },
     "option": { # mostly terminate and reward parameters
@@ -147,6 +148,7 @@ expected_args = {
         "max_steps": 1000,
         "terminate_reset": False,
         "display_frame": 0,
+        "save_display": "",
         "stream_print_file": "",
         "demonstrate_option": False,
         "aggregator": {

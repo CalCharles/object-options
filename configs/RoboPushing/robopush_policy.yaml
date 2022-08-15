@@ -1,28 +1,30 @@
 ---
   record:
-    # record_rollouts: /nfs/data/calebc/object_data/breakout/testrun/ball/
-    # record_rollouts: /hdd/datasets/object_data/breakout/testrun/ball
+    # record_rollouts: /nfs/data/calebc/object_data/robopushing/testrun/ball/
+    # record_rollouts: /hdd/datasets/object_data/robopushing/testrun/ball
     record_recycle: -1
-    log_filename: logs/temp/big_block_train.log
-    load_dir: /nfs/data/calebc/object_data/breakout/testrun_inline/
-    save_dir: /nfs/data/calebc/object_data/breakout/big_block/
-    # checkpoint_dir: /nfs/data/calebc/object_data/breakout/testrun/paddle_ball_checkpoint
+    log_filename: logs/temp/many_obs_train.log
+    load_dir: /nfs/data/calebc/object_data/robopushing/testrun_block2/
+    save_dir: /nfs/data/calebc/object_data/robopushing/many_obs_test/
+    # checkpoint_dir: /nfs/data/calebc/object_data/robopushing/testrun/paddle_ball_checkpoint
+    presave_graph: True
     save_interval: 100 #
   environment:
     env: RoboPushing
     variant: obstacles_many
-    render: True
+    render: False
   torch:
     gpu: 0
     no_cuda: False
   train:
-    dummy: True
+    dummy: target
+    override_name: Target
     train: True
     pretrain_frames: 10000 # 
     num_steps: 300 #
     num_frames: 1000
-    train_edge: Block Obstacle Target
-    load_rollouts: /hdd/datasets/object_data/breakout/ball
+    train_edge: Block Obstacle Block
+    load_rollouts: ../datasets/object_data/robopushing/random
     num_iters: 3000
     batch_size: 128 # 
   critic_net:
@@ -33,18 +35,18 @@
     activation_final: tanh
     scale_logits: 1
     optimizer:
-      lr: .00003
+      lr: .00002
       alt_lr: .0001
       eps: .00001
       alpha: 0.99
       betas: 0.9 0.999
       weight_decay: 0.00
   sample:
-    sample_type: exist
-    param_recycle: 0.1
+    sample_type: robotarget
+    # param_recycle: 0.1
   extract:
-    single_obs_setting: 1 1 1 0 0 0
-    relative_obs_setting: 0 0 1 0
+    single_obs_setting: 1 0 1 1 0 0
+    relative_obs_setting: 0 0 1 0 1
   option:
     term_form: param
     term_as_done: True
@@ -53,21 +55,20 @@
     constant_lambda: 0
     true_lambda: 1
     param_lambda: 1
-    inter_lambda: 1
-    temporal_extend: 10
+    negative_true: True
+    temporal_extend: 6
     time_cutoff: -1
   collect:
     buffer_len : 10000
     test_episode: True
     max_steps: 1000
     prioritized_replay: 0.2 0.4
-    aggregator:
-      sum_rewards: False
-  stream_print_file: logs/robo/final_stream.txt
+    stream_print_file: logs/robo/final_stream.txt
+    # display_param: 
   hindsight:
     use_her: True
-    select_positive: 0.2
-    max_hindsight: 20
+    select_positive: 0.1
+    max_hindsight: -1
     interaction_resample: False
     interaction_criteria: 1
     min_replay_len: 1
@@ -86,6 +87,7 @@
       max_terminate_step: 1 300
     learn:
       grad_epoch: 300
+      post_random_iters: 100
       sample_form: merged
   action:
     use_relative_action: True

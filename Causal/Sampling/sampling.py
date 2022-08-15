@@ -6,6 +6,9 @@ from Causal.Sampling.General.exist import ExistSampler
 from Causal.Sampling.General.angle import AngleSampler
 from Causal.Sampling.General.dummy import DummySampler
 from Causal.Sampling.General.target import TargetSampler
+from Causal.Sampling.General.robotarget import RoboTargetSampler
 from Causal.Sampling.General.round import RoundSampler
 from Causal.Sampling.General.empty import EmptySampler
-samplers = {"uni": UniformSampler, "hist": HistorySampler, 'cent': CenteredSampler, "exist": ExistSampler, "angle": AngleSampler, "empty": EmptySampler, "target": TargetSampler, "dummy": DummySampler}  
+
+samplers = {"uni": UniformSampler, "hist": HistorySampler, 'cent': CenteredSampler, "exist": ExistSampler, "angle": AngleSampler,
+			"empty": EmptySampler, "robotarget": RoboTargetSampler, "target": TargetSampler, "dummy": DummySampler}  

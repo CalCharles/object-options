@@ -29,6 +29,13 @@ class ActionDummyInteraction():
     def cpu(self):
         return self
 
+class DummyTest():
+    def __init__(self):
+        self.interaction_prediction, self.forward_threshold, self.passive_threshold, self.difference_threshold = .9,0,0,0
+
+    def __call__(self, interactions):
+        return interactions > self.interaction_prediction
+
 class DummyMask():
     def __init__(self, obj_dim, object_names):
         self.filtered_active_set = list()
@@ -55,6 +62,7 @@ class DummyInteraction(): # general dummy interaction
         self.predict_dynamics = False
         self.position_masks = environment.position_masks
         self.proximity_epsilon = args.inter.proximity_epsilon
+        self.test = DummyTest()
 
     def regenerate(self, environment):
         self.extractor = CausalExtractor(self.names, environment)
@@ -86,3 +94,13 @@ class DummyInteraction(): # general dummy interaction
         batch.next_target = self.norm(batch.next_target)
         batch.target_diff = self.norm(batch.target_diff, form="dyn")
         return batch
+
+    def hypothesize(self, state):
+        # takes in a full state (dict with raw_state, factored_state) or tuple of ndarray of input_state, target_state 
+        # computes the interaction value, the mean, var of forward model, the mean, var of the passive model
+        if type(state) == tuple:
+            inter_state, target_state = state
+        else:
+            inter_state, target_state = state.inter_state, state.target
+        return np.ones(inter_state.shape[...,0]), np.ones(target_state.shape), np.ones(target_state.shape)
+
