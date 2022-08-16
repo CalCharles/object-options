@@ -88,7 +88,7 @@ def _init_critic(args, NetType, discrete_actions, action_shape, input_shape, fin
     # discrete actions have action_shape outputs, while continuous have the actions as input
     # initializes critic network and optimizer
     cinp_shape = int(input_shape) if discrete_actions else int(input_shape + action_shape)
-    last_shape = args.pair.final_layers[-1] if args.net_type == "pair" else arg.hidden_sizes[-1]
+    last_shape = args.pair.final_layers[-1] if args.net_type == "pair" else args.hidden_sizes[-1]
     cout_shape = int(action_shape) if discrete_actions else last_shape
     critic = NetType(num_inputs=cinp_shape, num_outputs=cout_shape, action_dim=int(discrete_actions * action_shape), aggregate_final=True, continuous_critic=not discrete_actions, **args)
     if final_layer:

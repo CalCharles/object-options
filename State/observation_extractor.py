@@ -48,8 +48,8 @@ class ObservationExtractor():
         self.size_index = {"param": self.target_size, "inter": self.inter_size, "parent": self.parent_size * self.max_parent_objects, 
                     "additional": [self.additional_sizes[i] * self.max_additional_objects[i] for i in range(len(self.additional_sizes))],
                     "target": self.target_size * self.max_target_objects, "inter": self.inter_size, "diff": self.target_size * self.max_target_objects,
-                    "parent_relative": self.target_size * self.max_partar, "additional_relative": [self.target_size * mao for mao in self.max_additional_objects],
-                    "parent_additional": self.parent_size * self.max_paraddi, "parent_param": self.target_size * self.max_parent_objects, "param_relative": self.target_size * self.max_target_objects}
+                    "parent_relative": self.target_size * self.max_partar, "additional_relative": [self.target_size * max(self.max_target_objects, mao) for mao in self.max_additional_objects],
+                    "parent_additional": [self.parent_size * max(self.max_parent_objects, mao) for mao in self.max_additional_objects], "parent_param": self.target_size * self.max_parent_objects, "param_relative": self.target_size * self.max_target_objects}
         self.single_size_index = {"param": self.target_size, "inter": self.inter_size, "parent": self.parent_size, 
                     "additional": [self.additional_sizes[i] for i in range(len(self.additional_sizes))],
                     "target": self.target_size, "inter": self.inter_size, "diff": self.target_size,

@@ -1,11 +1,11 @@
 ---
 metaparam: 
   multi_filename: block_option_
-  log_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_logs/block/net/
-  yaml_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_yamls/block/net/
-  save_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam/block/net/
-  graph_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_graphs/block/net/
-  bash_path: bashes/block_net.sh
+  log_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_logs/block/close/
+  yaml_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_yamls/block/close/
+  save_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam/block/close/
+  graph_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_graphs/block/close/
+  bash_path: bashes/block_close.sh
   base_config: configs/RoboPushing/gripper_block_option.yaml
   runfile: train_option.py
   gpu: 0
