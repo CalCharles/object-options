@@ -43,7 +43,7 @@
       weight_decay: 0.0001
   sample:
     sample_type: cent
-    sample_distance: 0.2
+    sample_distance: 0.25
     # sample_schedule: 200
     # param_recycle: 0.1
   extract:

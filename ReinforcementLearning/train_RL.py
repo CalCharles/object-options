@@ -74,6 +74,7 @@ def trainRL(args, train_collector, test_collector, option, graph,  loggers):
 
         tc_save = time.time()
         if args.policy.primacy.reset_frequency > 0 and i % args.policy.primacy.reset_frequency == 0 and i != 0 and i < args.policy.primacy.stop_resets + 1:
+            print("performing reset")
             option.policy.reset_select_params()
             if args.policy.primacy.primacy_iters > 0:
                 for i in range(args.policy.primacy.primacy_iters):
