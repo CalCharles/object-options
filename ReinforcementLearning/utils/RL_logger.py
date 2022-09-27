@@ -75,6 +75,7 @@ class RLLogger(Logger):
             print(log_string)
 
     def print_log(self, i, force=False): # force forces the printout of log values
+        log_string = ""
         if i % self.log_interval == 0 or force:
             # excludes environment resets
             miss_hit = (np.sum(self.miss) + np.sum(self.success) )
@@ -99,4 +100,4 @@ class RLLogger(Logger):
                 self.tensorboard_logger.flush()
             logging.info(log_string)
             print(log_string)
-        return np.sum(self.reward) / max(1, np.sum(self.current_episodes)), np.sum(self.success) / max(1, np.sum(self.current_episodes)), 
+        return np.sum(self.reward) / max(1, np.sum(self.current_episodes)), np.sum(self.success) / max(1, np.sum(self.current_episodes)), log_string

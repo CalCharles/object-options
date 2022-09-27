@@ -1,0 +1,14 @@
+---
+  debug:
+    run_test: construct_trajectory
+    collect_mode: True
+  record:
+    record_rollouts: ""
+    record_recycle: -1
+  environment:
+    env: Breakout
+    demonstrate: True
+  train:
+    train_edge: Action Paddle
+    load_rollouts: /hdd/datasets/object_data/unit_test_data/Breakout/paddle/
+...

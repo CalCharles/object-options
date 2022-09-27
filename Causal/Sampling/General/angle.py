@@ -22,5 +22,4 @@ class AngleSampler(Sampler):
         angle = self.availiable_angles[np.random.randint(self.num_angles)].copy()
         sample[...,sample.shape[-1]-3:sample.shape[-1]-1] = np.array([np.sin(angle), np.cos(angle)])
         sample[...,-1] = np.random.rand() if not self.exist else 1
-        print("sample", angle, sample)
         return sample, mask

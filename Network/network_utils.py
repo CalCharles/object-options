@@ -107,6 +107,8 @@ def reset_linconv(layer, init_form):
          nn.init.uniform_(layer.weight.data, 0.0, 1 / layer.weight.data.shape[0])
     elif init_form == "smalluni":
         nn.init.uniform_(layer.weight.data, -.0001 / layer.weight.data.shape[0], .0001 / layer.weight.data.shape[0])
+    elif init_form == "zero":
+        nn.init.uniform_(layer.weight.data, 0, 0)
     elif init_form == "xnorm":
         torch.nn.init.xavier_normal_(layer.weight.data)
     elif init_form == "xuni":
@@ -139,6 +141,7 @@ def reset_parameters(network, init_form, n_layers=-1):
                 continue
         if type(layer) == nn.Conv2d:
             if self.init_form == "orth": nn.init.orthogonal_(layer.weight.data, gain=nn.init.calculate_gain('relu'))
+            elif self.init_form == "zero": nn.init.uniform_(layer.weight.data, 0,0)
             else: nn.init.kaiming_normal_(layer.weight, mode='fan_out', nonlinearity='relu') 
         elif hasattr(layer, "reset_network_parameters"): # this is a resettable network
             use_layers = n_layers - (total_layers - layer_at - size_next) if n_layers > 0 else n_layers
@@ -157,6 +160,45 @@ def reset_parameters(network, init_form, n_layers=-1):
             for layer in fulllayer:
                 reset_linconv(layer, init_form)
         layer_at = layer_next
+
+def compare_nets(networka, networkb, n_layers=-1, diff_list = []):
+    # initializes the weights by iterating through ever layer of the model
+    total_layers = count_layers(networka)
+    layer_at = 0
+    layer_lista = networka.model if hasattr(networka, "model") else networka
+    layer_listb = networkb.model if hasattr(networkb, "model") else networkb
+    if not hasattr(layer_lista, '__iter__'): layer_lista = [layer_lista]
+    if not hasattr(layer_listb, '__iter__'): layer_listb = [layer_listb]
+    diff = 0
+    for layera, layerb in zip(layer_lista, layer_listb):
+        size_next = count_layers(layera)
+        layer_next = layer_at + size_next
+        if n_layers > 0: # TODO: handle case where we have to go into a subnetwork
+            at_before = total_layers - layer_at - 1 >= n_layers
+            next_before = total_layers - layer_next - 1 >= n_layers
+            entering = at_before and (not next_before) and size_next > 1
+            if (not entering and at_before):
+                layer_at = layer_next
+                continue
+        if type(layera) != type(layerb):
+            return -1000000000, list() # a magic number to show it didn't work
+        if type(layera) == nn.Conv2d or type(layera) == nn.Linear or type(layera) == nn.Conv1d:
+            diff_val = (layera.weight.data - layerb.weight.data).abs().sum()
+            diff, diff_list = diff+diff_val, diff_list.append(diff_val)
+        elif type(layera) == nn.ModuleList:
+            for la, lb in zip(layera, layerb):
+                use_layers = n_layers - (total_layers - layer_at - size_next) if n_layers > 0 else n_layers
+                diff_val, diff_list = compare_nets(la, lb, n_layers=use_layers, diff_list=diff_list)
+                diff = diff+diff_val
+        elif type(layera) == nn.Parameter:
+            diff_val = (layera.data - layerb.data).abs().sum()
+            diff, diff_list = diff+diff_val, diff_list.append(diff_val)
+        elif type(layera) == ts.utils.net.common.MLP or  hasattr(layera, "reset_network_parameters"):
+            use_layers = n_layers - (total_layers - layer_at - size_next) if n_layers > 0 else n_layers
+            diff_val, diff_list = compare_nets(layera, layerb, n_layers=use_layers, diff_list=diff_list)
+            diff = diff+diff_val
+        layer_at = layer_next
+    return diff, diff_list
 
 def count_layers(network):
     total_layers = 0

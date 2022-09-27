@@ -51,6 +51,7 @@ class Sokoban(Environment):
         self.object_dynamics = dynamics
         self.object_instanced = instanced
         self.position_masks = position_masks
+        self.all_names = sum([[name + str(i) for i in instanced[name]] for name in self.object_names], start = [])
 
 
         # reset counters
@@ -234,22 +235,6 @@ class Sokoban(Environment):
         # frame2 = cv2.resize(self.frame, (self.frame.shape[0] * 30, self.frame.shape[1] * 30), interpolation = cv2.INTER_NEAREST)
         # cv2.imshow('frame2',frame2)
         # key = cv2.waitKey(5000)
-
-    def current_trace(self, names):
-        targets = [self.object_name_dict[names.target]] if type(self.object_name_dict[names.target]) != list else self.object_name_dict[names.target]
-        traces = list()
-        for target in targets:
-            if self.object_name_dict[names.primary_parent].name in target.interaction_trace:
-                traces.append(1)
-            else:
-                traces.append(0)
-        return traces
-
-    def get_trace(self, factored_state, action, names):
-        # gets the trace for a factored state, using the screen. If we don't want to screen to change, use a dummy screen here
-        self.set_from_factored_state(factored_state)
-        self.step(action)
-        return self.current_trace(names)
 
     def demonstrate(self):
         action = 0

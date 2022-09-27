@@ -1,0 +1,5 @@
+---
+  debug:
+    run_test: extractor
+    collect_mode: False
+...

@@ -37,6 +37,8 @@ class PrimitiveOption(Option): # primitive discrete actions
         self.iscuda = False
         self.device = None
 
+    def set_debug(self, debug):
+        self.debug = debug
 
     def reset(self, full_state):
         return [True]

@@ -20,9 +20,10 @@ def rand_sample(variance, zero=False):
 class Asteroids(Environment):
     def __init__(self, frameskip = 1, variant=""):
         super(Asteroids, self).__init__()
-        # breakout specialized parameters are stored in the variant
+        # Asteroids specialized parameters are stored in the variant
         self.variant = variant
         self.self_reset = True
+        self.transpose = False
 
         # environment properties
         self.num_actions = 6 # noop, forward, backward, right, left, fire
@@ -70,6 +71,7 @@ class Asteroids(Environment):
         self.shot_counter = 0
         self.lives = 0 # lives is not implemented in the current version
         self.itr = 0
+        self.all_names = sum([[name + str(i) for i in instanced[name]] for name in self.object_names], start = [])
         self.reset()
 
     def get_asteroid_position(self, variance):
@@ -173,22 +175,6 @@ class Asteroids(Environment):
         self.reward = factored_state["Reward"]
         self.done = factored_state["Done"]
         self.reset_counter = 0
-
-    def current_trace(self, names):
-        targets = [self.object_name_dict[names.target]] if type(self.object_name_dict[names.target]) != list else self.object_name_dict[names.target]
-        traces = list()
-        for target in targets:
-            if self.object_name_dict[names.primary_parent].name in target.interaction_trace:
-                traces.append(1)
-            else:
-                traces.append(0)
-        return traces
-
-    def get_trace(self, factored_state, action, names):
-        # gets the trace for a factored state, using the screen. If we don't want to screen to change, use a dummy screen here
-        self.set_from_factored_state(factored_state)
-        self.step(action)
-        return self.current_trace(names)
 
     def demonstrate(self):
         action = 0

@@ -44,7 +44,7 @@ class InlineTrainer():
 
     def set_values(self, data):
         tc_start = time.time()
-        proximity = check_proximity(self.interaction_model, data.target, data.parent_state)#compute_error(self.interaction_model, error_types.PROXIMITY, data, prenormalize=True)
+        proximity = check_proximity(self.interaction_model, data.parent_state, data.target)#compute_error(self.interaction_model, error_types.PROXIMITY, data, prenormalize=True)
         proximity_inst = compute_error(self.interaction_model, error_types.PROXIMITY, data, prenormalize=True, reduced=False) if self.interaction_model.multi_instanced else copy.deepcopy(proximity) # the same as above if not multiinstanced
         tc_proximity = time.time()
         done = data.done#compute_error(self.interaction_model, error_types.DONE, data) # the same as above if not multiinstanced

@@ -12,4 +12,4 @@ class TargetSampler(Sampler): # samples the target object
         samples a new value: full_state
         '''
         target = self.target_selector(full_state["factored_state"])
-        return target
+        return target, self.mask.active_mask

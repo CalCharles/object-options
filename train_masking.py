@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     environment, record = initialize_environment(args.environment, args.record)
 
-    object_names = init_names(args)
+    object_names = init_names(args.train.train_edge)
 
     # initializes the graph or loads it from args.record.load_dir
     action_dummy = ActionDummyInteraction(environment.action_shape, environment.discrete_actions, environment.num_actions)

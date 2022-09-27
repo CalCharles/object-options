@@ -247,7 +247,7 @@ class InterWeightedReplayBuffer(ReplayBuffer):
         else:
             obs_next = self.get(self.next(indice), "obs", Batch())
         return Batch(
-            obs=obs,
+            obs=obs[indice],
             act=self.act[indice],
             rew=self.rew[indice],
             done=self.done[indice],

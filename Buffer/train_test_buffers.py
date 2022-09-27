@@ -20,22 +20,40 @@ def train_test_indices(args, buffer):
         raise ValueError("invalid ordering setting")
     return train_indices, test_indices
 
-def generate_buffers(environment, args, object_names, full_model, train=True):
+def generate_buffers(environment, args, object_names, full_model, train=True, full=False):
     # load data
     data = read_obj_dumps(args.train.load_rollouts, i=-1, rng = args.train.num_frames, filename='object_dumps.txt')
 
     # get the buffers
-    buffer = fill_buffer(environment, data, args, object_names, full_model.norm, full_model.predict_dynamics)
+    if full:
+        buffer, object_buffers = fill_full_buffers(environment, data, args, full_model.norm, full_model.predict_dynamics)
+    else: buffer = fill_buffer(environment, data, args, object_names, full_model.norm, full_model.predict_dynamics)
     if not train: return buffer
 
     # get indices for train/test, there are various settings for this
     train_indices, test_indices = train_test_indices(args, buffer)
 
     # fill the train/test buffer
-    train_buffer = InterWeightedReplayBuffer(len(train_indices), stack_num=1)
-    set_batch(train_buffer, buffer[train_indices])
-    test_buffer = InterWeightedReplayBuffer(len(test_indices), stack_num=1)
-    set_batch(test_buffer, buffer[test_indices])
     if args.inter.save_intermediate: save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name + "_" + full_model.name + "_full_rollouts.pkl"), buffer)
-    del buffer
-    return train_buffer, test_buffer
+    if full:
+        train_buffer = FullReplayBuffer(len(train_indices), stack_num=1)
+        set_batch(train_buffer, buffer[train_indices])
+        train_object_buffers = dict()
+        for n in environment.object_names:
+            train_object_buffers[n] = ObjectReplayBuffer(len(train_indices), stack_num=1)
+            set_batch(train_object_buffers[n], object_buffers[n])
+        test_buffer = FullReplayBuffer(len(test_indices), stack_num=1)
+        set_batch(test_buffer, buffer[test_indices])
+        test_object_buffers = dict()
+        for n in environment.object_names:
+            test_object_buffers[n] = ObjectReplayBuffer(len(test_indices), stack_num=1)
+            set_batch(test_object_buffers[n], object_buffers[n][test_indices])
+        del buffer
+        return train_buffer, train_object_buffers, test_buffer, test_object_buffers
+    else:
+        train_buffer = InterWeightedReplayBuffer(len(train_indices), stack_num=1)
+        set_batch(train_buffer, buffer[train_indices])
+        test_buffer = InterWeightedReplayBuffer(len(test_indices), stack_num=1)
+        set_batch(test_buffer, buffer[test_indices])
+        del buffer
+        return train_buffer, test_buffer

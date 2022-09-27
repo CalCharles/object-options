@@ -1,0 +1,19 @@
+---
+  debug:
+    run_test: network
+    collect_mode: True
+  critic_net:
+  actor_net:
+  network:
+    hidden_sizes: 128
+  #   net_type: basic
+  #   activation_final: tanh
+  #   scale_logits: 30
+  #   optimizer:
+  #     lr: .0007
+  #     alt_lr: .0001
+  #     eps: .00001
+  #     alpha: 0.99
+  #     betas: 0.9 0.999
+  #     weight_decay: 0.00
+...

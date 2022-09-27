@@ -102,10 +102,10 @@ class ActionMap():
             else: # rescale based on non-relative actions
                 mapped_act = self.mapped_norm.reverse(act)
         # print(mapped_act)
-        if hasattr(self, "sample_angle") and self.sample_angle: 
+        if self.sample_angle: 
             mapped_act[...,2] = np.sin(act[...,2] * np.pi)
             mapped_act[...,3] = np.cos(act[...,2] * np.pi)
-        if hasattr(self, "round_values") and self.round_values is not None: mapped_act = self._round_action(mapped_act) # TODO: remove hasattr
+        if self.round_values is not None: mapped_act = self._round_action(mapped_act) # TODO: remove hasattr
         return mapped_act
 
     def reverse_map_action(self, mapped_act, batch):
@@ -131,7 +131,7 @@ class ActionMap():
             return closest[0]
         if self.discrete_actions:
             if self.discrete_primitive:
-                return act
+                return max(np.array(0), min(np.array(self.policy_action_space.n-1), act)) 
             return find_closest(act)
         return act
 

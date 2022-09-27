@@ -9,7 +9,7 @@ import copy
 from typing import Any, Dict, List, Union, Optional, Callable
 from argparse import Namespace
 from collections import deque
-from Record.file_management import action_chain_string, display_param
+from Record.file_management import action_chain_string, display_param, write_string
 from Network.network_utils import pytorch_model
 from Collect.aggregator import TemporalAggregator
 from Record.file_management import save_to_pickle, create_directory
@@ -19,9 +19,8 @@ from Causal.Utils.instance_handling import split_instances
 from tianshou.policy import BasePolicy
 from tianshou.data.batch import _alloc_by_keys_diff
 from tianshou.env import BaseVectorEnv, DummyVectorEnv
-from tianshou.data import Collector, Batch, ReplayBuffer
+from tianshou.data import Collector, Batch, ReplayBuffer, to_torch_as, to_numpy
 from typing import Any, Dict, Tuple, Union, Optional, Callable
-from tianshou.data import Batch, ReplayBuffer, to_torch_as, to_numpy
 
 def print_shape(batch, prefix=""):
     print(prefix, {n: batch[n].shape for n in batch.keys() if type(batch[n]) == np.ndarray})
@@ -68,9 +67,11 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             option_dumps = open(os.path.join(self.save_path, "option_dumps.txt"), 'w')
             param_dumps = open(os.path.join(self.save_path, "param_dumps.txt"), 'w')
             term_dumps = open(os.path.join(self.save_path, "term_dumps.txt"), 'w')
+            mask_dumps = open(os.path.join(self.save_path, "mask_dumps.txt"), 'w')
             option_dumps.close()
             param_dumps.close()
             term_dumps.close()
+            mask_dumps.close()
         
         # shortcut calling option attributes through option
         self.state_extractor = self.option.state_extractor
@@ -125,10 +126,13 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
     def get_components(self):
         return self.full_buffer, self.her_buffer, self.buffer, self.at, self.full_at, self.her_at
 
-    def _save_action(self, action_chain, term_chain, param): # this is handled here because action chains are option dependent
-        write_string(os.path.join(self.save_path, "option_dumps.txt"), str(self.environment_model.environment.get_itr() - 1) + ":" + action_chain_string(action_chain) + "\n")
-        write_string(os.path.join(self.save_path, "term_dumps.txt"), str(self.environment_model.environment.get_itr() - 1) + ":" + action_chain_string([term_chain]) + "\n")
-        write_string(os.path.join(self.save_path, "param_dumps.txt"), str(self.environment_model.environment.get_itr() - 1) + ":" + action_chain_string([param[0]]) + "\n")
+    def _save_action(self, act, action_chain, term_chain, param, mask): # this is handled here because action chains are option dependent
+        if len(act.shape) == 0: act = [act]
+        write_string(os.path.join(self.save_path, "act_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string(act) + "\n")
+        write_string(os.path.join(self.save_path, "option_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string(action_chain) + "\n")
+        write_string(os.path.join(self.save_path, "term_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string([term_chain]) + "\n")
+        write_string(os.path.join(self.save_path, "param_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string([param[0]]) + "\n")
+        write_string(os.path.join(self.save_path, "mask_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string([mask[0]]) + "\n")
 
     def reset_env(self, keep_statistics: bool = False):
         full_state = self.env.reset()
@@ -171,7 +175,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         self.data.update(terminate=[True])
         self.ext_reset()
 
-    def adjust_param(self, force=False):
+    def adjust_param(self, param_mask=None, force=False):
         # either get a new param or recycle the same param as before
         new_param = False
         param, mask = self.data.param, self.data.mask
@@ -184,6 +188,9 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
                 self.param_counter = 0
             if np.random.rand() > self.param_recycle: # get a new param
                 param, mask = self.sample(self.data.full_state[0])
+                self.data.update(param=param, mask=mask)
+            if param_mask is not None:
+                param, mask = param_mask
                 self.data.update(param=param, mask=mask)
 
             # Otherwise, already uses the same param as before
@@ -236,6 +243,9 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         force: [np.array, int] = None,
         new_param: bool = False,
         demonstrate: bool = False,
+        debug_actions: list = None,
+        debug_states: list = None,
+        debug: bool=False,
     ) -> Dict[str, Any]:
         """
         collects the data from the option, or random actions at the top level of the hierarchy
@@ -256,13 +266,18 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         perf_times["record"] = 0
         perf_times["aggregate"] = 0
         perf_times["total"] = 0
-        param, mask, new_param = self.adjust_param(new_param)
+        param_mask = None if debug_states is None or debug_states[0] is None else (debug_states[0][0], debug_states[1][0])
+        param, mask, new_param = self.adjust_param(param_mask=param_mask, force=new_param)
         if new_param: print("new param start", param)
+        itr = 0
+        debug_record = list()
+        her_list = None  # debugging variable
         while True:
             tc_start = time.time()
             self.counter += 1
             # set parameter for this run, if necessary
-            param, mask, new_param = self.adjust_param()
+            param_mask = None if debug_states is None or debug_states[0] is None else (debug_states[0][itr], debug_states[1][itr])
+            param, mask, new_param = self.adjust_param(param_mask=param_mask)
             # if self.test and new_param: print("new param", param)
             if new_param and not used_new_param: print("new param", param)
             # get the action chain
@@ -272,16 +287,30 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
                 needs_sample, act, chain, policy_batch, state, masks = self.option.temporal_extension_manager.check(self.data.terminations[-1], self.data.ext_terms[-1])
                 if needs_sample:
                     frame = self.environment.render()
-                    display_param(frame.astype(float) / 256.0, None, rescale=10)
-                    action = np.array([float(v) for v in input("value: ").split(' ')])
+                    print("target at: ", self.state_extractor.get_target(self.data.full_state[0]))
+                    display_param(frame.astype(float) / 256.0, param, rescale=7, transpose=self.environment.transpose)
+                    inp = ""
+                    while len(inp) == 0:
+                        inp = input("value: ")
+                        try:
+                            action = np.array([float(v) for v in inp.split(' ')])
+                        except ValueError as e:
+                            inp = ""
+                            continue
+                    action = np.array([float(v) for v in inp.split(' ')])
             with torch.no_grad(): act, action_chain, result, state_chain, masks, resampled = self.option.extended_action_sample(self.data, state_chain, self.data.terminations, self.data.ext_terms, random=random, force=force, action=action)
+            if debug_actions is not None: act, action_chain = debug_actions[itr]
             tc_action = time.time()
             self._policy_state_update(result)
             self.data.update(true_action=[action_chain[0]], act=[act], mapped_act=[action_chain[-1]], option_resample=[resampled], action_chain = action_chain)
             
             # step in env
             action_remap = self.data.true_action
-            obs_next, rew, done, info = self.env.step(action_remap, id=ready_env_ids)
+            if debug_states is not None:
+                self.environment.set_from_factored_state(debug_states[2][itr]["factored_state"])
+                obs_next = Batch([self.environment.get_state()])
+                rew, done, info = obs_next["factored_state"]["Reward"], obs_next["factored_state"]["Done"], [self.environment.get_info()]
+            else: obs_next, rew, done, info = self.env.step(action_remap, id=ready_env_ids)
             # print(self.data.full_state.factored_state.Action)
             if self.environment.discrete_actions: self.data.full_state.factored_state.Action = [action_remap] # reassign the action to correspond to the current action taken
             else: self.data.full_state.factored_state.Action = action_remap
@@ -306,7 +335,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             # get the dones, rewards, terminations and temporal extension terminations
             done, rewards, terminations, inter, cutoff = self.option.terminate_reward_chain(self.data.full_state[0], next_full_state, param, action_chain, mask, masks, true_done, true_reward)
             done, rew, term, ext_term = done, rewards[-1], terminations[-1], terminations[-2]# or resampled
-            if self.save_action: self._save_action(action_chain, param, resampled, term)
+            if self.save_action: self._save_action(act, action_chain, terminations, param, mask)
             info[0]["TimeLimit.truncated"] = bool(cutoff + info[0]["TimeLimit.truncated"]) if "TimeLimit.truncated" in info[0] else cutoff # environment might send truncated itself
             info[0]["TimeLimit.truncated"] = bool(self.trunc_true * true_done + info[0]["TimeLimit.truncated"]) # if we want to treat environment resets as truncations
             self.option.update(act, action_chain, terminations, masks, update_policy=not self.test)
@@ -363,7 +392,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             # add to the main buffer
             next_data, skipped, added, self.at = self._aggregate(self.data, self.buffer, full_ptr, ready_env_ids)
             # print(self.data.target, not self.test, self.hindsight is not None)
-            if not self.test and self.hindsight is not None: self.her_at = self.her_collect(self.her_buffer, next_data, self.data, added)
+            if not self.test and self.hindsight is not None: self.her_at, her_list = self.her_collect(self.her_buffer, next_data, self.data, added, debug=debug)
             if self.display_frame > 0: self.show_param(param if self.display_frame < 3 else action_chain[-1], self.environment.render())
             tc_aggregate = time.time()
             # collect statistics
@@ -389,6 +418,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             self.data.obs = self.data.obs_next
             last_true_done = true_done
             tc_complete = time.time()
+            itr += 1
             # print(f"times: action {tc_action - tc_start}, step {tc_step - tc_action} term {tc_term - tc_step} inline {tc_inline - tc_term} process {tc_process - tc_inline} record {tc_record - tc_process} aggregate {tc_aggregate - tc_complete} total {tc_complete - tc_start}")
             perf_times["action"] = perf_times["action"] + tc_action - tc_start 
             perf_times["step"] = perf_times["step"] + tc_step - tc_action 
@@ -398,6 +428,10 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             perf_times["record"] = perf_times["record"] + tc_record - tc_process 
             perf_times["aggregate"] = perf_times["aggregate"] + tc_aggregate - tc_complete 
             perf_times["total"] = perf_times["total"] + tc_complete - tc_start
+
+            # debug record
+            if debug: debug_record.append((added, copy.deepcopy(self.data), copy.deepcopy(next_data), her_list))
+
             # controls breaking from the loop
             if (n_step and step_count >= n_step):
                 break
@@ -421,5 +455,6 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             "rews": rews,
             "terminate": (not np.any(true_done)) and np.any(term) and self.terminate_reset,
             "info": info,
-            "perf": perf_times
+            "perf": perf_times,
+            "debug": debug_record,
         }

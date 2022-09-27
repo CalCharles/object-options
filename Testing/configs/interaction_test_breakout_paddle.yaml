@@ -1,0 +1,27 @@
+---
+  debug:
+    run_test: interaction
+    collect_mode: False
+  environment:
+    env: Breakout
+    demonstrate: True
+  train:
+    train: True
+    train_edge: Action Paddle
+  interaction_net:
+    hidden_sizes: 256 256
+    net_type: mlp
+    optimizer:
+      lr: .0001
+      alt_lr: .0001
+      eps: .00001
+      alpha: 0.99
+      betas: 0.9 0.999
+      weight_decay: 0.00
+  inter:
+    interaction_testing: 0.9 -13 -16 -1
+    active:
+      weighting: -13 1 1 -1
+  inline:
+    interaction_config: Testing/configs/interaction_test_breakout_paddle.yaml
+...

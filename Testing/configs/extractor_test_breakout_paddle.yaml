@@ -1,0 +1,11 @@
+---
+  debug:
+    run_test: extractor
+    collect_mode: False
+  environment:
+    env: Breakout
+    demonstrate: True
+  train:
+    train: True
+    train_edge: Action Paddle
+...

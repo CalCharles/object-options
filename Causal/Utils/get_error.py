@@ -20,6 +20,7 @@ error_names = [# an enumerator for different error types
     "INTERACTION_RAW",
     "INTERACTION_BINARIES",
     "PROXIMITY",# measures if two objects are close together
+    "PROXIMITY_FLAT", # gets the flattened proximity between two states given in names
     "TRACE",# just sends back the trace values
     "DONE", # just sends back the done values
 ]
@@ -45,7 +46,7 @@ def check_proximity(full_model, parent_state, target, normalized=False):
     return np.expand_dims(np.linalg.norm(parent-target, ord=1, axis=-1) < full_model.proximity_epsilon, -1) if full_model.proximity_epsilon > 0 else np.ones((num_batch, 1)).astype(bool) # returns binarized differences
 
 
-def compute_error(full_model, error_type, part, normalized = False, reduced=True, prenormalize=False):
+def compute_error(full_model, error_type, part, normalized = False, reduced=True, prenormalize=False, object_names=None):
     # @param part is the segment of rollout data
     # @param normalized asked for normalized outputs and comparisons
     # @param reduced reduces along the final output, combining the features of object state
@@ -112,13 +113,27 @@ def compute_error(full_model, error_type, part, normalized = False, reduced=True
 
     if error_type == error_types.PROXIMITY:
         return check_proximity(full_model, part.parent_state, part.target)
-    
+    if error_type == error_types.PROXIMITY_FLAT:
+        factored_state = full_model.unflatten(part.obs)
+        part.parent_state, part.target = full_model.get_object[object_names.parent], full_model.get_object[object_names.target]
+        return check_proximity(full_model, part.parent_state, part.target)
+    if error_type == error_types.PROXIMITY_FULL: # only works with a padding extractor
+        full_state = full_model.extractor.flatten(part.obs)
+        target_state = part.target
+        part.parent_state, part.target = full_model.get_object[object_names.parent], full_model.get_object[object_names.target]
+        return check_proximity(full_model, part.parent_state, part.target)
+
     if error_type == error_types.TRACE: return part.trace
     if error_type == error_types.DONE: return part.done
     raise Error("invalid error type")
 
+def get_full_proximity(full_model, flattened_state, target_state, normalize=False):
+    flattened_state = flattened_state.reshape(flattened_state.shape[:-1] + (flattened_state.shape[-1] // full_model.pad_size, full_model.pad_size))
+    dists = np.linalg.norm(flattened_state[...,:full_model.pos_size] - target_state[...,:full_model.pos_size], axis=-1)
+    proximity = dists < full_model.proximity_epsilon and full_model.object_proximal
+    return proximity
 
-def get_error(full_model, rollouts, error_type=0, reduced=True, normalized=False, prenormalize = False):
+def get_error(full_model, rollouts, error_type=0, reduced=True, normalized=False, prenormalize = False, object_names=None):
     # computes some term over the entire rollout, iterates through batches of 500 to avoid overloading the GPU
 
     # gets all the data from rollouts, in the order of the data (for assignment)
@@ -131,6 +146,6 @@ def get_error(full_model, rollouts, error_type=0, reduced=True, normalized=False
     for i in range(int(np.ceil(len(batch) / min(500,len(batch))))): # run 500 at a time, so that we don't overload the GPU
         part = batch[i*500:(i+1)*500]
         done_flags = 1-part.done
-        values = compute_error(full_model, error_type, part, normalized=normalized, reduced=reduced, prenormalize=prenormalize) * done_flags if not outputs(error_type) else compute_error(full_model, error_type, part, normalized=normalized, reduced=reduced)
+        values = compute_error(full_model, error_type, part, normalized=normalized, reduced=reduced, prenormalize=prenormalize, object_names = object_names) * done_flags if not outputs(error_type) else compute_error(full_model, error_type, part, normalized=normalized, reduced=reduced, object_names = object_names)
         model_error.append(values)
     return np.concatenate(model_error, axis=0)

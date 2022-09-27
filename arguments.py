@@ -2,6 +2,7 @@ import argparse
 from State.object_dict import ObjDict
 from Hyperparam.read_config import read_config
 import numpy as np
+import os
 
 def get_command_args():
     parser = argparse.ArgumentParser(description='Construct an environment')
@@ -26,6 +27,11 @@ def get_command_args():
                         help='random seed for the environment, set to a random number in contsruction')
     parser.add_argument('--demonstrate', action='store_true', default=False,
                         help='get the data from demonstrations or from random motion')
+    # debugging parameters
+    parser.add_argument('--run-test', default = "",
+                        help='the name of the test to run')
+    parser.add_argument('--collect-mode', action='store_true', default=False,
+                        help='in collect mode, collects data for a test')
     # torch parameters
     parser.add_argument('--config', default="",
                         help='config file to read for hyperparameters, overrides args')
@@ -247,6 +253,7 @@ def get_args():
     if len(args.command.config) > 0:
         args = read_config(args.command.config)
         args.config = config
+        args.config_name = os.path.split(config)[1][:-5]
     if args.environment.seed == -1: args.environment.seed = np.random.randint(100000) # randomly assign seed
     if args.torch.torch_seed == -1: args.torch.torch_seed = np.random.randint(100000) # randomly assign seed
     return args

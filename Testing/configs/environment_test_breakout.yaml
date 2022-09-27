@@ -1,0 +1,21 @@
+---
+  debug:
+    run_test: environment
+    collect_mode: False
+  record:
+    record_rollouts: ""
+    record_recycle: -1
+  environment:
+    env: Breakout
+    demonstrate: True
+  torch:
+    gpu: 0
+    no_cuda: False
+  train:
+    train: True
+    num_frames: 10
+    train_edge: Action Paddle
+    load_rollouts: /nfs/data/calebc/object_data/breakout/random/
+    num_iters: 500
+    batch_size: 64
+...

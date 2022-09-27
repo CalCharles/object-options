@@ -15,7 +15,7 @@ def collect_test_trials(logger, option, test_collector, term_step, i, trials, ra
     # print("starting trials")
     results = list()
     for j in range(trials):
-        # print("next_trial", j)
+        print("next_trial", j)
         option.reset(test_collector.data.full_state)
         result = test_collector.collect(n_episode=1, n_term=None if term_step[0] <=0 else term_step[0], n_step=term_step[1], random=random, new_param=True)
         result['n/tr'] = max(1, result['n/tr']) # at least one (virtual) epsiode occurs before the end, for testing purposes

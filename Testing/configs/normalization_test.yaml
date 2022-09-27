@@ -1,0 +1,5 @@
+---
+  debug:
+    run_test: normalization
+    collect_mode: False
+...

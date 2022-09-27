@@ -64,7 +64,8 @@ def train_combined(full_model, rollouts, test_rollout, args,
     # initialize weighting schedules, by which the sampling weights change (shrink) over training
     _,_,awl,aws = args.inter.active.weighting 
     iwl, iws = args.inter.active.interaction_weighting
-    active_weighting_schedule = (lambda i: awl * np.power(0.5, (i/aws))) if awl > 0 else (lambda i: awl)
+    print("awliwl", awl, iwl)
+    active_weighting_schedule = (lambda i: awl * np.power(0.5, (i/aws))) if aws > 0 else (lambda i: awl)
     interaction_weighting_schedule = (lambda i: iwl * np.power(0.5, (i/iws))) if iws > 0 else (lambda i: iwl)
 
     print_errors(full_model, rollouts, error_types=[error_types.ACTIVE_RAW, error_types.ACTIVE, error_types.TRACE, error_types.DONE], prenormalize=normalize)
@@ -126,7 +127,9 @@ def train_combined(full_model, rollouts, test_rollout, args,
             #     print_errors(full_model, rollouts[inter_idxes[90:]], error_types=[error_types.ACTIVE_RAW, error_types.ACTIVE, error_types.PASSIVE_LIKELIHOOD, error_types.ACTIVE_LIKELIHOOD, error_types.TRACE, error_types.INTERACTION, error_types.INTERACTION_BINARIES, error_types.PROXIMITY, error_types.DONE], prenormalize=normalize)
             inline_iters = inline_iter_schedule(i)
             active_weighting_lambda = active_weighting_schedule(i)
+            print(active_weighting_lambda)
             active_weights = get_weights(active_weighting_lambda, rollouts.weight_binary[:len(rollouts)].squeeze())
+            print(active_weights)
             inter_weighting_lambda = interaction_weighting_schedule(i)
             error_binary = np.abs(get_error(full_model, rollouts, error_type = error_types.INTERACTION_BINARIES) - full_model.test(get_error(full_model, rollouts, error_type = error_types.INTERACTION_RAW)).astype(int))
             interaction_weights = get_weights(inter_weighting_lambda, rollouts.weight_binary[:len(rollouts)].squeeze() + error_binary.squeeze())

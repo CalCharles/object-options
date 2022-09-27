@@ -22,7 +22,8 @@ class EmptySampler(Sampler):
         while True:
             failed = False
             sample, mask = self.centered_sampler.sample(full_state)
-            print(self.additional_selector.names)
+            if len(self.additional_selector.names) == 0:
+                break
             obstacles = split_instances(self.additional_selector(full_state["factored_state"]).squeeze(), self.additional_dim)
             block = np.expand_dims(full_state["factored_state"]["Block"], 0)
             for additional in np.concatenate([obstacles, block], axis=0):

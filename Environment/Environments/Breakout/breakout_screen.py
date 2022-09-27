@@ -14,7 +14,7 @@ from gym import spaces
 # target_mode (1)/edges(2)/center(3), scatter (4), num rows, num_columns, no_breakout (value for hit_reset), negative mode, bounce_count
 
 class Breakout(Environment):
-    def __init__(self, frameskip = 1, breakout_variant=""):
+    def __init__(self, frameskip = 1, breakout_variant="default"):
         super(Breakout, self).__init__()
         # breakout specialized parameters are stored in the variant
         self.variant = breakout_variant
@@ -94,6 +94,7 @@ class Breakout(Environment):
         self.low_block = self.block_height * self.num_rows + 22 + self.safe_distance
         self.paddle_height = self.paddle.pos[0]
         self.num_remove = self.get_num(True)
+        self.all_names = ["Action", "Paddle", "Ball"] + [b.name for b in self.blocks] + ['Done', "Reward"]
 
     def assign_assessment_stat(self):
         if self.dropped and self.variant != "proximity":
@@ -240,8 +241,7 @@ class Breakout(Environment):
         self.assign_attributes()
 
         # assign object names, used for traces, TODO: Reward and Done not handled
-        self.object_name_dict = {"Action": self.actions, "Paddle": self.paddle, "Ball": self.ball, "Block": self.blocks}
-
+        self.object_name_dict = {**{"Action": self.actions, "Paddle": self.paddle, "Ball": self.ball}, **{"Block" + str(i): self.blocks[i] for i in range(len(self.blocks))}}
         # assign walls
         self.walls = []
         self.walls.append(Wall(np.array([4, 4]), 1, "Top"))
@@ -276,10 +276,10 @@ class Breakout(Environment):
         self.frame[paddle.pos[0]:paddle.pos[0]+paddle.height, paddle.pos[1]:paddle.pos[1]+paddle.width] = .75 * 255
         return self.frame
 
-    def get_num(self, live=True):
+    def get_num(self, live=1):
         total = 0
         for block in self.blocks:
-            if block.attribute == int(live):
+            if block.attribute == live:
                 total += 1
         return total
 
@@ -287,6 +287,9 @@ class Breakout(Environment):
         if render: self.render()
         state =  {"raw_state": self.frame, "factored_state": numpy_factored({**{obj.name: obj.getMidpoint() + obj.vel.tolist() + [obj.getAttribute()] for obj in self.objects}, **{'Done': [self.done], 'Reward': [self.reward]}})}
         return state
+
+    def get_info(self):
+        return {"lives": 5-self.ball.losses, "TimeLimit.truncated": False, "assessment": self.assessment_stat, "total_score": self.total_score}
 
     def clear_interactions(self):
         self.ball.clear_hits()
@@ -327,7 +330,9 @@ class Breakout(Environment):
             self.paddle.interact(self.actions)
             for wall in self.walls:
                 self.ball.interact(wall)
+            # print("ball wall", self.ball.pos, self.paddle.pos, self.ball.vel, self.paddle.vel)
             self.ball.interact(self.paddle)
+            # print("ball", self.ball.pos, self.paddle.pos, self.ball.vel, self.paddle.vel)
             if self.ball.pos[0] < self.low_block:
                 for block in self.blocks:
                     hit += self.interaction_effects(self.ball, block)
@@ -367,7 +372,7 @@ class Breakout(Environment):
                 hit = False
                 self.hit_counter += 1
                 # end of episode by hitting
-                if (self.get_num(True) == self.num_remove # removed as many blocks as necessary (all the positive blocks in negative/hard block domains, all the blocks in other domains)
+                if (self.get_num(False) == self.num_remove # removed as many blocks as necessary (all the positive blocks in negative/hard block domains, all the blocks in other domains)
                     or (self.no_breakout and self.hit_reset > 0 and self.hit_counter == self.hit_reset) # reset after a fixed number of hits
                     or self.target_mode): # only one block to hit
                     needs_reset = True
@@ -420,46 +425,31 @@ class Breakout(Environment):
             self.seed_counter = seed_counter
             self.ball.reset_seed = seed_counter
         if "Ball" in factored_state:
-            self.ball.pos = np.array(self.ball.getPos(factored_state["Ball"][:2]))
-            self.ball.vel = np.array(factored_state["Ball"][2:4]).astype(int)
+            self.ball.pos = self.ball.getPos(np.array(factored_state["Ball"]).squeeze()[:2])
+            self.ball.vel = np.array(factored_state["Ball"]).squeeze()[2:4].astype(int)
             self.ball.losses = 0 # ensures that no weirdness happens since ball losses are not stored, though that might be something to keep in attribute...
         if "Paddle" in factored_state:
-            self.paddle.pos = np.array(self.paddle.getPos(factored_state["Paddle"][:2]))
-            self.paddle.vel = np.array(factored_state["Paddle"][2:4]).astype(int)
+            self.paddle.pos = self.paddle.getPos(np.array(factored_state["Paddle"]).squeeze()[:2])
+            self.paddle.vel = np.array(factored_state["Paddle"]).squeeze()[2:4].astype(int)
         if "Action" in factored_state:
             self.actions.attribute = factored_state["Action"][-1]
         if "Block" in factored_state:
             for i in range(self.num_blocks):
-                self.blocks[i].attribute = float(factored_state["Block"][i*5+4])
+                self.blocks[i].attribute = float(np.array(factored_state["Block"]).squeeze()[i*5+4])
         if "Block0" in factored_state:
             i=0
             while "Block" + str(i) in factored_state:
-                self.blocks[i].attribute = float(factored_state["Block" + str(i)][-1])
+                self.blocks[i].attribute = float(np.array(factored_state["Block" + str(i)]).squeeze()[-1])
                 i += 1
         if render: self.render_frame()
         # TODO: set the info from the factored state as well
 
-    def current_trace(self, names):
-        targets = [self.object_name_dict[names.target]] if type(self.object_name_dict[names.target]) != list else self.object_name_dict[names.target]
-        traces = list()
-        for target in targets:
-            if self.object_name_dict[names.primary_parent].name in target.interaction_trace:
-                traces.append(1)
-            else:
-                traces.append(0)
-        return traces
-
-    def get_trace(self, factored_state, action, names):
-        # gets the trace for a factored state, using the screen. If we don't want to screen to change, use a dummy screen here
-        self.set_from_factored_state(factored_state)
-        self.step(action)
-        return self.current_trace(names)
-
     def demonstrate(self):
         action = 0
         frame = self.render()
+        frame = cv2.resize(frame, (frame.shape[0] * 5, frame.shape[1] * 5), interpolation = cv2.INTER_NEAREST)
         cv2.imshow('frame',frame)
-        key = cv2.waitKey(500)
+        key = cv2.waitKey(100)
         if key == ord('q'):
             action = -1
         elif key == ord('a'):

@@ -18,7 +18,7 @@ def load_option(load_dir, name, interaction_model=None, device=-1):
     return option
 
 class Option():
-    def __init__(self, args, policy, models, next_option):
+    def __init__(self, args, policy, models, next_option, debug=False):
         # parameters for saving
         self.name = args.object_names.target
         self.train_epsilon = args.policy.epsilon_random
@@ -38,9 +38,23 @@ class Option():
         self.action_map = models.action_map # object dict with action spaces
         self.initiation_set = None # TODO: handle initiation states
         self.test_sampler = models.test_sampler # a specialized sampler for testing
-        self.inline_trainer = models.inline_trainer
-        self.reset_timer = 0
+        self.inline_trainer = models.inline_trainer # a trainer for the interaction model
+        self.reset_timer = 0 # storage for the temporal extension timer
+
+        # debugging mode stores intermediate state
+        self.set_debug(debug)
+        self.debug_stack = list()
+
         self.match_temporal_extension()
+
+    def get_depth(self):
+        if self.next_option is not None:
+            return 1 + self.next_option.get_depth()
+        return 1
+
+    def set_debug(self, debug):
+        self.debug=debug
+        self.next_option.set_debug(debug)
 
     def reassign_norm(self, environment):
         norm = self.interaction_model.regenerate_norm()
@@ -161,6 +175,8 @@ class Option():
         compute = time.time()
         if self.next_option is not None:
             next_batch, cur_mask, cur_param, cur_obs = self._set_next_option(batch, mapped_act)
+            if self.debug:
+                self.debug = copy.deepcopy(next_batch)
             next_policy_act, rem_chain, result, rem_state_chain, last_masks = self.next_option.sample_action_chain(next_batch, state_chain[-1] if state_chain is not None else None) # , random=random # TODO: only sample top level randomly, if we resampled make sure not to temporally extend the next layer
             chain, state, masks = rem_chain + chain, rem_state_chain + [state], last_masks + [batch.mask[0]] # TODO: mask is not set from the policy
             batch = self._reset_current_option(batch, cur_mask, cur_param, cur_obs)
@@ -196,7 +212,7 @@ class Option():
         # slightly confusing: inter_state is normalized, but next_target is not, because of how goal state is handled
         inter_state, target, next_target, target_diff = self.state_extractor.get_inter(full_state), self.state_extractor.get_target(full_state), self.state_extractor.get_target(next_full_state), self.state_extractor.get_diff(full_state, next_full_state)
         term, reward, done, inter, time_cutoff = self.terminate_reward(inter_state, target, next_target, target_diff, param, mask, true_done, true_reward) # TODO: true_inter = ?
-        # print(self.name, term, reward, done, inter, time_cutoff)
+        # print(self.name, term, reward, done, inter, time_cutoff, self.terminate_reward)
         rewards, terminations = last_rewards + [reward], last_termination + [term]
         return done, rewards, terminations, inter, time_cutoff
 

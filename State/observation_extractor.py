@@ -96,7 +96,6 @@ class ObservationExtractor():
                     + [additional_relative * (self.additional_multi[i] or self.target_multi) * self.target_size for i in range(len(self.additional_multi))]))
         obj_dim = int(np.max([target_obj_dim + rel_obj_dim] + [parent_obj_dim + rel_obj_dim] + [a + rel_obj_dim for a in additional_obj_dims])) # obj_dim is invalid for both_multi
         post_dim = self.target_size # only param in post dim for now
-        print(first_obj_dim, obj_dim)
         return first_obj_dim, parent_obj_dim, (np.max(additional_obj_dims) if len(additional_obj_dims) > 0 else 0), target_obj_dim, rel_obj_dim, obj_dim, post_dim
 
     def construct_name_order(self):
@@ -197,18 +196,19 @@ class ObservationExtractor():
         if parent: state_index["parent_norm"] = self.state_extractor.get_parent(full_state, norm=True)
         if additional: state_index["additional_norm"] = self.state_extractor.get_additional(full_state, partial=True, norm=True)
         if target: state_index["target_norm"] = self.state_extractor.get_target(full_state, norm=True)
-        if inter: state_index["inter_norm"] = self.state_extractor.get_target(full_state, )
+        if inter: state_index["inter_norm"] = self.state_extractor.get_inter(full_state, norm=True)
         if diff: state_index["diff_norm"] = differ = self.norm(state_index["target_raw"] - self.target_select(last_state["factored_state"]), form="diff")
-        if param_idx: state_index["param"] = param
-        if param_idx: state_index["mask"] = mask
-        if parent_param: 
+        state_index["param"] = param
+        state_index["mask"] = mask
+        if parent_param:
+            min_size = min(self.target_size, self.parent_size)
             if self.parent_multi:
                 broad_param, broad_mask = broadcast(param, self.max_parent_objects, axis=-1), broadcast(mask, self.max_parent_objects, axis=-1)
-                state_index["parent_param"] = self.norm((state_index["parent_raw"] - broad_param), form="rel") * broad_mask
-            else: state_index["parent_param"] = self.norm(state_index["parent_raw"] - param, form="rel") * mask
+                state_index["parent_param"] = self.norm((state_index["parent_raw"][...,:min_size] - broad_param[...,:min_size]), form="rel") * broad_mask[...,:min_size]
+            else: state_index["parent_param"] = self.norm(state_index["parent_raw"][...,:min_size] - param[...,:min_size], form="rel") * mask[...,:min_size]
         if param_relative:
             if self.target_multi:
-                broad_param, broad_mask = broadcast(param, self.max_parent_objects, axis=-1), broadcast(mask, self.max_parent_objects, axis=-1)
+                broad_param, broad_mask = broadcast(param, self.max_target_objects, axis=-1), broadcast(mask, self.max_target_objects, axis=-1)
                 state_index["target_param"] = self.norm((state_index["target_raw"] - broad_param), form="diff") * broad_mask
             else: state_index["target_param"] = self.norm(state_index["target_raw"] - param, form="diff") * mask
         return state_index
@@ -222,10 +222,13 @@ class ObservationExtractor():
         elif form.find("additional_relative") != -1:
             aidx = int(form[len("additional_relative"):])
             if idx == -1: return self.norm(state_index["additional_raw"][aidx] - state_index["target_raw"], form="diff")
+            min_size = min(self.target_size, self.additional_sizes[aidx])
             if self.additional_multi[aidx]:
-                return self.norm(state_index["additional_raw"][aidx][...,idx*self.target_size:(idx+1)*self.target_size] - state_index["target_raw"], form="diff")
+                return self.norm(state_index["additional_raw"][aidx][...,idx*min_size:(idx+1)*min_size] - state_index["target_raw"][...,:min_size], form="diff")
             elif self.target_multi:
-                return self.norm(state_index["additional_raw"][aidx] - state_index["target_raw"][...,idx*self.target_size:(idx+1)*self.target_size], form="diff")
+                return self.norm(state_index["additional_raw"][aidx][...,:min_size] - state_index["target_raw"][...,idx*min_size:(idx+1)*min_size], form="diff")
+            else:
+                return self.norm(state_index["additional_raw"][aidx][...,:min_size] - state_index["target_raw"][...,:min_size], form = "diff")
         elif form.find("additional") != -1:
             additional_idx = int(form[len("additional"):])
             if idx == -1: return state_index["additional_norm"][additional_idx]
@@ -239,14 +242,18 @@ class ObservationExtractor():
             if idx == -1: return state_index["diff_norm"]
             return state_index["diff_norm"][...,idx*self.target_size: (idx+1)*self.target_size]
         elif form == "parent_relative":
+            min_size = min(self.target_size, self.parent_size)
             if idx == -1: return self.norm(state_index["parent_raw"] - state_index["target_raw"], form="rel")
             if self.parent_multi:
-                return self.norm(state_index["parent_raw"][...,idx*self.target_size:(idx+1)*self.target_size] - state_index["target_raw"], form="rel")
+                return self.norm(state_index["parent_raw"][...,idx*min_size:(idx+1)*min_size] - state_index["target_raw"][...,:min_size], form="rel")
             elif self.target_multi:
-                return self.norm(state_index["parent_raw"] - state_index["target_raw"][...,idx*self.target_size:(idx+1)*self.target_size], form="rel")
-        elif form == "parent_param": 
-            if idx == -1: return self.norm((state_index["parent_raw"] - state_index["param"]) * state_index["mask"], form="rel")
-            return state_index["parent_param"][...,idx*self.target_size:(idx+1)*self.target_size]
+                return self.norm(state_index["parent_raw"][...,:min_size] - state_index["target_raw"][...,idx*min_size:(idx+1)*min_size], form="rel")
+            else:
+                return self.norm(state_index["parent_raw"][...,:min_size] - state_index["target_raw"][...,:min_size], form="rel")                
+        elif form == "parent_param":
+            min_size = min(self.target_size, self.parent_size)
+            if idx == -1: return self.norm((state_index["parent_raw"][...,:min_size] - state_index["param"][...,:min_size]) * state_index["mask"], form="rel")
+            return state_index["parent_param"][...,idx*min_size:(idx+1)*min_size]
         elif form == "param_relative":
             if idx == -1: return self.norm((state_index['target_raw'] - state_index['param']) * state_index["mask"] , form="diff")
             return state_index["target_param"][...,idx*self.target_size:(idx+1)*self.target_size]
@@ -286,7 +293,13 @@ class ObservationExtractor():
             combine_multi(max(self.max_additional_objects), self.multi_order, combined)
         return np.concatenate(combined, axis=-1)
 
+
     def get_where(self, name):
+        def add_last(last_name):
+            last_name, aidx = self.convert_additional_name(last_name)
+            if aidx >= 0: last_value = self.single_size_index[last_name][aidx]
+            else: last_value = self.single_size_index[last_name]
+            return last_name, last_value
         def up_to(name, order, size_index):
             at = 0
             for n in order:
@@ -298,13 +311,16 @@ class ObservationExtractor():
             return at
         if name in self.single_order:
             return up_to(name, self.single_order, self.size_index), 0, 0
-        single_order_len = up_to(self.single_order[-1], self.single_order, self.size_index) + self.single_size_index[self.single_order[-1]]
+        last_single, last_value = add_last(self.single_order[-1])
+        single_order_len = up_to(self.single_order[-1], self.single_order, self.size_index) + last_value
         if name in self.multi_order:
             return single_order_len, up_to(name, self.multi_order, self.single_size_index), self.target_obj_dim
-        multi_order_len = single_order_len + up_to(self.multi_order[-1], self.multi_order, self.size_index) + self.size_index[self.multi_order[-1]]
+        last_multi, last_value = add_last(self.multi_order[-1])
+        multi_order_len = single_order_len + up_to(self.multi_order[-1], self.multi_order, self.size_index) + last_value
         if name in self.multi_second_order:
             return multi_order_len, up_to(name, self.multi_second_order, self.single_size_index), self.parent_obj_dim
-        multi_second_order_len = multi_order_len + up_to(self.multi_second_order[-1], self.multi_second_order, self.size_index) + self.size_index[self.multi_second_order[-1]]
+        last_multi_second , last_value = add_last(self.multi_second_order[-1])
+        multi_second_order_len = multi_order_len + up_to(self.multi_second_order[-1], self.multi_second_order, self.size_index) + last_value
         if name in self.multi_third_order:
             return multi_second_order_len, up_to(name, self.multi_third_order, self.single_size_index), self.additional_obj_dims
         print("invalid name")

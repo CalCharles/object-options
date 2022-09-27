@@ -45,6 +45,20 @@ def construct_object_selector(names, environment, masks=None):
         factored[name] = np.arange(sze)[np.array(mask).astype(bool)]
     return FeatureSelector(factored, names, multiinstanced={name: environment.object_instanced[name] != 1 for name in names})
 
+def construct_object_selector_dict(names, object_sizes, object_instanced, masks=None):
+    '''
+    constructs a selector to select the elements of all the objects in names\
+    masks will select particular features from that object, one mask for each object
+    This should be the only entry point for constructing feature selectors
+    '''
+    factored = dict()
+    if masks is None: masks = [np.ones(object_sizes[name]) for name in names] # if no masks select all features
+    for mask, name in zip(masks, names):
+        sze = object_sizes[name]
+        factored[name] = np.arange(sze)[np.array(mask).astype(bool)]
+    return FeatureSelector(factored, names, multiinstanced={name: object_instanced[name] != 1 for name in names})
+
+
 def numpy_factored(factored_state):
     for n in factored_state.keys():
         factored_state[n] = np.array(factored_state[n])
@@ -83,7 +97,7 @@ class FeatureSelector():
         target shape can be [batchlen, factored feature shape], or [factored feature shape] 
         '''
         if len(self.names) == 0: return np.zeros(states["Action"].shape) # return a dummy value
-        if hasattr(self, "multiinstanced") and self.multiinstanced and np.any([mi for mi in self.multiinstanced.values()]):
+        if self.multiinstanced and np.any([mi for mi in self.multiinstanced.values()]):
             cut_state = list()
             for name in self.names:
                 if self.multiinstanced[name]: # iterates through all of the instances

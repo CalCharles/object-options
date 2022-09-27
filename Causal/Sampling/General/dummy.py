@@ -16,5 +16,5 @@ class DummySampler(Sampler): # samples only from existing objects (last element,
         '''
         target = self.target_selector(full_state["factored_state"])
         if len(target.shape) > 1:
-            return np.ones(target.shape[0], self.obj_dim)
-        return np.ones(self.obj_dim)
+            return np.ones((target.shape[0], self.obj_dim)), np.ones((target.shape[0], self.obj_dim))
+        return np.ones(self.obj_dim), np.ones(target.shape[0])

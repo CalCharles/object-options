@@ -11,6 +11,28 @@ def construct_selectors(object_names, environment):
     inter_select = construct_object_selector(object_names.parents + [object_names.target], environment)
     return target_select, parent_selectors, additional_select, parent_select, inter_select
 
+class FullExtractor():
+	def __init__(self, target_name, environment):
+		self.name = target_name
+		self.name_order = environment.object_names
+		self.target_index = environment.object_names.index(self.name)
+		self.inter_selector = construct_object_selector(self.name_order, environment)
+		self.parents = copy.deepcopy(self.name_order).pop(self.target_index)
+		self.parent_selector = construct_object_selector(self.name_order)
+		self.target_selector = construct_object_selector([self.name], environment)
+
+		self.total_target_size = int(self.max_target * environment.object_sizes[self.names.target])
+		self.total_parent_size = int(np.sum([environment.object_instanced[n] * environment.object_sizes[n] for n in self.parents]))
+		self.total_inter_size = int(np.sum([environment.object_instanced[n] * environment.object_sizes[n] for n in self.name_order]))
+		self.total_object_sizes = [int(environment.object_instanced[n] * environment.object_sizes[n]) for n in self.name_order]
+
+		self.target_dim, self.object_dims = self._get_dims(environment)
+
+	def _get_dims(self, environment):
+		return environment.object_sizes[self.names.target], [environment.object_sizes[n] for n in self.name_order]
+
+	def get_selectors(self):
+		return self.inter_selector, self.parent_selector, self.target_selector
 
 class CausalExtractor():
 	def __init__(self, object_names, environment):

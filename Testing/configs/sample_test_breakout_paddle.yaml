@@ -1,0 +1,13 @@
+---
+  debug:
+    run_test: sample
+    collect_mode: False
+  record:
+    load_dir: /nfs/data/calebc/object_data/breakout/testrun_bounce6/
+  environment:
+    env: Breakout
+    demonstrate: True
+  train:
+    train: True
+    train_edge: Action Paddle
+...

@@ -89,6 +89,7 @@ def _init_critic(args, NetType, discrete_actions, action_shape, input_shape, fin
     # initializes critic network and optimizer
     cinp_shape = int(input_shape) if discrete_actions else int(input_shape + action_shape)
     cout_shape = int(action_shape) if discrete_actions else args.hidden_sizes[-1]
+    print(input_shape, action_shape, cinp_shape, cout_shape, args.hidden_sizes)
     critic = NetType(num_inputs=cinp_shape, num_outputs=cout_shape, action_dim=int(discrete_actions * action_shape), aggregate_final=True, continuous_critic=not discrete_actions, **args)
     if final_layer:
         if discrete_actions: critic = dCritic(critic, last_size=action_shape, device=device).to(device)
@@ -114,6 +115,7 @@ def init_networks(args, input_shape, action_shape, discrete_actions):
 
     NetType = networks[args.actor_net.net_type] # TODO: have two sets of arguments
     args.actor_net.cuda = args.torch.cuda
+    args.actor_net.pair.aggregate_final, args.critic_net.pair.aggregate_final = True, True # TODO: object-centric decisionmaking not implemented
     # shared actor initialization
     if needs_actor: # only actor-critic or actor algorithms need an actor
         # args.unbounded defines whether the action space is bounded
@@ -128,7 +130,7 @@ def init_networks(args, input_shape, action_shape, discrete_actions):
 
     # initialize critic
     NetType = networks[args.critic_net.net_type] if args.policy.learning_type != "rainbow" else networks["rainbow"] # TODO: have two sets of arguments
-    args.critic_net.pair.first_obj_dim += action_shape * int(not discrete_actions)
+    if args.critic_net.net_type == "pair": args.critic_net.pair.first_obj_dim += action_shape * int(not discrete_actions)
     args.critic_net.hidden_sizes = np.array(args.critic_net.hidden_sizes).astype(int)
     args.critic_net.cuda = args.torch.cuda
     args.critic_net.num_atoms, args.critic_net.is_dueling = args.policy.rainbow.num_atoms, args.policy.rainbow.is_dueling

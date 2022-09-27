@@ -19,6 +19,7 @@ class Environment():
         self.name = "ABSTRACT_BASE" # required for an environment 
         self.discrete_actions = True
         self.frameskip = 1 # no frameskip
+        self.transpose = True # transposes the visual domain
 
         # spaces
         self.action_shape = (1,) # should be set in the environment, (1,) is for discrete action environments
@@ -36,14 +37,16 @@ class Environment():
         self.itr = 0
 
         # factorized state properties
+        self.all_names = [] # must be initialized, the names of all the objects including multi-instanced ones
         self.object_names = [] # must be initialized, a list of names that controls the ordering of things
         self.object_sizes = dict() # must be initialized, a dictionary of name to length of the state
         self.object_range = dict() # the minimum and maximum values for a given feature of an object
         self.object_dynamics = dict() # the most that an object can change in a single time step
         self.object_instanced = dict() # name of object to max number of objects of that type
+        self.object_proximal = dict() # name of object to whether that object has valid proximity
 
         # proximity state components
-        self.position_masks = dict() 
+        self.position_masks = dict()
 
     def step(self, action):
         '''
@@ -95,6 +98,10 @@ class Environment():
         '''
         pass
 
+    def get_info(self): # returns the info, the most important value is TimeLimit.truncated, can be overriden
+        return {"TimeLimit.truncated": False}
+
+
     def toString(self):
         '''
         creates a string form of the current extracted state of the environment (typically a dictionary of object name to object state)
@@ -120,21 +127,33 @@ class Environment():
         '''
         pass
 
-    def get_trace(self, factored_state, action, object_names):
-        '''
-        gets the interaction between objects specified in the names, if possible
-        defaults to returning [1] (list because the target/parent object might have multiple instances TODO: multiple instances of both target and parent)
-        '''
-        return [1]
+    def current_trace(self, names):
+        targets = [self.object_name_dict[names.target]] if type(self.object_name_dict[names.target]) != list else self.object_name_dict[names.target]
+        traces = list()
+        for target in targets:
+            if self.object_name_dict[names.primary_parent].name in target.interaction_trace:
+                traces.append(1)
+            else:
+                traces.append(0)
+        return traces
 
-    def current_trace(self, object_names):
-        '''
-        gets the interaction between objects specified in the names, if possible
-        at the current timestep
-        defaults to returning [1] (list because the target/parent object might have multiple instances TODO: multiple instances of both target and parent)
-        '''
-        return [1]
+    def get_trace(self, factored_state, action, names):
+        # gets the trace for a factored state, using the screen. If we don't want to screen to change, use a dummy screen here
+        self.set_from_factored_state(factored_state)
+        self.step(action)
+        return self.current_trace(names)
 
+    def get_full_trace(self, factored_state, action):
+        self.set_from_factored_state(factored_state)
+        self.step(action)
+        traces = dict()
+        for target in self.all_names:
+            if self.can_interact[target]:
+                traces[target] = np.zeros(len(self.all_names)).tolist()
+                continue
+            target_traces = [int(self.object_name_dict[val].name in target.interaction_trace) for val in self.all_names]
+            traces[target] = target_traces
+        return traces
 
     def demonstrate(self):
         '''

@@ -6,6 +6,8 @@ def compute_norm(mean, var, state):
 	state = pytorch_model.unwrap(state)
 	if state.shape[-1] == len(mean): # not multiple instanced
 		return (state - mean) / var
+	elif state.shape[-1] < len(mean): # using the first n elements
+		return (state - mean[:state.shape[-1]]) / var[:state.shape[-1]]
 	mean, var = broadcast(mean, state.shape[-1] // len(var)),  broadcast(var, state.shape[-1] // len(var))
 	return (state - mean) / var
 
@@ -13,6 +15,8 @@ def compute_reverse(mean,var, state):
 	state = pytorch_model.unwrap(state)
 	if state.shape[-1] == len(mean): # not multiple instanced
 		return state * var + mean
+	elif state.shape[-1] < len(mean): # using the first n elements
+		return state * var[:state.shape[-1]] + mean[:state.shape[-1]]
 	mean, var = broadcast(mean, state.shape[-1] // len(var)),  broadcast(var, state.shape[-1] // len(var))
 	return state * var + mean	
 
@@ -21,7 +25,7 @@ def generate_multiobject_norm(nl_dict, names, object_counts):
 	secondv = np.concatenate([(broadcast(nl_dict[n][1], object_counts[n])) for n in names], axis=-1)
 	return (firstv, secondv) 
 
-class NormalizationModule():
+class NormalizationModule(): # TODO: FULL REWRITE TO HANDLE INSTANCED-COUNTED STATE
 	def __init__(self, lim_dict, dynamics_dict, object_names, object_counts, inter_names):
 		# @param inter_names is the ordering of the names for the interaction state
 		self.lim_dict = lim_dict # the bounds of positions for where an object can be
@@ -55,7 +59,7 @@ class NormalizationModule():
 		# logic for partial additional uss an integer after "additional"
 		if form.find("additional") != -1 and form != "additional": norm = self.norm_forms["additional_part"][int(form[len("additional"):])]
 		else: norm = self.norm_forms[form]
-		if norm is None: return state
+		if norm is None: return None, None
 		mean = norm[0][idxes] if idxes is not None else norm[0]
 		var = norm[1][idxes] if idxes is not None else norm[1]
 		return mean, var
@@ -67,11 +71,13 @@ class NormalizationModule():
 		'''
 		mean, var = self.get_mean_var(form, idxes)
 		# print(state, mean,var, form)
+		if mean is None: return state
 		return compute_norm(mean, var, state)
 
 	def reverse(self, state, form = "target", idxes=None):
 		mean, var = self.get_mean_var(form, idxes)
 		# print(state, mean, var, form)
+		if mean is None: return state
 		return compute_reverse(mean, var, state)
 
 	def clip(self, state, form="target"):
@@ -87,8 +93,9 @@ class MappedNorm(): # performs normalization for a masked out component
 		self.mapped_norm, self.mapped_lim = (self.norm_dict[target][0][mask], self.norm_dict[target][1][mask]), (self.lim_dict[target][0][mask], self.lim_dict[target][1][mask])
 		self.mapped_dynamics = dynamics_dict[target][1][mask] # assumes dynamics dict is symetric
 		self.mask = mask
+		self.norm = self.__call__
 
-	def norm(self, state):
+	def __call__(self, state):
 		mean = self.mapped_norm[0]
 		var = self.mapped_norm[1]
 		return compute_norm(mean, var, state)

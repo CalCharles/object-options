@@ -12,7 +12,7 @@ from State.observation_extractor import COMPONENT_NAMES
 
 
 
-def trainRL(args, train_collector, test_collector, option, graph,  loggers):
+def trainRL(args, train_collector, test_collector, option, graph,  loggers, keep_losses=None):
     '''
     Run the RL train loop
     '''
@@ -21,10 +21,12 @@ def trainRL(args, train_collector, test_collector, option, graph,  loggers):
     start = time.time()
     # collect initial random actions
     train_collector.reset_env()
+    print("running random")
     if len(args.record.pretrain_dir) == 0: pretrain_result = train_collector.collect(n_step=args.train.pretrain_frames, random=True) # param doesn't matter with random actions
     else: 
         train_collector.load(os.path.join(args.record.pretrain_dir, "pretrain_buffers.bf"))
         pretrain_result = load_from_pickle(os.path.join(args.record.pretrain_dir, "pretrain_result.pkl"))
+    print("after random")
     train_logger.log_results(pretrain_result)
     # buffer_printouts(args, train_collector, option)
     
@@ -34,14 +36,15 @@ def trainRL(args, train_collector, test_collector, option, graph,  loggers):
 
     # collect initial test trials
     collect_test_trials(initial_logger, option, test_collector, args.policy.logging.max_terminate_step, 0, args.policy.logging.initial_trials, True)
-    initial_perf, initial_success = initial_logger.print_log(0, force=True)
+    initial_perf, initial_success, initial_string = initial_logger.print_log(0, force=True)
 
     if args.policy.learn.post_random_iters > 0:
         for i in range(args.policy.learn.post_random_iters):
             losses = option.policy.update(args.train.batch_size, train_collector.buffer, train_collector.her_buffer)
             train_logger.log_losses(losses)
             train_logger.print_losses(i)
-            
+            if keep_losses is not None: keep_losses.append(losses)
+
     for i in range(args.train.num_iters):  # total step
         tc_iter_start = time.time()
         collect_result = train_collector.collect(n_step=args.train.num_steps, demonstrate = args.collect.demonstrate_option) # TODO: make n-episode a usable parameter for collect
@@ -49,6 +52,7 @@ def trainRL(args, train_collector, test_collector, option, graph,  loggers):
 
         train_logger.log_results(collect_result)
         tc_logging = time.time()
+        print("running iter: ", i)
         if i % args.policy.logging.log_interval == 0:
             collect_test_trials(test_logger, option, test_collector, args.policy.logging.max_terminate_step, i, args.policy.logging.initial_trials, False)
         # train option.policy with a sampled batch data from buffer
@@ -56,6 +60,7 @@ def trainRL(args, train_collector, test_collector, option, graph,  loggers):
         losses = option.policy.update(args.train.batch_size, train_collector.buffer, train_collector.her_buffer)
         tc_train = time.time()
         train_logger.log_losses(losses)
+        if keep_losses is not None: keep_losses.append(losses)
         if option.inline_trainer.train: option.inline_trainer.run_train(i, train_collector.full_buffer)
 
         # only prints if log interval is reached
@@ -80,6 +85,7 @@ def trainRL(args, train_collector, test_collector, option, graph,  loggers):
                     losses = option.policy.update(args.train.batch_size, train_collector.buffer, train_collector.her_buffer)
                     train_logger.log_losses(losses)
                     train_logger.print_losses(i)
+                    if keep_losses is not None: keep_losses.append(losses)
         tc_primacy = time.time()
 
         perf_times = collect_result["perf"]
@@ -95,7 +101,7 @@ def trainRL(args, train_collector, test_collector, option, graph,  loggers):
     test_logger.print_log(i, force=True)
     test_logger.reset()
     collect_test_trials(test_logger, option, test_collector, args.policy.logging.max_terminate_step, i, args.policy.logging.initial_trials, False)
-    final_perf, final_success = test_logger.print_log(i, force=True)
+    final_perf, final_success, final_string = test_logger.print_log(i, force=True)
 
     logging.info(f"performance comparison: {initial_perf}, {final_perf}")
     print("performance comparison", initial_perf, final_perf)

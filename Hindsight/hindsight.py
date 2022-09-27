@@ -101,11 +101,12 @@ class Hindsight():
                 return True
         return False
 
-    def record_state(self, her_buffer, full_batch, single_batch, added):
+    def record_state(self, her_buffer, full_batch, single_batch, added, debug=False):
         '''
         full_batch is (state, next_state) from the aggregator, handling temporal extension
         single_batch is (state, next_state) according to the environment
         '''
+        debug_list = list()
 
         # add the new state for a single set. We need every individual state for reward computation
         self.single_batch_queue.append(copy.deepcopy(single_batch))
@@ -170,6 +171,7 @@ class Hindsight():
                                 # print(self.terminate_reward.inter_extract(full_state, norm=True)), pytorch_model.unwrap(self.terminate_reward.interaction_model.interaction(self.terminate_reward.inter_extract(full_state, norm=True))))
                                 # print("adding", her_batch.target, her_batch.next_target, her_batch.inter, her_batch.old_inter, her_batch.rew, her_batch.done, her_batch.param)
                                 self.at, ep_rew, ep_len, ep_idx = her_buffer.add(her_batch, buffer_ids=[0])
+                                if debug: debug_list.append(copy.deepcopy(her_batch))
                                 early_stopping_counter += int(np.any(her_batch.done))
                                 if early_stopping_counter >= self.early_stopping:
                                     break
@@ -185,7 +187,7 @@ class Hindsight():
         # since this was called, a between replay counter must be appended
         if added and not resetted: 
             self.between_replay.append(self.between_replay_counter)
-        return self.at
+        return self.at, debug_list
 
     def get_buffer_idx(self):
         return self.at

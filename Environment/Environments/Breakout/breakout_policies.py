@@ -1,3 +1,6 @@
+import numpy as np
+import copy
+from Environment.Environments.Breakout.breakout_screen import Breakout
 
 class Policy():
     def act(self, screen):
@@ -73,7 +76,7 @@ class BouncePolicy(Policy):
 class AnglePolicy(Policy):
     def __init__(self, action_space):
         self.action_space = action_space
-        self.internal_screen = Screen(angle_mode = False)
+        self.internal_screen = Breakout()
         self.objective_location = 84//2
         self.last_paddlehits = -1
         self.counter = 0
@@ -91,18 +94,7 @@ class AnglePolicy(Policy):
         else:
             return 0
 
-    def get_angle(self, screen):
-        # frame = screen.render_frame()
-        # cv2.imshow('frame',frame)
-        # key = cv2.waitKey(30)
-        return self.counter
-
-
     def act(self, screen, angle=0, force=False):
-        # print(screen.ball.paddlehits, screen.ball.losses, self.last_paddlehits)
-        if screen.used_angle:
-        #     # print(self.counter)
-            self.counter = np.random.randint(4)
         if screen.ball.vel[0] > 0 and 46 <= screen.ball.pos[0] <= 47 or screen.ball.vel[0] < 0 and 67 <= screen.ball.pos[0] <= 68 or force:
             if (screen.ball.paddlehits + screen.ball.losses == 0 and self.last_paddlehits != 0):
                 self.last_paddlehits = 0

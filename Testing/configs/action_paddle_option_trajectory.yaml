@@ -1,0 +1,83 @@
+---
+  debug:
+    run_test: construct_option
+    collect_mode: True
+  record:
+    # record_rollouts: /hdd/datasets/object_data/unit_test_data/Breakout/paddle/
+    save_action: True
+    record_recycle: -1
+    # log_filename: logs/temp/ball_test.log
+    # log_filename: logs/temp/paddle_train.log
+    load_dir: /nfs/data/calebc/object_data/breakout/testrun/
+    # save_dir: /nfs/data/calebc/object_data/breakout/testrun/
+    # checkpoint_dir: /nfs/data/calebc/object_data/breakout/testrun/action_paddle_checkpoint
+    # load_checkpoint: /nfs/data/calebc/object_data/breakout/testrun_inline/action_paddle_checkpoint
+    save_interval: 100
+  environment:
+    env: Breakout
+    variant: drop_stopping
+  torch:
+    gpu: 0
+    no_cuda: False
+  critic_net:
+  actor_net:
+  network:
+    hidden_sizes: 128 128 128
+    net_type: basic
+    activation_final: tanh
+    scale_logits: 30
+    optimizer:
+      lr: .0007
+      alt_lr: .0001
+      eps: .00001
+      alpha: 0.99
+      betas: 0.9 0.999
+      weight_decay: 0.00
+  train:
+    train: True
+    pretrain_frames: 100
+    num_steps: 100
+    num_frames: 1000
+    num_iters: 25
+    batch_size: 64
+    train_edge: Action Paddle
+    load_rollouts: /hdd/datasets/object_data/unit_test_data/Breakout/paddle/
+  option:
+    term_form: combined
+    term_as_done: True
+    epsilon_close: 1
+    param_norm: 1
+    constant_lambda: -1
+    param_lambda: 1
+    inter_lambda: 0
+    temporal_extend: 20
+    time_cutoff: 30
+  extract:
+    single_obs_setting: 1 0 0 1 0 0
+    relative_obs_setting: 0 0 0 1
+  collect:
+    buffer_len : 3000
+    test_episode: True
+    max_steps: 1000
+    demonstrate_option: True
+  sample:
+    sample_type: cent
+    sample_distance: 0.3
+    sample_schedule: 200
+    param_recycle: 2
+  hindsight:
+    use_her: True
+  policy:
+    epsilon_random: 0.1
+    max_critic: 30
+    logging:
+      log_interval: 10
+      train_log_maxlen: 5
+      test_log_maxlen: 50
+      initial_trials: 20
+      test_trials: 10
+      max_terminate_step: 1 30
+    learn:
+      grad_epoch: 100
+      sample_form: merged
+...

@@ -19,17 +19,19 @@ from Hindsight.hindsight import Hindsight
 from Option.temporal_extension_manager import TemporalExtensionManager
 from Causal.Training.inline_trainer import InlineTrainer
 
-if __name__ == '__main__':
-    args = get_args()
-    print(args)
-    torch.manual_seed(args.torch.torch_seed)
-    torch.cuda.set_device(args.torch.gpu)
-    np.set_printoptions(threshold=3000, linewidth=120, precision=4, suppress=True)
-    torch.set_printoptions(precision=4, sci_mode=False)
+def init_policy(args, models):
+    args.actor_net.pair.first_obj_dim, args.actor_net.pair.object_dim, args.actor_net.pair.aggregate_final = models.state_extractor.first_obj_dim, models.state_extractor.obj_dim, True
+    args.critic_net.pair.first_obj_dim, args.critic_net.pair.object_dim, args.critic_net.pair.aggregate_final = models.state_extractor.first_obj_dim, models.state_extractor.obj_dim, True
+    args.actor_net.pair.post_dim = -1 if args.actor_net.pair.post_dim == -1 else models.state_extractor.post_dim
+    args.critic_net.pair.post_dim = -1 if args.critic_net.pair.post_dim == -1 else models.state_extractor.post_dim
+    policy = Policy(models.action_map.discrete_actions, models.state_extractor.total_size, models.action_map.policy_action_space, args)
+    return policy
 
+def init_option(args):
     environment, record = initialize_environment(args.environment, args.record)
     test_environment, test_record = initialize_environment(args.environment, args.record)
-    object_names = init_names(args)
+    object_names = init_names(args.train.train_edge)
+    args.object_names = object_names
 
     # initializes the graph or loads it from args.record.load_dir
     graph = load_graph(args.record.load_dir, args.torch.gpu) # device is needed to load options properly
@@ -65,28 +67,44 @@ if __name__ == '__main__':
 
     models.temporal_extension_manager = TemporalExtensionManager(args.option)
 
-    args.actor_net.pair.first_obj_dim, args.actor_net.pair.object_dim, args.actor_net.pair.aggregate_final = models.state_extractor.first_obj_dim, models.state_extractor.obj_dim, True
-    args.critic_net.pair.first_obj_dim, args.critic_net.pair.object_dim, args.critic_net.pair.aggregate_final = models.state_extractor.first_obj_dim, models.state_extractor.obj_dim, True
-    args.actor_net.pair.post_dim = -1 if args.actor_net.pair.post_dim == -1 else models.state_extractor.post_dim
-    args.critic_net.pair.post_dim = -1 if args.critic_net.pair.post_dim == -1 else models.state_extractor.post_dim
-    policy = Policy(models.action_map.discrete_actions, models.state_extractor.total_size, models.action_map.policy_action_space, args)
+    policy = init_policy(args, models)
 
     option = Option(args, policy, models, parent_option) if len(args.record.load_checkpoint) == 0 else graph.nodes[object_names.target].option
     if args.torch.cuda: option.cuda(device=args.torch.gpu)
+    return environment, test_environment, record, test_record, option, models, policy, graph, object_names  
+
+def init_buffer(args, option, policy, graph, environment, test_environment, record, test_record, models):
     train_buffer, test_buffer = instantiate_buffers(args, models)
 
+    interaction_model = models.interaction_model
     args.collect.env_reset = environment.self_reset
     hindsight = Hindsight(args, option, interaction_model) if args.hindsight.use_her else None
     train_collector = OptionCollector(policy, environment, train_buffer, args.policy.epsilon_random > 0, option, hindsight, False, interaction_model.multi_instanced, record, args)
+    save_action, args.record.save_action = args.record.save_action, False
     test_collector = OptionCollector(policy, test_environment, test_buffer, False, option, None, True, interaction_model.multi_instanced, None, args)
+    args.record.save_action = save_action
 
-    graph.nodes[object_names.target].option = option
+    graph.nodes[args.object_names.target].option = option
     if args.record.presave_graph: graph.save(args.record.save_dir)
-    train_logger = RLLogger(object_names.target + "_train", args.record.record_graphs, args.policy.logging.log_interval, args.policy.logging.train_log_maxlen, args.record.log_filename)
-    test_logger = RLLogger(object_names.target + "_test", args.record.record_graphs, args.policy.logging.log_interval, args.policy.logging.test_log_maxlen)
-    initial_logger = RLLogger(object_names.target + "_initial", args.record.record_graphs, args.policy.logging.log_interval, 2)
+    train_logger = RLLogger(args.object_names.target + "_train", args.record.record_graphs, args.policy.logging.log_interval, args.policy.logging.train_log_maxlen, args.record.log_filename)
+    test_logger = RLLogger(args.object_names.target + "_test", args.record.record_graphs, args.policy.logging.log_interval, args.policy.logging.test_log_maxlen)
+    initial_logger = RLLogger(args.object_names.target + "_initial", args.record.record_graphs, args.policy.logging.log_interval, 2)
     logging.info("config: " + str(args))
     option.zero_below_grads(True)
+    return train_buffer, test_buffer, hindsight, train_collector, test_collector, train_logger, test_logger, initial_logger
+
+if __name__ == '__main__':
+    args = get_args()
+    print(args)
+    torch.manual_seed(args.torch.torch_seed)
+    torch.cuda.set_device(args.torch.gpu)
+    np.set_printoptions(threshold=3000, linewidth=120, precision=4, suppress=True)
+    torch.set_printoptions(precision=4, sci_mode=False)
+
+    environment, test_environment, record, test_record, option, models, policy, graph, object_names = init_option(args)
+
+    train_buffer, test_buffer, hindsight, train_collector, test_collector, train_logger, test_logger, initial_logger = init_buffer(args, option, policy, graph, environment, test_environment, record, test_record, models)
+
     trainRL(args, train_collector, test_collector, option, graph, (train_logger, test_logger, initial_logger))
 
     if len(args.record.save_dir) > 0: graph.save(args.record.save_dir)

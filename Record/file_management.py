@@ -11,7 +11,7 @@ def load_from_pickle(pth):
 
 def save_to_pickle(pth, val):
     try:
-        splt_path = pth.split("/")[:-1]
+        splt_path = os.path.split(pth)[0]#.split("/")[:-1]
         target = os.path.join(*splt_path)
         if splt_path[0] == "":
             target = "/" + target
@@ -26,7 +26,7 @@ def save_to_pickle(pth, val):
 def create_directory(pth, drop_last = False):
     new_pth = pth
     if drop_last:
-        new_pth = os.path.join(*os.path.split(pth)[:-1])
+        new_pth = os.path.split(pth)[0]#os.path.join(*os.path.split(pth)[:-1])
         if len(new_pth) == 0:
             return pth
     try:
@@ -184,12 +184,14 @@ def display_frame(frame, waitkey=10, rescale=-1):
     cv2.imshow('image',frame)
     cv2.waitKey(waitkey) # waits until a key is pressed
 
-def display_param(frame, param, waitkey=10, rescale=-1, dot=True):
+def display_param(frame, param, waitkey=10, rescale=-1, dot=True, transpose = True):
     param = copy.deepcopy(param)
     if param is not None:
         loc = param.squeeze()[:2]
+        if transpose: loc[0], loc[1] = loc[1], loc[0]
         angle = None
         if len(param.squeeze()) >= 4:
+            if transpose: param[...,2], param[...,3] =  param[...,3], param[...,2]
             angle = param.squeeze()[2:4]
             angle[1] = - angle[1]
         color = (0,128,0)
@@ -197,7 +199,7 @@ def display_param(frame, param, waitkey=10, rescale=-1, dot=True):
             if param.squeeze()[len(param.squeeze()) - 1:] < 0.5:
                 color = (0,0,128)
         frame = np.stack([frame.copy() for i in range(3)], axis = -1)
-
+        print(loc, angle)
         if angle is not None:
             cv2.line(frame, loc.astype(int), (loc + 2 * angle).astype(int), color,2)
         else:

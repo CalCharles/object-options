@@ -16,7 +16,7 @@ def testRL(args, collector, option, graph, logger, full_logger):
     '''
     logger.logout("observation: " + str([COMPONENT_NAMES[i] for i in range(len(option.state_extractor.obs_setting)) if option.state_extractor.obs_setting[i] == 1]))
     for i in range(args.train.num_iters):  # total step
-        full_results = collect_test_trials(logger, option, collector, args.policy.logging.max_terminate_step, i, args.policy.logging.initial_trials, False)
+        full_results = collect_test_trials(logger, option, collector, args.policy.logging.max_terminate_step, i, args.policy.logging.initial_trials, False, args.collect.demonstrate_option)
 
         # only prints if log interval is reached
         logger.print_log(i)

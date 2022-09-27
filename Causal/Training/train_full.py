@@ -52,6 +52,7 @@ def train_full(full_model, rollouts, test_rollout, args, object_names, environme
     proximal = get_error(full_model, rollouts, error_type=error_types.PROXIMITY).astype(int)
     proximal_inst = get_error(full_model, rollouts, error_type=error_types.PROXIMITY, reduced=False).astype(int) # the same as above if not multiinstanced
     non_proximal = (proximal != True).astype(int)
+    non_proximal_inst = (proximal_inst != True).astype(int)
     non_proximal_weights = non_proximal.squeeze() / np.sum(non_proximal) if np.sum(non_proximal) != 0 else np.ones(non_proximal.shape) / len(non_proximal)
 
     train_passive(full_model, rollouts, args, active_optimizer, passive_optimizer, weights=non_proximal_weights if full_model.proximity_epsilon > 0 else None)
@@ -71,7 +72,6 @@ def train_full(full_model, rollouts, test_rollout, args, object_names, environme
         torch.save(full_model.interaction_model, os.path.join(args.inter.save_intermediate, environment.name + "_" + full_model.name + "_interaction_model.pt"))
 
     if len(args.inter.load_intermediate) > 0: full_model.passive_model, full_model.active_model, full_model.interaction_model, active_optimizer, passive_optimizer, interaction_optimizer = load_intermediate(args, full_model, environment)
-
     # sampling weights, either wit hthe passive error or if we can upweight the true interactions
     passive_error, active_weights, binaries = separate_weights(args.inter.active.weighting, full_model, rollouts, proximal, trace if args.inter.interaction.interaction_pretrain > 0 else None)
     interaction_weights = get_weights(args.inter.active.weighting[2], rollouts.weight_binary)

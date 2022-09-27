@@ -19,7 +19,8 @@ if __name__ == '__main__':
 
     environment, record = initialize_environment(args.environment, args.record)
     test_environment, test_record = initialize_environment(args.environment, args.record)
-    object_names = init_names(args)
+    object_names = init_names(args.train.train_edge)
+    args.object_names = object_names
 
     # initializes the graph or loads it from args.record.load_dir
     graph = load_graph(args.record.load_dir, args.torch.gpu) # device is needed to load options properly

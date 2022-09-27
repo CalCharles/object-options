@@ -4,7 +4,15 @@ from ReinforcementLearning.utils.RL_logger import RLLogger
 from ReinforcementLearning.policy import Policy
 from Record.file_management import load_from_pickle
 
-def small_test(args, file_path, discrete_actions, total_size, policy_action_space, num_iters, log_interval, batch_size):
+def small_test(args):
+    graph = load_graph(args.record.load_dir, args.torch.gpu)
+    object_names = init_names(args)
+    print(graph.nodes[object_names.target].option, object_names.target)
+    target_option = graph.nodes[object_names.target].option
+    discrete_actions = target_option.action_map.discrete_actions
+    total_size = target_option.state_extractor.total_size
+    policy_action_space = target_option.action_map.policy_action_space
+    file_path = os.path.join(args.record.checkpoint_dir, "pretrain_buffers.bf")
     rollouts = load_from_pickle(file_path)
     train_logger = RLLogger("train", "", log_interval, 1000, "")
 

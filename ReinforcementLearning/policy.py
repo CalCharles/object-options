@@ -133,6 +133,49 @@ class Policy(nn.Module):
             self.epsilon = self.epsilon_base + (1-self.epsilon_base) * np.exp(-max(0, self.epsilon_timer - self.pretrain_iters)/self.epsilon_schedule) 
             self.set_eps(self.epsilon)
 
+    def sample_indices(self, sample_size, her_buffer, buffer, pre_chosen=None):
+        her_batch, her_indice, main_batch, main_indice = None, None, None, None
+        if self.sample_form == "HER":
+            if len(her_buffer) < self.MIN_HER: # nothing to sample 
+                return {}
+            if pre_chosen is None: 
+                batch, indice = her_buffer.sample(sample_size)
+            else:
+                batch, indice = her_buffer[pre_chosen["her"]], pre_chosen["her"]
+            batch = self.algo_policy.process_fn(her_batch, her_buffer, indice)
+        elif self.sample_form == "merged" and len(her_buffer) > self.MIN_HER:
+            if buffer is None or her_buffer is None:
+                return {}
+            self.algo_policy.updating = True
+
+            # sample from the main buffer and assign returns
+            if pre_chosen is None: 
+                main_batch, main_indice = buffer.sample(int(np.round(sample_size * (1-self.select_positive))))
+            else:
+                main_batch, main_indice = buffer[pre_chosen["main"]], pre_chosen["main"]
+            main_batch = self.algo_policy.process_fn(main_batch, buffer, main_indice)
+
+            # sample from the HER buffer and assign returns
+            if pre_chosen is None: 
+                her_batch, her_indice = her_buffer.sample(int(np.round(sample_size * self.select_positive)))
+            else:
+                her_batch, her_indice = her_buffer[pre_chosen["her"]], pre_chosen["her"]
+            her_batch = self.algo_policy.process_fn(her_batch, her_buffer, her_indice)
+            
+            batch = main_batch
+            batch.cat_([her_batch])
+            indice = np.concatenate([main_indice, her_indice]) 
+        else:
+            if pre_chosen is None: 
+                use_buffer = her_buffer if np.random.rand() < self.select_positive and self.use_her and len(her_buffer) > self.MIN_HER else buffer
+                batch, indice = use_buffer.sample(sample_size)
+                batch = self.algo_policy.process_fn(batch, use_buffer, indice)
+            else:
+                batch, indice = buffer[pre_chosen["main"]], pre_chosen["main"]
+                batch = self.algo_policy.process_fn(batch, buffer, indice)
+        return batch, indice, her_batch, her_indice, main_batch, main_indice
+
+
     def update(
         self, sample_size: int, buffer: Optional[ReplayBuffer], her_buffer: Optional[ReplayBuffer], **kwargs: Any
     ) -> Dict[str, Any]:
@@ -140,34 +183,10 @@ class Policy(nn.Module):
         don't call the algo_policy update, but carries almost the same logic
         however, inserting the param needs to be handled.
         '''
+        pre_chosen = None if "pre_chosen" not in kwargs else kwargs["pre_chosen"]
         for i in range(self.grad_epoch):
             use_buffer = buffer
-            if self.sample_form == "HER":
-                if len(her_buffer) < self.MIN_HER: # nothing to sample 
-                    return {}
-                her_batch, indice = her_buffer.sample(sample_size)
-                batch = self.algo_policy.process_fn(her_batch, her_buffer, indice)
-            elif self.sample_form == "merged" and len(her_buffer) > self.MIN_HER:
-                if buffer is None or her_buffer is None:
-                    return {}
-                self.algo_policy.updating = True
-
-                # sample from the main buffer and assign returns
-                main_batch, main_indice = buffer.sample(int(np.round(sample_size * (1-self.select_positive))))
-                main_batch = self.algo_policy.process_fn(main_batch, buffer, main_indice)
-
-                # sample from the HER buffer and assign returns
-                her_batch, her_indice = her_buffer.sample(int(np.round(sample_size * self.select_positive)))
-                her_batch = self.algo_policy.process_fn(her_batch, her_buffer, her_indice)
-                
-                batch = main_batch
-                batch.cat_([her_batch])
-                indice = np.concatenate([main_indice, her_indice]) 
-            else:
-                use_buffer = her_buffer if np.random.rand() < self.select_positive and self.use_her and len(her_buffer) > self.MIN_HER else buffer
-                batch, indice = use_buffer.sample(sample_size)
-                batch = self.algo_policy.process_fn(batch, use_buffer, indice)
-
+            batch, indice, her_batch, her_indice, main_batch, main_indice = self.sample_indices(sample_size, her_buffer, buffer, pre_chosen)
             kwargs["batch_size"] = sample_size
             kwargs["repeat"] = 2
             result = self.algo_policy.learn(batch, **kwargs)

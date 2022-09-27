@@ -22,6 +22,14 @@ def passive_binary(passive_error, weighting, proximity, done):
     binaries = (binaries.astype(int) * proximity.astype(int)).astype(np.float128).squeeze()
     return binaries
 
+def proximity_binary(full_model, rollouts, full=False)
+    # construct proximity batches if necessary
+    proximal = get_error(full_model, rollouts, error_type=error_types.PROXIMITY).astype(int)
+    proximal_inst = get_error(full_model, rollouts, error_type=error_types.PROXIMITY, reduced=False).astype(int) # the same as above if not multiinstanced
+    non_proximal = (proximal != True).astype(int)
+    non_proximal_inst = (proximal_inst != True).astype(int)
+    # non_proximal_weights = non_proximal.squeeze() / np.sum(non_proximal) if np.sum(non_proximal) != 0 else np.ones(non_proximal.shape) / len(non_proximal)
+    return non_proximal, proximal
 
 def separate_weights(weighting, full_model, rollouts, proximity, trace):
     passive_error_cutoff, passive_error_upper, weighting_ratio, weighting_schedule = weighting

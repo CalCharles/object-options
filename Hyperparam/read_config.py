@@ -3,9 +3,9 @@ import copy
 from State.object_dict import ObjDict
 
 network_args = {    
-    "net_type": "mlp",
+    "net_type": "basic",
     "use_layer_norm": False,
-    "hidden_sizes": list(),
+    "hidden_sizes": list(), # TODO: must have values if used
     "init_form": "",
     "activation": "relu",
     "activation_final": "none",
@@ -29,6 +29,10 @@ network_args = {
 
 
 expected_args = {
+    "debug": {
+        "run_test": "",
+        "collect_mode": "",
+    },
     "record": {
         "record_rollouts": "",
         "record_graphs": "",

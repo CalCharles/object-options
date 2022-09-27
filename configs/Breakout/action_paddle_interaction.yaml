@@ -32,7 +32,6 @@
       interaction_schedule: -1
       inline_iters: 5 1 1000
       interaction_weighting: -1 -1
-    combined:
       weighting: -13 1 1 -1
   interaction_net:
     hidden_sizes: 256 256

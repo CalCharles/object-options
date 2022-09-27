@@ -15,13 +15,13 @@ import numpy as np
 import sys
 import psutil
 
-def init_names(args):
+def init_names(train_edge):
     object_names = ObjDict()
-    object_names.target = args.train.train_edge[-1]
-    object_names.primary_parent = args.train.train_edge[0]
-    object_names.parents = args.train.train_edge[:-1]
+    object_names.target = train_edge[-1]
+    object_names.primary_parent = train_edge[0]
+    object_names.parents = train_edge[:-1]
     object_names.additional = [p for p in object_names.parents if p != object_names.primary_parent]
-    args.object_names = object_names
+    object_names.inter_names = train_edge
     return object_names
 
 if __name__ == '__main__':
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     environment, record = initialize_environment(args.environment, args.record)
 
     # create a dictionary for the names
-    object_names = init_names(args)
+    args.object_names = init_names(args.train.train_edge)
 
     # build the selectors for the passive (target), interaction or active (parent + target), parent (just parent) states
     args.controllable = None # this is filled in with controllable features of the target
@@ -46,10 +46,10 @@ if __name__ == '__main__':
 
     # get the train and test buffers
     if len(args.inter.load_intermediate) > 0: train_buffer, test_buffer = load_from_pickle(os.path.join(args.inter.load_intermediate,environment.name + "_" + full_model.name + "_traintest.pkl"))
-    else: train_buffer, test_buffer = generate_buffers(environment, args, object_names, full_model)
+    else: train_buffer, test_buffer = generate_buffers(environment, args, args.object_names, full_model)
     if len(args.inter.save_intermediate) > 0: save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name + "_" + full_model.name + "_traintest.pkl"), (train_buffer, test_buffer))
 
-    if args.train.train: train_full(full_model, train_buffer, test_buffer, args, object_names, environment)
+    if args.train.train: train_full(full_model, train_buffer, test_buffer, args, args.object_names, environment)
     elif len(args.record.load_dir) > 0: full_model = torch.load(os.path.join(args.record.load_dir, full_model.name + "_inter_model.pt"))
-    test_full_train(full_model, train_buffer, args, object_names, environment)
-    test_full(full_model, test_buffer, args, object_names, environment)
+    test_full_train(full_model, train_buffer, args, args.object_names, environment)
+    test_full(full_model, test_buffer, args, args.object_names, environment)

@@ -75,6 +75,15 @@ class Gym(RawEnvironment): # wraps openAI gym environment
             es += name + ":" + " ".join(map(str, extracted_state[name])) + "\t"
         return es
 
+    def get_trace(self, factored_state, action, object_names):
+        return [1]
+
+    def full_trace(self, factored_state, action, target_name):
+        return np.ones(len(self.all_names))
+
+    def current_trace(self, object_names):
+        return [1]
+
     def get_state(self):
         return {'raw_state': self.frame, 'factored_state': self.extracted_state_dict()}
 

@@ -1,0 +1,23 @@
+---
+  debug:
+    run_test: policy
+    collect_mode: False
+  record:
+    load_dir: /nfs/data/calebc/object_data/breakout/testrun/
+  environment:
+    env: Breakout
+    variant: drop_stopping
+    demonstrate: True
+  train:
+    train: True
+    train_edge: Action Paddle
+  critic_net:
+  actor_net:
+  network:
+    hidden_sizes: 128 128 128
+  extract:
+    single_obs_setting: 1 0 0 1 0 0
+    relative_obs_setting: 0 0 0 1
+  policy:
+    sample_form: merged
+...

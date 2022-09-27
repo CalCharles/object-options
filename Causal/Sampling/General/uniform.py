@@ -6,5 +6,5 @@ class UniformSampler(Sampler):
         '''
         samples a new value: full_state
         '''
-        weights = np.random.rand(size = self.mask.limits[0].shape)
+        weights = np.random.rand(*self.mask.limits[0].shape)
         return (self.mask.limits[0] + self.mask.range * weights), self.mask.active_mask

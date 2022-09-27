@@ -91,6 +91,7 @@ class RoboPushing(Environment):
         self.objects = ["Action", "Gripper", "Block"] + ["Obstacle" + str(i) for i in range(num_obstacles)] + ["Target", "Reward", "Done"]
         self.object_instanced = instanced
         self.object_instanced["Obstacle"] = num_obstacles
+        self.all_names = sum([[name + str(i) for i in instanced[name]] for name in self.object_names], start = [])
 
         # position mask
         self.position_masks = position_masks
@@ -145,6 +146,15 @@ class RoboPushing(Environment):
 
     def get_state(self, render=False):
         return copy.deepcopy(self.full_state)
+
+    def get_trace(self, factored_state, action, object_names):
+        return [1]
+
+    def full_trace(self, factored_state, action, target_name):
+        return np.ones(len(self.all_names))
+
+    def current_trace(self, object_names):
+        return [1]
 
     def reset(self):
         obs = self.env.reset()
