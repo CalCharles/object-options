@@ -43,6 +43,7 @@ def construct_object_selector(names, environment, masks=None, pad=False):
     for mask, name in zip(masks, names):
         sze = environment.object_sizes[name]
         factored[name] = np.arange(sze)[np.array(mask).astype(bool)]
+    if pad: return PadSelector(environment.object_sizes, environment.object_instanced, names, factored)
     return FeatureSelector(factored, names, multiinstanced={name: environment.object_instanced[name] != 1 for name in names})
 
 def construct_object_selector_dict(names, object_sizes, object_instanced, masks=None):
