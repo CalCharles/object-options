@@ -15,6 +15,8 @@ from Collect.aggregator import TemporalAggregator
 from Record.file_management import save_to_pickle, create_directory
 from Option.General.param import check_close
 from Causal.Utils.instance_handling import split_instances
+import imageio as imio
+
 
 from tianshou.policy import BasePolicy
 from tianshou.data.batch import _alloc_by_keys_diff
@@ -61,7 +63,9 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         self.names = args.object_names
         self.display_frame = args.collect.display_frame
         self.stream_print_file = args.collect.stream_print_file
+        self.save_display = args.collect.save_display
         if len(self.stream_print_file) > 0: 
+            create_directory(os.path.split(self.stream_print_file)[0])
             self.stream_str_record = deque(maxlen=1000)
         if self.save_action:
             option_dumps = open(os.path.join(self.save_path, "option_dumps.txt"), 'w')
@@ -222,7 +226,9 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
     def show_param(self, param, frame):
         if self.display_frame == 2:
             param = None
-        display_param(frame, param, rescale=10, waitkey=50)
+        frame = display_param(frame, param, rescale=1, waitkey=50)
+        if len(self.save_display) > 0: imio.imsave(os.path.join(self.save_display, "state" + str(self.counter) + ".png"), frame)
+
 
     def _policy_state_update(self, result):
         # update state / act / policy into self.data
@@ -388,7 +394,10 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             # print("adding data", self.data.done, self.data.terminate, self.full_buffer.done.shape, self.full_buffer.terminate.shape)
             # print(resampled, self.data.action_chain, self.data.act, self.data.full_state.factored_state.Paddle)
             self.stream_print()
+            # print(self.counter, self.data.param[0], self.data.next_target, self.data.action_chain,self.data.act, self.data.inter[0] , self.data.rew[0], self.data.terminate[0],self.data.done[0], self.state_extractor.reverse_obs_norm(self.data.obs, self.data.mask.squeeze()), pytorch_model.unwrap(self.option.policy.compute_Q(self.data, False)))
+
             # print(self.data[0].mapped_act, self.data[0].full_state.factored_state.Gripper, self.data.terminations[-1])
+            # print(self.data[0].mapped_act, self.data.parent_state, self.data[0].param, self.data.terminations[-1])
             # add to the main buffer
             next_data, skipped, added, self.at = self._aggregate(self.data, self.buffer, full_ptr, ready_env_ids)
             # print(self.data.target, not self.test, self.hindsight is not None)

@@ -1,9 +1,10 @@
 import sys, time, cv2
 import argparse
 from Environment.Environments.initialize_environment import initialize_environment
-from Record.file_management import display_frame
-from Environment.Environments.Breakout.breakout_policies import AnglePolicy
+from Record.file_management import display_frame, display_param
+from Causal.Sampling.sampling import samplers
 import numpy as np
+from State.feature_selector import construct_object_selector
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate random data from an environment')
@@ -39,7 +40,9 @@ if __name__ == "__main__":
     if args.angle: 
         policy = AnglePolicy(4)
         angle = np.random.randint(4)
-
+    if args.variant == "proximity":
+        environment.sampler = samplers["exist"](obj_dim=5, target_select=construct_object_selector(["Block"], environment),parent_select=None,additional_select=None,test_sampler=False,mask=None)
+        environment.reset()
     start = time.time()
     for i in range(args.num_frames):
         if args.angle and environment.ball.paddle: angle = angle = np.random.randint(4)
@@ -49,6 +52,8 @@ if __name__ == "__main__":
         if args.render and args.display_frame: 
             frame = cv2.resize(full_state["raw_state"], (full_state["raw_state"].shape[0] * 5, full_state["raw_state"].shape[1] * 5), interpolation = cv2.INTER_NEAREST)
             display_frame(frame, waitkey=10)
+        if args.render and args.variant == "proximity" and args.display_frame: display_param(full_state['raw_state'], param=environment.sampler.param[:2], waitkey=100, rescale = 10, dot=False)
+        elif args.render and args.display_frame: display_frame(full_state['raw_state'], rescale=10, waitkey=30)
         if record is not None: record.save(full_state['factored_state'], full_state["raw_state"], environment.toString)
         if i % 1000 == 0: print(i, "fps", i / (time.time() - start))
     print("fps", args.num_frames / (time.time() - start))

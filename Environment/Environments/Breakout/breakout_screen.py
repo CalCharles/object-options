@@ -145,11 +145,7 @@ class Breakout(Environment):
         elif nmode == "checker":
             block.attribute = -1 + (int(block.name[5:]) % 2) * 2
 
-
-    def assign_attributes(self):
-        '''
-        assigns negative/hard blocks
-        '''
+    def get_nmode_atrv(self):
         atrv = -1
         nmode = self.negative_mode
         if self.negative_mode[:4] == "zero":
@@ -158,12 +154,19 @@ class Breakout(Environment):
         if self.negative_mode[:4] == "hard":
             atrv = -1
             nmode = self.negative_mode[4:]
+        return atrv, nmode
+
+    def assign_attributes(self):
+        '''
+        assigns negative/hard blocks
+        '''
+        atrv, nmode = self.get_nmode_atrv()
         if nmode == "scatter":
             newblocks = list()
             pos = list(range(len(self.blocks)))
             self.target = np.random.choice(pos, size=1, replace=False)[0]
             pos.pop(self.target)
-            self.choices = np.random.choice(pos, size=5, replace=False) # Hardcoded at the moment
+            self.choices = np.random.choice(pos, size=10, replace=False) # Hardcoded at the moment
             for choice in self.choices:
                 self.blocks[choice].attribute = atrv
                 newblocks.append(self.blocks[choice])
@@ -258,6 +261,7 @@ class Breakout(Environment):
         self.since_last_bounce = 0
         self.total_score = 0
         self.render()
+        if self.variant == "proximity" and hasattr(self, "sampler"): self.sampler.sample(self.get_state())
         return self.get_state()
 
     def render(self):
@@ -325,6 +329,13 @@ class Breakout(Environment):
         needs_ball_reset = False
         self.clear_interactions()
         for i in range(self.frameskip):
+            if self.no_breakout: # fixes the blocks that got hit so breakouts do not occur
+                atrv, nmode = self.get_nmode_atrv() 
+                for choice in self.choices:
+                    self.blocks[choice].attribute = atrv
+                for block in self.blocks:
+                    if block.attribute == 0:
+                        block.attribute = 1
             # perform the object dynamics, updating block reward accordingly
             self.actions.take_action(action)
             self.paddle.interact(self.actions)
@@ -369,12 +380,12 @@ class Breakout(Environment):
 
             # record hit information (end of episode)
             if hit:
-                hit = False
                 self.hit_counter += 1
                 # end of episode by hitting
-                if (self.get_num(False) == self.num_remove # removed as many blocks as necessary (all the positive blocks in negative/hard block domains, all the blocks in other domains)
+                if ((self.get_num(True) == 0 and self.hit_reset <= 0) # removed as many blocks as necessary (all the positive blocks in negative/hard block domains, all the blocks in other domains)
                     or (self.no_breakout and self.hit_reset > 0 and self.hit_counter == self.hit_reset) # reset after a fixed number of hits
                     or self.target_mode): # only one block to hit
+                    print(self.hit_counter, self.hit_reset, self.target_mode)
                     needs_reset = True
                     self.reward += self.completion_reward * self.default_reward
                     self.done = True
@@ -411,6 +422,7 @@ class Breakout(Environment):
         # perform resets
         if needs_ball_reset: self.ball.reset_pos()
         if needs_reset: self.reset()
+        if hit and self.variant == "proximity": self.sampler.sample(full_state)
         return full_state, self.reward, self.done, info
 
     def compute_proximity_reward(self, target_block, block):

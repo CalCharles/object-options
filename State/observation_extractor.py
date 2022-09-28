@@ -2,14 +2,16 @@ import numpy as np
 from State.feature_selector import broadcast
 
 _SINGLE_NAMES = ["param", "parent", "additional", "target", "inter", "diff"]
-_RELATIVE_NAMES = ["parent_relative", "additional_relative", "parent_param", "param_relative"]
+_RELATIVE_NAMES = ["parent_relative", "parent_additional", "additional_relative", "parent_param", "param_relative"]
 COMPONENT_NAMES = _SINGLE_NAMES + _RELATIVE_NAMES
 
 def get_norm_form(name):
     _norm_forms = {"param": "target", "parent": "parent", "additional": "additional", "target": "target", "inter": "inter", "diff": "dyn", 
-                        "parent_relative": "rel", "additional_relative":"diff", "parent_param": "rel", "param_relative": "diff"}
+                        "parent_relative": "rel", "additional_relative":"taddi", "parent_additional":"paddi", "parent_param": "rel", "param_relative": "diff"}
     if name.find("additional_relative") != -1:
-        return _norm_forms["additional_relative"]
+        return _norm_forms["additional_relative"] + name[len("additional_relative"):]
+    if name.find("parent_additional") != -1:
+        return _norm_forms["parent_additional"] + name[len("parent_additional"):]
     if name.find("additional") != -1:
         return name
     return _norm_forms[name]
@@ -30,6 +32,7 @@ class ObservationExtractor():
         self.max_parent_objects = state_extractor.max_parent_objects
         self.max_additional_objects = state_extractor.max_additional_objects
         self.max_partar = max(self.max_target_objects, self.max_parent_objects)
+        self.max_paraddi = max(np.max(self.max_additional_objects), self.max_parent_objects)
         self.parent_select = state_extractor.parent_select
         self.target_select = state_extractor.target_select
         self.inter_select = state_extractor.inter_select
@@ -45,17 +48,17 @@ class ObservationExtractor():
         self.size_index = {"param": self.target_size, "inter": self.inter_size, "parent": self.parent_size * self.max_parent_objects, 
                     "additional": [self.additional_sizes[i] * self.max_additional_objects[i] for i in range(len(self.additional_sizes))],
                     "target": self.target_size * self.max_target_objects, "inter": self.inter_size, "diff": self.target_size * self.max_target_objects,
-                    "parent_relative": self.target_size * self.max_partar, "additional_relative": [self.target_size * mao for mao in self.max_additional_objects],
-                    "parent_param": self.target_size * self.max_parent_objects, "param_relative": self.target_size * self.max_target_objects}
+                    "parent_relative": self.target_size * self.max_partar, "additional_relative": [self.target_size * max(self.max_target_objects, mao) for mao in self.max_additional_objects],
+                    "parent_additional": [self.parent_size * max(self.max_parent_objects, mao) for mao in self.max_additional_objects], "parent_param": self.target_size * self.max_parent_objects, "param_relative": self.target_size * self.max_target_objects}
         self.single_size_index = {"param": self.target_size, "inter": self.inter_size, "parent": self.parent_size, 
                     "additional": [self.additional_sizes[i] for i in range(len(self.additional_sizes))],
                     "target": self.target_size, "inter": self.inter_size, "diff": self.target_size,
                     "parent_relative": self.target_size, "additional_relative": [self.target_size for mao in self.max_additional_objects],
-                    "parent_param": self.target_size, "param_relative": self.target_size}
+                    "parent_additional": [self.parent_size for mao in self.max_additional_objects], "parent_param": self.target_size, "param_relative": self.target_size}
         param, parent, additional, target, inter, diff = self.single_obs_setting
-        parent_relative, additional_relative, parent_param, param_relative = self.relative_obs_setting
+        parent_relative, parent_additional, additional_relative, parent_param, param_relative = self.relative_obs_setting
         self.name_include = {"param": param, "parent": parent, "additional": additional, "target": target, "inter": inter, "diff": diff,
-                        "parent_relative": parent_relative, "additional_relative": additional_relative, "parent_param": parent_param, "param_relative": param_relative}
+                        "parent_relative": parent_relative, "parent_additional": parent_additional, "additional_relative": additional_relative, "parent_param": parent_param, "param_relative": param_relative}
 
         self.param_mask = state_extractor.param_mask
         self.combine_param_mask = state_extractor.combine_param_mask
@@ -68,7 +71,7 @@ class ObservationExtractor():
 
     def _get_dims(self): # gets the first object dimension and object dimension for multi object-networks
         param, parent, additional, target, inter, diff = self.single_obs_setting
-        parent_relative, additional_relative, parent_param, param_relative = self.relative_obs_setting
+        parent_relative, parent_additional, additional_relative, parent_param, param_relative = self.relative_obs_setting
         self.parent_multi = self.max_parent_objects > 1
         self.target_multi = self.max_target_objects > 1
         either_multi = (self.parent_multi or self.target_multi)
@@ -82,6 +85,7 @@ class ObservationExtractor():
                     + inter * self.inter_size # in general, don't use inter because it does not handle multiinstanced
                     + diff * int(not self.target_multi) * self.target_size
                     + parent_relative * int(not either_multi) * self.target_size
+                    + parent_additional * int(not self.parent_multi) * np.sum((self.max_additional_objects == 1).astype(int) * self.parent_size)
                     + additional_relative * int(not self.target_multi) * np.sum((self.max_additional_objects == 1).astype(int) * self.target_size)
                     + parent_param * int(not self.parent_multi) * self.target_size # parent_size == target size for this to work
                     + param_relative * int(not self.target_multi) * self.target_size)
@@ -93,7 +97,8 @@ class ObservationExtractor():
                     + diff * int(self.target_multi) * self.target_size
                     + param_relative * int(self.target_multi) * self.target_size)
         rel_obj_dim = int(np.max([parent_relative * either_multi * self.target_size]
-                    + [additional_relative * (self.additional_multi[i] or self.target_multi) * self.target_size for i in range(len(self.additional_multi))]))
+                    + [additional_relative * (self.additional_multi[i] or self.target_multi) * self.target_size for i in range(len(self.additional_multi))]
+                    + [parent_additional * (self.additional_multi[i] or self.parent_multi) * self.parent_size for i in range(len(self.additional_multi))]))
         obj_dim = int(np.max([target_obj_dim + rel_obj_dim] + [parent_obj_dim + rel_obj_dim] + [a + rel_obj_dim for a in additional_obj_dims])) # obj_dim is invalid for both_multi
         post_dim = self.target_size # only param in post dim for now
         return first_obj_dim, parent_obj_dim, (np.max(additional_obj_dims) if len(additional_obj_dims) > 0 else 0), target_obj_dim, rel_obj_dim, obj_dim, post_dim
@@ -101,11 +106,14 @@ class ObservationExtractor():
     def construct_name_order(self):
         # TODO: only 3 multi-object supported at the same time
         self.parent_multi_list = list()
-        self.single_order = ["param", "inter"]
+        self.single_order = ["param", "inter"] # param is always first, followed by parent components, additional components, and target components
         if self.parent_multi:
             self.parent_multi_list = ["parent", "parent_param"]
         else:
             self.single_order += ["parent", "parent_param"]
+
+        if self.multiobject_order == 0:
+            self.single_order += ["parent_additional" + str(i) for i in range(len(self.additional_multi))]
 
         self.additional_multi_list = list() # should be at most length 1
         maidx = -1
@@ -115,6 +123,7 @@ class ObservationExtractor():
                 maidx = i
             else:
                 self.single_order +=["additional"+str(i)]
+
 
         self.target_multi_list = list()
         if self.target_multi:
@@ -133,12 +142,13 @@ class ObservationExtractor():
             if self.target_multi:
                 self.multi_order = self.target_multi_list + ["parent_relative"] + ["additional_relative" + str(i) for i in range(len(self.additional_multi))]
                 self.multi_order_count = self.max_target_objects
+                self.single_order += ["parent_additional" + str(i) for i in range(len(self.additional_multi))]
             elif self.parent_multi:
-                self.multi_order = self.parent_multi_list + ["parent_relative"]
+                self.multi_order = self.parent_multi_list + ["parent_relative"] + ["parent_additional" + str(i) for i in range(len(self.additional_multi))]
                 self.multi_order_count = self.max_parent_objects
                 self.single_order += ["additional_relative" + str(i) for i in range(len(self.additional_multi))]
             else: # additional_relative
-                self.multi_order = self.additional_multi_list + ["additional_relative" + str(maidx)]
+                self.multi_order = self.additional_multi_list + ["additional_relative" + str(maidx)] + ["parent_additional" + str(maidx)]
                 self.multi_order_count = int(np.max(self.max_additional_objects))
                 self.single_order += ["additional_relative" + str(i) for i in range(len(self.additional_multi)) if maidx != i]
         elif self.multiobject_order == 0:
@@ -168,6 +178,8 @@ class ObservationExtractor():
                     if use:
                         if name.find("additional_relative") != -1:
                             increment = use_size_index["additional_relative"][int(name[len("additional_relative"):])]
+                        elif name.find("parent_additional") != -1:
+                            increment = use_size_index["parent_additional"][int(name[len("parent_additional"):])]                            
                         elif name.find("additional") != -1:
                             increment = use_size_index["additional"][int(name[len("additional"):])]
                         else:
@@ -188,9 +200,13 @@ class ObservationExtractor():
 
     def get_state_index(self, last_state, full_state, param, mask, raw=False):
         param_idx, parent, additional, target, inter, diff = self.single_obs_setting
-        parent_relative, additional_relative, parent_param, param_relative = self.relative_obs_setting
+        if len(self.relative_obs_setting) == 4: # TODO: a hack to make the relative obs work
+            parent_relative, additional_relative, parent_param, param_relative = self.relative_obs_setting
+            parent_additional = 0
+        else:
+            parent_relative, parent_additional, additional_relative, parent_param, param_relative = self.relative_obs_setting
         state_index = dict()
-        if additional or additional_relative: state_index["additional_raw"] = self.state_extractor.get_additional(full_state, partial=True)
+        if additional or additional_relative or parent_additional: state_index["additional_raw"] = self.state_extractor.get_additional(full_state, partial=True)
         state_index["parent_raw"] = self.state_extractor.get_parent(full_state)
         state_index["target_raw"] = self.state_extractor.get_target(full_state)
         if parent: state_index["parent_norm"] = self.state_extractor.get_parent(full_state, norm=True)
@@ -221,14 +237,18 @@ class ObservationExtractor():
             return state_index["parent_norm"][...,idx*self.parent_size: (idx+1)*self.parent_size]
         elif form.find("additional_relative") != -1:
             aidx = int(form[len("additional_relative"):])
-            if idx == -1: return self.norm(state_index["additional_raw"][aidx] - state_index["target_raw"], form="diff")
-            min_size = min(self.target_size, self.additional_sizes[aidx])
+            if idx == -1: return self.norm(state_index["additional_raw"][aidx] - state_index["target_raw"], form="taddi"+str(aidx))
             if self.additional_multi[aidx]:
-                return self.norm(state_index["additional_raw"][aidx][...,idx*min_size:(idx+1)*min_size] - state_index["target_raw"][...,:min_size], form="diff")
+                return self.norm(state_index["additional_raw"][aidx][...,idx*self.target_size:(idx+1)*self.target_size] - state_index["target_raw"], form="taddi"+str(aidx))
             elif self.target_multi:
-                return self.norm(state_index["additional_raw"][aidx][...,:min_size] - state_index["target_raw"][...,idx*min_size:(idx+1)*min_size], form="diff")
-            else:
-                return self.norm(state_index["additional_raw"][aidx][...,:min_size] - state_index["target_raw"][...,:min_size], form = "diff")
+                return self.norm(state_index["additional_raw"][aidx] - state_index["target_raw"][...,idx*self.target_size:(idx+1)*self.target_size], form="taddi"+str(aidx))
+        elif form.find("parent_additional") != -1:
+            aidx = int(form[len("parent_additional"):])
+            if idx == -1: return self.norm(state_index["additional_raw"][aidx] - state_index["parent_raw"], form="paddi" + str(aidx))
+            if self.additional_multi[aidx]:
+                return self.norm(state_index["additional_raw"][aidx][...,idx*self.target_size:(idx+1)*self.target_size] - state_index["parent_raw"], form="paddi" + str(aidx))
+            elif self.target_multi:
+                return self.norm(state_index["additional_raw"][aidx] - state_index["parent_raw"][...,idx*self.target_size:(idx+1)*self.target_size], form="paddi" + str(aidx))
         elif form.find("additional") != -1:
             additional_idx = int(form[len("additional"):])
             if idx == -1: return state_index["additional_norm"][additional_idx]
@@ -260,9 +280,10 @@ class ObservationExtractor():
 
     # TODO: should be  a static function
     def convert_additional_name(self, name):
-        inc_name = "additional_relative" if name.find("additional_relative") != -1 else ("additional" if name.find("additional") != -1 else name)
+        inc_name = "additional_relative" if name.find("additional_relative") != -1 else ("parent_additional" if name.find("parent_additional") != -1 else ("additional" if name.find("additional") != -1 else name))
         if inc_name == "additional": aidx = int(name[len("additional"):])
         elif inc_name == "additional_relative": aidx = int(name[len("additional_relative"):])
+        elif inc_name == "parent_additional": aidx = int(name[len("parent_additional"):])
         else: aidx = -1
         return inc_name, aidx
 
@@ -275,7 +296,8 @@ class ObservationExtractor():
         state_index = self.get_state_index(last_state, full_state, param, mask, raw = False)
         for name in self.single_order:
             inc_name, aidx = self.convert_additional_name(name)
-            if self.name_include[inc_name]: combined.append(self.add_obs(name, state_index))
+            if self.name_include[inc_name]: 
+                combined.append(self.add_obs(name, state_index))
         def combine_multi(num_obj, order, combined):
             for i in range(num_obj):
                 for name in order:

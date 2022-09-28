@@ -1,0 +1,29 @@
+---
+metaparam: 
+  multi_filename: block2_option_
+  log_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_logs/block/close2/
+  yaml_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_yamls/block/close2/
+  save_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam/block/close2/
+  graph_endpoint: ../datasets/object_data/robopushing/hyperparam/hyperparam_graphs/block/close2/
+  bash_path: bashes/block_close2.sh
+  base_config: configs/RoboPushing/gripper_block_option.yaml
+  runfile: train_option.py
+  gpu: 0
+  cycle_gpu: 4
+  match: False
+  num_trials: 3
+train:
+  num_iters: 5000
+network:
+  hidden_sizes: 1024 1024 1024 1024 1024,2048 2048 2048
+policy:
+  learning_type: ddpg,sac
+option:
+  epsilon_close: .007,0.01
+policy:
+  primacy:
+    reset_layers: 8
+    reset_frequency: -1,500
+    primacy_iters: 50
+    stop_resets: 3000
+...

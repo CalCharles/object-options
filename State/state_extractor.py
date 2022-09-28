@@ -46,11 +46,12 @@ class StateExtractor():
 
     def _get_size(self): # gets the size of the observation
         param, parent, additional, target, inter, diff = self.single_obs_setting
-        parent_relative, additional_relative, parent_param, param_relative = self.relative_obs_setting
+        parent_relative, parent_additional, additional_relative, parent_param, param_relative = self.relative_obs_setting
         return int(param * self.target_size + parent * self.parent_size * self.max_parent_objects 
             + additional * np.sum([self.max_additional_objects[i] * self.additional_sizes[i] for i in range(len(self.additional_sizes))])
             + target * self.target_size * self.max_target_objects + inter * self.inter_size + diff * self.target_size * self.max_target_objects
-            + parent_relative * self.target_size * self.max_partar + additional_relative * self.target_size * np.sum(self.max_additional_objects * self.max_target_objects)
+            + parent_relative * self.target_size * self.max_partar
+            + parent_additional * self.parent_size * np.sum(self.max_additional_objects * self.max_parent_objects) + additional_relative * self.target_size * np.sum(self.max_additional_objects * self.max_target_objects)
             + parent_param * self.target_size * self.max_parent_objects + param_relative * self.target_size * self.max_target_objects)
 
     def expand_param(self, mapped_action, mask): # expands the dimension of a mapped action by filling in the nonzero mask values, only handles 2d or less

@@ -1,0 +1,34 @@
+---
+  record:
+    # record_rollouts: /nfs/data/calebc/object_data/breakout/testrun/paddle/
+    # record_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle
+    record_recycle: -1
+    log_filename: logs/temp/robo_test.log
+    load_dir: ../datasets/object_data/robopushing/evaluation/evaluation/many_obstacles/final_eval2_0_trial_2/
+  environment:
+    env: RoboPushing
+    variant: obstacles_many
+    render: True
+    seed: 1
+  torch:
+    gpu: 0
+    no_cuda: False
+  train:
+    seed: 1
+    dummy: target
+    train_edge: Block Obstacle Block
+    override_name: Target
+    num_iters: 60
+  collect:
+    buffer_len : 1000
+    test_episode: True
+    max_steps: 100000
+    display_frame: 2
+    save_display: ../datasets/object_data/robopushing/frames/
+  policy:
+    logging:
+      log_interval: 10
+      test_log_maxlen: 50
+      test_trials: 100
+      max_terminate_step: 1 40
+...

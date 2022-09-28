@@ -177,8 +177,8 @@ def get_command_args():
     # state setting
     parser.add_argument('--single-obs-setting', type=int, nargs='+', default=[0,0,0,0,0,0],
                         help='6-tuple of "param", "parent", "additional", "target", "inter", "diff"')
-    parser.add_argument('--relative-obs-setting', type=int, nargs='+', default=[0,0,0,0],
-                        help='4-tuple of "parent_relative", "additional_relative", "parent_param", "param_relative"')
+    parser.add_argument('--relative-obs-setting', type=int, nargs='+', default=[0,0,0,0,0],
+                        help='4-tuple of "parent_relative", "parent_additional_relative", "additional_relative", "parent_param", "param_relative"')
     # rew term arguments
     parser.add_argument('--term-form', default = "param",
                         help='the termination/reward function type (comb, term)')

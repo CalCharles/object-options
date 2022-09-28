@@ -88,8 +88,8 @@ def _init_critic(args, NetType, discrete_actions, action_shape, input_shape, fin
     # discrete actions have action_shape outputs, while continuous have the actions as input
     # initializes critic network and optimizer
     cinp_shape = int(input_shape) if discrete_actions else int(input_shape + action_shape)
-    cout_shape = int(action_shape) if discrete_actions else args.hidden_sizes[-1]
-    print(input_shape, action_shape, cinp_shape, cout_shape, args.hidden_sizes)
+    last_shape = args.pair.final_layers[-1] if args.net_type == "pair" else args.hidden_sizes[-1]
+    cout_shape = int(action_shape) if discrete_actions else last_shape
     critic = NetType(num_inputs=cinp_shape, num_outputs=cout_shape, action_dim=int(discrete_actions * action_shape), aggregate_final=True, continuous_critic=not discrete_actions, **args)
     if final_layer:
         if discrete_actions: critic = dCritic(critic, last_size=action_shape, device=device).to(device)
@@ -111,7 +111,8 @@ def init_networks(args, input_shape, action_shape, discrete_actions):
     final_layer = args.policy.learning_type in ["sac", "ddpg", "ppo"]
     rand_actor = args.policy.learning_type in ["sac"]
     args.actor_net.hidden_sizes = np.array(args.actor_net.hidden_sizes).astype(int)
-    aout_shape = action_shape if final_layer and discrete_actions else args.actor_net.hidden_sizes[-1] # no final layer, else has final layer
+    last_shape = args.actor_net.pair.final_layers[-1] if args.actor_net.net_type == "pair" else args.actor_net.hidden_sizes[-1]
+    aout_shape = action_shape if final_layer and discrete_actions else last_shape # no final layer, else has final layer
 
     NetType = networks[args.actor_net.net_type] # TODO: have two sets of arguments
     args.actor_net.cuda = args.torch.cuda

@@ -5,7 +5,7 @@ from arguments import get_args
 from Environment.Environments.initialize_environment import initialize_environment
 from Record.file_management import read_obj_dumps, load_from_pickle, save_to_pickle
 from train_interaction import generate_buffers
-from Graph.graph import Graph, load_graph
+from Graph.graph import Graph, load_graph, Node
 from State.object_dict import ObjDict
 from train_interaction import init_names
 from Option.option import Option
@@ -69,7 +69,10 @@ def init_option(args):
 
     policy = init_policy(args, models)
 
-    option = Option(args, policy, models, parent_option) if len(args.record.load_checkpoint) == 0 else graph.nodes[object_names.target].option
+    target_name = object_names.target
+    if len(args.train.override_name) > 0:
+        target_name = args.train.override_name
+    option = Option(args, policy, models, parent_option) if len(args.record.load_checkpoint) == 0 else graph.nodes[target_name].option
     if args.torch.cuda: option.cuda(device=args.torch.gpu)
     return environment, test_environment, record, test_record, option, models, policy, graph, object_names  
 
@@ -84,7 +87,12 @@ def init_buffer(args, option, policy, graph, environment, test_environment, reco
     test_collector = OptionCollector(policy, test_environment, test_buffer, False, option, None, True, interaction_model.multi_instanced, None, args)
     args.record.save_action = save_action
 
+    target_name = args.object_names.target
     graph.nodes[args.object_names.target].option = option
+    if target_name not in graph.nodes: 
+        graph.nodes[target_name] = Node(target_name)
+        graph.nodes[target_name].interaction = interaction_model
+    graph.nodes[target_name].option = option
     if args.record.presave_graph: graph.save(args.record.save_dir)
     train_logger = RLLogger(args.object_names.target + "_train", args.record.record_graphs, args.policy.logging.log_interval, args.policy.logging.train_log_maxlen, args.record.log_filename)
     test_logger = RLLogger(args.object_names.target + "_test", args.record.record_graphs, args.policy.logging.log_interval, args.policy.logging.test_log_maxlen)

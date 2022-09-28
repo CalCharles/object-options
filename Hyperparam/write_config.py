@@ -52,6 +52,7 @@ def write_multi_config(multi_pth):
     bash_path = data["metaparam"]["bash_path"]
     runfile = data["metaparam"]["runfile"]
     gpu = data["metaparam"]["gpu"]
+    cycle_gpu = data["metaparam"]["cycle_gpu"]
     match = data["metaparam"]["match"]
     num_trials = data["metaparam"]["num_trials"]
     base_config = read_config(data["metaparam"]["base_config"])
@@ -118,7 +119,7 @@ def write_multi_config(multi_pth):
                 set_val[name_path[-1]] = setv
 
 
-    def create_config(base_config, combination, num_trials, idx):
+    def create_config(base_config, combination, num_trials, idx, gpu):
         config = copy.deepcopy(base_config)
         for c, setting, name_path in zip(combination, all_settings_grid, name_paths):
             set_val = config
@@ -129,29 +130,33 @@ def write_multi_config(multi_pth):
             set_val[name_path[-1]] = setting[c]
             print(name_path[-1], setting[c])
         name = multi_filename + "_".join([str(c) for c in combination])
+        use_gpu = gpu
         trial_configs, trial_names = list(), list()
-        for n in num_trials:
+        for n in range(num_trials):
             tconfig = copy.deepcopy(config)
             tname = name + "_trial_" + str(n)
             tconfig.record.record_graphs = os.path.join(graph_endpoint, tname)
             tconfig.record.log_filename = os.path.join(log_endpoint, tname + '.log')
             tconfig.record.save_dir = os.path.join(save_endpoint, tname)
-            tconfig.torch.gpu = gpu
+            tconfig.torch.gpu = use_gpu % cycle_gpu if cycle_gpu > 0 else gpu # will cycle through the gpus for different trials
             tconfig.collect.stream_print_file = os.path.join(log_endpoint, tname + '_stream.txt')
             tconfig.hyperparam = ObjDict()
             tconfig.hyperparam.name_orders = ["+".join(name_path) for name_path in name_paths]
             trial_configs.append(tconfig)
-            trial_name.append(tname)
-        return name, config
+            trial_names.append(tname)
+            use_gpu += 1
+        return trial_names, trial_configs
     
     # get corresponding config dicts and names for the files
     all_args = list()
     all_names = list()
     print(comb_array)
+    use_gpu = gpu # cycles through GPUs if activated
     for i, combination in enumerate(comb_array):
-        names, configs = create_config(base_config, combination, i)
+        names, configs = create_config(base_config, combination, num_trials, i, use_gpu % cycle_gpu if cycle_gpu > 0 else gpu)
         all_args += configs
         all_names += names
+        use_gpu += 1
 
     # write the config files to locations
     config_names = list()
