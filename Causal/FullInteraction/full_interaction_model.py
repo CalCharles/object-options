@@ -72,19 +72,29 @@ def make_name(object_names):
     # return object_names.primary_parent + "->" + object_names.target
     return object_names.target # naming is target centric
 
+def regenerate(self, environment):
+    extractor = CausalPadExtractor(self.name, environment)
+    target_select, self.parent_select, self.inter_select = self.extractor.get_selectors()
+    # self.norm = FullNormalizationModule(environment.object_range, environment.object_dynamics, self.name, environment.object_instanced, environment.object_names)
+    pad_size = max(list(environment.object_sizes.values())) + 
+    norm = PadNormalizationModule(environment.object_range, environment.object_dynamics, environment.object_instanced, environment.object_names, )
+    if hasattr(self, "mask") and self.mask is not None: self.mask.regenerate_norm(self.norm)
+    return self.norm, self.extractor
+
+
 class FullNeuralInteractionForwardModel(nn.Module):
-    def __init__(self, args, environment):
+    def __init__(self, args, target, environment, causal_extractor, normalization):
         super().__init__()
         # set input and output
-        self.name = args.target
+        self.name = target
         self.all_names = environment.object_names
         self.target_select = np.array([True if n == self.name else False for n in self.all_names])
         self.extractor = CausalExtractor(self.names, environment)
         self.target_select, self.full_select, self.parents_select = self.extractor.get_selectors()
-        self.controllable = args.controllable
+        # self.controllable = args.controllable
 
         # if we are predicting the dynamics
-        self.predict_dynamics = args.inter.predict_dynamics
+        self.predict_dynamics = True
         
         # construct the active model
         self.multi_instanced = environment.object_instanced[self.names.target] > 1 # TODO: might need multi-instanced for parents also, but defined differently
@@ -106,10 +116,11 @@ class FullNeuralInteractionForwardModel(nn.Module):
         self.test = InteractionMaskTesting(args.inter.interaction_testing)
 
         # set the normalization function
-        self.norm, self.extractor = self.regenerate(environment)
+        self.norm, self.extractor = normalization, causal_extractor
+        self.target_select, self.inter_select = self.extractor.target_selectors[self.name], self.extractor.inter_selector
         # proximity terms
-        pad_size
-        pos_size
+        self.pad_size = normalization.pad_size
+        self.pos_size = environment.pos_size
         proximity_epsilon
         object_proximal
 
@@ -123,13 +134,6 @@ class FullNeuralInteractionForwardModel(nn.Module):
 
         # set up cuda
         self.cuda() if args.torch.cuda else self.cpu()
-
-    def regenerate(self, environment):
-        self.extractor = CausalExtractor(self.name, environment)
-        self.target_select, self.parent_select, self.inter_select = self.extractor.get_selectors()
-        self.norm = FullNormalizationModule(environment.object_range, environment.object_dynamics, self.name, environment.object_instanced, environment.object_names)
-        if hasattr(self, "mask") and self.mask is not None: self.mask.regenerate_norm(self.norm)
-        return self.norm, self.extractor
 
     def reset_network(self, net = None):
         if net == "interaction":

@@ -3,7 +3,7 @@ from State.feature_selector import broadcast
 from Network.network_utils import pytorch_model
 from Environment.Normalization.full_norm import compute_norm, compute_reverse, generate_multiobject_norm
 
-def create_dict(value_dict):
+def create_dict(value_dict, pad_object_length):
 	completed_dict = dict()
 	for n in lim_dict.keys():
 		pad_length = pad_object_length - self.lim_dict[n][1].shape[0]
@@ -20,8 +20,9 @@ class PadNormalizationModule(): # TODO: FULL REWRITE TO HANDLE INSTANCED-COUNTED
 		self.lim_dict = lim_dict # the bounds of positions for where an object can be
 		self.dynamics_dict = dynamics_dict # the bounds for the amount an object can change in a single timestep
 		# convert min and max in lim_dict to mean and range/2 in norm dict
-		self.norm_dict = create_dict(self.lim_dict)
-		self.dynamics_norm_dict = create_dict(self.dynamics_dict)
+		self.pad_size = pad_object_length
+		self.norm_dict = create_dict(self.lim_dict, self.pad_object_length)
+		self.dynamics_norm_dict = create_dict(self.dynamics_dict, self.pad_object_length)
 		self.difference_dict = {n: ((np.zeros(self.norm_dict[n].shape), self.norm_dict[n][1] * 2), \
 							(self.lim_dict[n][0] - self.lim_dict[n][1], self.lim_dict[n][0] + self.lim_dict[n][1])) for n in object_names}
 		self.multi_names = set(["target", "dyn", "diff"])

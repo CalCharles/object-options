@@ -32,7 +32,7 @@ def sample_feature(feature_range, step, idx, states):
         return np.concatenate(all_states, axis=0) # if there are no batches, then this is the 0th dim
     return np.concatenate(all_states, axis=1) # if we have a batch of states, then this is the 1st dim
 
-def construct_object_selector(names, environment, masks=None):
+def construct_object_selector(names, environment, masks=None, pad=False):
     '''
     constructs a selector to select the elements of all the objects in names\
     masks will select particular features from that object, one mask for each object
