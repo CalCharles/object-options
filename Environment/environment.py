@@ -44,6 +44,7 @@ class Environment():
         self.object_dynamics = dict() # the most that an object can change in a single time step
         self.object_instanced = dict() # name of object to max number of objects of that type
         self.object_proximal = dict() # name of object to whether that object has valid proximity
+        self.instance_length = 0 # the total number of instances for the mask
 
         # proximity state components
         self.position_masks = dict()

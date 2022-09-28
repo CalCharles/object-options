@@ -52,7 +52,7 @@ class Sokoban(Environment):
         self.object_instanced = instanced
         self.position_masks = position_masks
         self.all_names = sum([[name + str(i) for i in instanced[name]] for name in self.object_names], start = [])
-
+        self.instance_length = len(self.all_names)
 
         # reset counters
         self.reset()

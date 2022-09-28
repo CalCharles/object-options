@@ -89,9 +89,9 @@ class FullReplayBuffer(PrioritizedReplayBuffer):
         return self[indices], indices
 
 class ObjectReplayBuffer(ParamPrioWeightedReplayBuffer): # not using double inheritance so exactly the same as above.
-    _reserved_keys = ("obs", "act", "rew", "done", "obs_next", # the following obs, obs_next, correspond to target, next_target
-        "param", "policy_mask", "param_mask", "target_diff", "terminate", "mapped_act", "inter", "trace",
-        "proximity", "proximity_inst", "inter_state", "parent_state", "additional_state", "weight_binary")
+    _reserved_keys = ("obs", "act", "rew", "done", "obs_next", # the following obs, obs_next, correspond to target, next_target, act corresponds to param
+        "policy_mask", "param_mask", "target_diff", "terminate", "mapped_act", "inter", "trace",
+        "proximity", "weight_binary")
 
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
         """Return a data batch: self[index].
@@ -122,10 +122,6 @@ class ObjectReplayBuffer(ParamPrioWeightedReplayBuffer): # not using double inhe
             inter = self.inter[indice],
             trace = self.trace[indice],
             proximity = self.proximity[indice],
-            proximity_inst = self.proximity_inst[indice],
-            inter_state = self.inter_state[indice],
-            parent_state = self.parent_state[indice],
-            additional_state = self.additional_state[indice],
             weight_binary = self.weight_binary[indice],
             option_choice = self.option_choice[indice], # what option is being chosen for this object (node number?)
         )

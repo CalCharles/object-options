@@ -44,8 +44,8 @@ class FullNormalizationModule(): # TODO: FULL REWRITE TO HANDLE INSTANCED-COUNTE
 		
 		self.difference_norm, self.difference_lim = (np.zeros(self.norm_dict[self.object_names.target][0].shape), self.norm_dict[self.object_names.target][1] * 2), (self.target_lim[0] - self.target_lim[1], self.target_lim[0] + self.target_lim[1])
 		# gets the appropriate normalization values based on the target
-		self.norm_forms = {"target": self.target_norm, "inter": self.inter_norm, "parent": self.parent_norm, "diff": self.difference_norm, "dyn": self.dynamics_norm,"part": self.part_norm, "raw": self.raw_norm}
-		self.lim_forms = {"target": self.target_lim, "inter": self.inter_lim, "parent": self.parent_lim, "diff": self.difference_lim, "dyn": self.dynamics_lim,"part": self.part_lim, "raw": self.raw_lim}
+		self.norm_forms = {"target": self.target_norm, "inter": self.inter_norm, "diff": self.difference_norm, "dyn": self.dynamics_norm,"part": self.part_norm, "raw": self.raw_norm}
+		self.lim_forms = {"target": self.target_lim, "inter": self.inter_lim, "diff": self.difference_lim, "dyn": self.dynamics_lim,"part": self.part_lim, "raw": self.raw_lim}
 		# TODO: handle relative norm between block and obstacles (internal relative?)
 
 	def get_mean_var(self, form, idxes):

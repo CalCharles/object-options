@@ -92,6 +92,7 @@ class RoboPushing(Environment):
         self.object_instanced = instanced
         self.object_instanced["Obstacle"] = num_obstacles
         self.all_names = sum([[name + str(i) for i in instanced[name]] for name in self.object_names], start = [])
+        self.instance_length = len(self.all_names)
 
         # position mask
         self.position_masks = position_masks

@@ -72,6 +72,7 @@ class Asteroids(Environment):
         self.lives = 0 # lives is not implemented in the current version
         self.itr = 0
         self.all_names = sum([[name + str(i) for i in instanced[name]] for name in self.object_names], start = [])
+        self.instance_length = len(self.all_names)
         self.reset()
 
     def get_asteroid_position(self, variance):

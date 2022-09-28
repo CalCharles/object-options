@@ -95,6 +95,7 @@ class Breakout(Environment):
         self.paddle_height = self.paddle.pos[0]
         self.num_remove = self.get_num(True)
         self.all_names = ["Action", "Paddle", "Ball"] + [b.name for b in self.blocks] + ['Done', "Reward"]
+        self.instance_length = len(self.all_names)
 
     def assign_assessment_stat(self):
         if self.dropped and self.variant != "proximity":

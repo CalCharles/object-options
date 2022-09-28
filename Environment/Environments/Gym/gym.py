@@ -39,6 +39,7 @@ class Gym(RawEnvironment): # wraps openAI gym environment
         self.object_names = ["Action", "State", "Reward", "Done"] # must be initialized, a list of names that controls the ordering of things
         self.object_sizes = {"Action": self.action_shape[0], "State": self.observation_space.shape[0], "Reward": 1, "Done": 1} # must be initialized, a dictionary of name to length of the state
         self.object_range = {"Action": [self.action_space.low, self.action_space.high], "State": [self.observation_space.low, self.observation_space.high], "Reward": [-1,1], "Done": [0,1]} # the minimum and maximum values for a given feature of an object
+        self.instance_length = 6
         return {"State": observation, "Frame": observation, "Object": observation, "Reward": np.array([reward]), "Done": np.array([int(done)]), "Action": action}
 
     def seed(self, seed):
