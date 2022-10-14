@@ -20,25 +20,27 @@ def flat_instances(state, obj_dim):
         state = state.reshape(batch_size, state.shape[1] * state.shape[2])
     return state
 
-def compute_likelihood(full_model, batch_size, likelihood_full, done_flags=None, reduced=True):
+def compute_likelihood(full_model, batch_size, likelihood_full, done_flags=None, reduced=True, is_full=False):
     # computes either the multi-instanced likelihood, or the normal summed likelihood, regulated by the done flags
+    obj_dim = full_model.single_obj_dim if is_full else full_model.obj_dim
     if done_flags is None: done_flags = np.ones((batch_size, 1))
     if type(likelihood_full) == torch.Tensor:
         if full_model.multi_instanced:
-            loss = likelihood_full.reshape(batch_size, -1, full_model.obj_dim).sum(dim=-1)
+            loss = likelihood_full.reshape(batch_size, -1, obj_dim).sum(dim=-1)
             if reduced:
-                loss = likelihood_full.reshape(batch_size, -1, full_model.obj_dim).sum(dim=-1).max(dim=-1)[0].unsqueeze(1)  * pytorch_model.wrap(done_flags, cuda=full_model.iscuda)# only take the worst object performance
+                loss = likelihood_full.reshape(batch_size, -1, obj_dim).sum(dim=-1).max(dim=-1)[0].unsqueeze(1)  * pytorch_model.wrap(done_flags, cuda=full_model.iscuda)# only take the worst object performance
             return loss
         else: loss = likelihood_full.sum(dim=-1).unsqueeze(1) * pytorch_model.wrap(done_flags, cuda=full_model.iscuda)
     else: # assumes it's a numpy array and perform the same operation
-        if full_model.multi_instanced: loss = np.expand_dims(np.max(np.sum(likelihood_full.reshape(batch_size, -1, full_model.obj_dim), axis=-1), axis=-1), axis=-1)  * done_flags
+        if full_model.multi_instanced: loss = np.expand_dims(np.max(np.sum(likelihood_full.reshape(batch_size, -1, obj_dim), axis=-1), axis=-1), axis=-1)  * done_flags
         else: loss = np.expand_dims(np.sum(likelihood_full, axis=-1), axis=-1) * done_flags
     return loss
 
-def compute_l1(full_model, batch_size, params, targets):
+def compute_l1(full_model, batch_size, params, targets, is_full = False):
     # computes either the multi-instanced likelihood, or the normal summed likelihood, regulated by the done flags
+    obj_dim = full_model.single_obj_dim if is_full else full_model.obj_dim
     if full_model.multi_instanced:
-        l1_error_element =np.abs(pytorch_model.unwrap(params[0].reshape(batch_size, -1, full_model.obj_dim) - targets.reshape(batch_size, -1, full_model.obj_dim))) 
+        l1_error_element =np.abs(pytorch_model.unwrap(params[0].reshape(batch_size, -1, obj_dim) - targets.reshape(batch_size, -1, obj_dim))) 
         l1_error = np.max(l1_error_element, axis=1)
         l1_error_element =np.sum(l1_error_element, axis=-1)
     else: 

@@ -28,7 +28,9 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, weig
     batch_uni, idxes_uni = rollouts.sample(args.train.batch_size // 2)
     idxes = idxes.tolist() + idxes_uni.tolist()
     full_batch = batch.cat([full_batch, batch_uni])
-    object_batch = object_rollout[idxes]
+    batch = object_rollout[idxes]
+    batch.tarinter_state = np.concatenate([batch.obs, full_batch.obs], axis=-1)
+    batch.inter_state = full_batch.obs
 
     # a statistic on weighting
     weight_count = np.sum(weights[idxes])
@@ -36,7 +38,7 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, weig
     # run the networks and get both the active and passive outputs (passive for interaction binaries)
     active_params, active_unmasked, passive_params, interaction_mask,\
         target, active_dist, active_unmasked_dist, passive_dist, \
-        active_log_probs, active_unmasked_log_probs, passive_log_probs = full_model.likelihoods(full_batch, batch, normalize=normalize)
+        active_log_probs, active_unmasked_log_probs, passive_log_probs = full_model.likelihoods(batch, normalize=normalize)
 
     # done flags
     done_flags = pytorch_model.wrap(1-batch.true_done, cuda = full_model.iscuda)
@@ -48,8 +50,8 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, weig
     run_optimizer(interaction_optimizer, full_model.interaction_model, interaction_loss)
     return idxes, interaction_loss, interaction_likelihood, interaction_binaries, weight_count, done_flags
 
-def train_combined(full_model, rollouts, test_rollout, args,
-    trace, active_weights, interaction_weights, proximal, proximal_inst,
+def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_object_rollout,
+    args, active_weights, interaction_weights, proximal,
     active_optimizer, passive_optimizer, interaction_optimizer,
     normalize=False):    
 
@@ -72,18 +74,19 @@ def train_combined(full_model, rollouts, test_rollout, args,
     active_weighting_schedule = (lambda i: awl * np.power(0.5, (i/aws))) if aws > 0 else (lambda i: awl)
     interaction_weighting_schedule = (lambda i: iwl * np.power(0.5, (i/iws))) if iws > 0 else (lambda i: iwl)
 
-    print_errors(full_model, rollouts, error_types=[error_types.ACTIVE_RAW, error_types.ACTIVE, error_types.TRACE, error_types.DONE], prenormalize=normalize)
+    print_errors(full_model, rollouts, object_rollouts, error_types=[error_types.ACTIVE_RAW, error_types.ACTIVE, error_types.TRACE, error_types.DONE], prenormalize=normalize)
 
     for i in range(args.train.num_iters):
         # get data, weighting by active weights (generally more likely to sample high "value" states)
         full_batch, idxes = rollouts.sample(args.train.batch_size, weights=active_weights)
-        batch = object_rollout[idxes]
+        batch = object_rollouts[idxes]
+        batch.tarinter_state = np.concatenate([batch.obs, full_batch.obs], axis=-1)
+        batch.inter_state = full_batch.obs
         weight_rate = np.sum(active_weights[idxes]) / len(idxes)
-
         # run the networks and get both the active and passive outputs (passive for interaction binaries)
         active_params, active_unmasked, passive_params, interaction_mask,\
             target, active_dist, active_unmasked_dist, passive_dist, \
-            active_log_probs, active_unmasked_log_probs, passive_log_probs = full_model.likelihoods(full_batch, batch, normalize=normalize)
+            active_log_probs, active_unmasked_log_probs, passive_log_probs = full_model.likelihoods(batch, normalize=normalize)
 
         # assign done flags
         done_flags = pytorch_model.wrap(1-batch.true_done, cuda = full_model.iscuda)
@@ -124,11 +127,11 @@ def train_combined(full_model, rollouts, test_rollout, args,
             inline_iters = inline_iter_schedule(i)
             active_weighting_lambda = active_weighting_schedule(i)
             print(active_weighting_lambda)
-            active_weights = get_weights(active_weighting_lambda, rollouts.weight_binary[:len(rollouts)].squeeze())
+            active_weights = get_weights(active_weighting_lambda, object_rollout.weight_binary[:len(rollouts)].squeeze())
             print(active_weights)
             inter_weighting_lambda = interaction_weighting_schedule(i)
             error_binary = np.abs(get_error(full_model, rollouts, error_type = error_types.INTERACTION_BINARIES) - full_model.test(get_error(full_model, rollouts, error_type = error_types.INTERACTION_RAW)).astype(int))
-            interaction_weights = get_weights(inter_weighting_lambda, rollouts.weight_binary[:len(rollouts)].squeeze() + error_binary.squeeze())
+            interaction_weights = get_weights(inter_weighting_lambda, object_rollout.weight_binary[:len(rollouts)].squeeze() + error_binary.squeeze())
             print("inline_iters", inline_iters)
                 # print(trace[inter_idxes], active_weights[inter_idxes])
             # print(full_model.norm.reverse(rollouts.target[48780:48800]), full_model.norm.reverse(rollouts.next_target[48780:48800]))

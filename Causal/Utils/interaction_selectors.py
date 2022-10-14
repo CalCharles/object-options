@@ -25,6 +25,7 @@ class FullExtractor():
 		self.total_parent_size = int(np.sum([environment.object_instanced[n] * environment.object_sizes[n] for n in self.parents]))
 		self.total_inter_size = int(np.sum([environment.object_instanced[n] * environment.object_sizes[n] for n in self.name_order]))
 		self.total_object_sizes = [int(environment.object_instanced[n] * environment.object_sizes[n]) for n in self.name_order]
+		self.complete_object_sizes = [int(environment.object_instanced[n] * environment.object_sizes[n]) for n in self.name_order]
 
 		self.target_dim, self.object_dims = self._get_dims(environment)
 
@@ -88,6 +89,12 @@ class CausalExtractor():
 		self.multi_selectors = [construct_object_selector([ms], environment) for ms in self.multi_instanced]
 		self.target_selector = construct_object_selector([object_names.target], environment)
 
+		self.complete_instances = [int(environment.object_instanced[n]) for n in environment.object_names]
+		self.pad_dim = max(list(environment.object_sizes.values()))
+		self.append_dim =len(list(environment.object_sizes.keys()))
+		self.expand_dim = self.pad_dim + self.append_dim
+		self.complete_object_sizes = [int(environment.object_instanced[n] * self.expand_dim) for n in environment.object_names]
+
 		self.total_target_size = int(self.max_target * environment.object_sizes[self.names.target])
 		self.total_inter_size = int(np.sum([environment.object_instanced[n] * environment.object_sizes[n] for n in self.names.parents]) + self.total_target_size )
 
@@ -95,6 +102,8 @@ class CausalExtractor():
 		# padi stands for passive_additonal
 		self.padi_first_obj_dim, self.first_obj_dim, \
 			self.target_dim, self.object_dims, self.padi_object_dims = self._get_dims(environment)
+		self.total_object_sizes = [int(environment.object_instanced[n] * environment.object_sizes[n]) for n in environment.object_names]
+		self.complete_object_sizes = [int(environment.object_instanced[n] * environment.object_sizes[n]) for n in environment.object_names]
 		self.parent_size = environment.object_sizes[self.names.parents[0]]
 		self.additional_sizes = [environment.object_sizes[n] for n in self.additional]
 

@@ -79,7 +79,6 @@ def get_command_args():
                         help='load saved values from here')
     parser.add_argument('--refresh', action='store_true', default=False,
                         help='creates a new graph from scratch in masking')
-
     # active passive args
     parser.add_argument('--predict-dynamics', action='store_true', default=False,
                         help='predicts the change in state instead of the state itself')
@@ -241,6 +240,10 @@ def get_command_args():
                         help='inline iters for training the interaction network')
     parser.add_argument("--reset-weights", type=int, nargs='+', default=[0,0,0],
                         help='resets the weights of networks: interaction, active, passive')
+    # full interaction args
+    parser.add_argument('--object-id', action='store_true', default=False,
+                    help='adds the ids of the objects to the state')
+
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda

@@ -23,7 +23,7 @@ def train_interaction(full_model, rollouts, object_rollout, args, interaction_op
         # weights the values
         for i in range(args.inter.interaction.interaction_pretrain):
             # get the input and target values
-            full_batch, idxes = rollouts.sample(args.batch_size, weights=weights)
+            full_batch, idxes = rollouts.sample(args.train.batch_size, weights=weights)
             batch = object_rollouts[target_name][idxes]
             trace = batch.trace
 

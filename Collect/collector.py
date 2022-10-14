@@ -317,6 +317,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
                 obs_next = Batch([self.environment.get_state()])
                 rew, done, info = obs_next["factored_state"]["Reward"], obs_next["factored_state"]["Done"], [self.environment.get_info()]
             else: obs_next, rew, done, info = self.env.step(action_remap, id=ready_env_ids)
+            # print("done after step", done)
             # print(self.data.full_state.factored_state.Action)
             if self.environment.discrete_actions: self.data.full_state.factored_state.Action = [action_remap] # reassign the action to correspond to the current action taken
             else: self.data.full_state.factored_state.Action = action_remap
@@ -386,7 +387,9 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             # if not self.test: print(self.counter, diff, self.data.full_state.factored_state.Block, self.data.full_state.factored_state.Done, 
             #     self.data.done, self.data.true_done, true_done, self.data.terminate, cutoff, self.environment.steps)
             # self.last_rec = copy.deepcopy(self.data.full_state)
-            if self.record is not None: self.record.save(self.data[0].full_state['factored_state'], self.data[0].full_state["raw_state"], self.environment.toString)
+            if self.record is not None:
+                # print(self.data[0].full_state['factored_state']["Done"], self.data[0].full_state['factored_state']["Ball"], self.data[0].next_full_state['factored_state']["Ball"])
+                self.record.save(self.data[0].full_state['factored_state'], self.data[0].full_state["raw_state"], self.environment.toString)
             tc_record = time.time()
             # we keep a buffer with all of the values
             self.data.done = np.array([self.data.done[0].astype(float)])
@@ -415,6 +418,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
                 done, true_done = copy.deepcopy(self.data.done), copy.deepcopy(self.data.true_done) # preserve these values for use in new param getting
                 # if we have a true done, reset the environments and self.data
                 if self.env_reset: # the environment might handle resets for us
+                    # print("handling next state", self.data.next_full_state[0].factored_state["Ball"])
                     self.data.next_full_state = [self.environment.get_state()]
                     self._reset_components(self.data.next_full_state[0])
                 else:

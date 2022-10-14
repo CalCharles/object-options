@@ -6,19 +6,29 @@ from tianshou.data import Batch
 from Network.network_utils import pytorch_model
 from State.full_selector import flatten
 
-def add_pad(self, states, name, pad_size):
+def add_pad(states, name, pad_size, append_id, num_objects):
     pad = pad_size - states[name].shape[-1]
-    add_state = np.concatenate((states[name], np.zeros(states.shape[:-1] + (pad, ))), axis=-1) if pad > 0 else states[name]
+    if append_id >= 0:
+        id_append_hot = np.zeros(states[name].shape[:-1] + (num_objects, ))
+        id_append_hot[append_id] = 1
+        # print(append_id, id_append_hot.shape, pad, np.zeros(states[name].shape[:-1] + (pad, )).shape)
+        add_state = np.concatenate((states[name], np.zeros(states[name].shape[:-1] + (pad, ))), axis=-1) if pad > 0 else states[name]
+        add_state = np.concatenate((add_state, id_append_hot), axis=-1)
+    else: add_state = np.concatenate((states[name], np.zeros(states[name].shape[:-1] + (pad, ))), axis=-1) if pad > 0 else states[name]
     return add_state
 
 class PadSelector():
-    def __init__(self, sizes, instanced, names, factored):
+    def __init__(self, sizes, instanced, names, factored, append_id=False):
         # if factored does not contain the full state, this extractor is just for extracting from padded states 
         self.instanced = instanced
         self.names = names
+        self.name_id = {n: self.names.index(n) for n in self.names}
         self.factored = factored
         self.sizes = sizes 
         self.pad_size = np.max(list(sizes.values()))
+        self.num_objects = len(list(sizes.values()))
+        self.append_id = append_id
+        self.append_pad_size = self.pad_size + int(self.append_id) * self.num_objects
 
     def __call__(self, states):
         '''
@@ -28,11 +38,12 @@ class PadSelector():
         '''
         flattened = list()
         for name in self.names:
-            if self.instanced[name]:
+            id_append = self.name_id[name] if self.append_id else -1
+            if self.instanced[name] > 1:
                 for i in range(self.instanced[name]):
-                    flattened.append(add_pad(states, name + str(i), self.pad_size))
+                    flattened.append(add_pad(states, name + str(i), self.pad_size, id_append, self.num_objects))
             else:
-                flattened.append(add_pad(states, name, self.pad_size))
+                flattened.append(add_pad(states, name, self.pad_size, id_append, self.num_objects))
         return np.concatenate(flattened, axis=-1)
 
     def get_entity(self):
@@ -91,7 +102,7 @@ class PadSelector():
                     o_name = name.strip("0123456789")
                     size = len(self.factored[o_name])#self.sizes[o_name]
                     state[name][self.factored[o_name]] = insert_state[at:at + size]
-                    at += pad_size
+                    at += self.append_pad_size
         else: # assume that insert state is a dict
             if type(state) == np.ndarray:
                 idxes = self.get_idxes(names)

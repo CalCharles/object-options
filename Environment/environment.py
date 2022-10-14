@@ -103,12 +103,6 @@ class Environment():
     def get_info(self): # returns the info, the most important value is TimeLimit.truncated, can be overriden
         return {"TimeLimit.truncated": False}
 
-
-    def toString(self):
-        '''
-        creates a string form of the current extracted state of the environment (typically a dictionary of object name to object state)
-        '''
-
     def get_itr(self):
         return self.itr
 
@@ -150,10 +144,9 @@ class Environment():
         self.step(action)
         traces = dict()
         for target in self.all_names:
-            if self.can_interact[target]:
-                traces[target] = np.zeros(len(self.all_names)).tolist()
-                continue
-            target_traces = [int(self.object_name_dict[val].name in target.interaction_trace) for val in self.all_names]
+            # if self.can_interact[target]:
+            traces[target] = np.zeros(len(self.all_names)).tolist()
+            target_traces = np.array([int(self.object_name_dict[val].name in self.object_name_dict[target].interaction_trace) for val in self.all_names])
             traces[target] = target_traces
         return traces
 
@@ -173,3 +166,19 @@ class Environment():
         estring += "Reward:" + str(float(extracted_state["Reward"])) + "\t"
         estring += "Done:" + str(int(extracted_state["Done"])) + "\t"
         return estring
+
+class Done():
+    def __init__(self):
+        self.name = "Done"
+        self.attribute = False
+    
+    def interact (self, other):
+        self.interaction_trace.append(other.name)
+
+class Reward():
+    def __init__(self):
+        self.name = "Reward"
+        self.attribute = 0.0
+
+    def interact (self, other):
+        self.interaction_trace.append(other.name)

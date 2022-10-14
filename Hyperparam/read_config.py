@@ -76,6 +76,10 @@ expected_args = {
         "batch_size": 128,
         "num_steps": 0,
     },
+    "full_inter": {
+        "object_id": False,
+        "proximal_weights": False,
+    },
     "inter": {
         "predict_dynamics": False,
         "load_intermediate": "",

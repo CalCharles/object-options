@@ -223,7 +223,7 @@ class InterWeightedReplayBuffer(ReplayBuffer):
     # inter_state, parent_state, additional_state record:
     #   inter = parent+additional+target, parent=primary parent, additional=other state
     # TODO: parent is the action that specifies which parent to use
-    _reserved_keys = ("obs", "act", "rew", "done", "true_done",
+    _reserved_keys = ("obs", "act", "rew", "done", "true_done", "obs_next",
         "mask", "target", "next_target", "target_diff",
         "inter", "trace", "inst_trace", "proximity", "proximity_inst", "inter_state", "parent_state", "additional_state", "weight_binary")
 
@@ -247,10 +247,11 @@ class InterWeightedReplayBuffer(ReplayBuffer):
         else:
             obs_next = self.get(self.next(indice), "obs", Batch())
         return Batch(
-            obs=obs[indice],
+            obs=obs,
             act=self.act[indice],
             rew=self.rew[indice],
             done=self.done[indice],
+            obs_next=obs_next,
             true_done=self.true_done[indice],
             mask = self.mask[indice], 
             target = self.target[indice], 

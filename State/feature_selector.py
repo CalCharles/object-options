@@ -4,6 +4,7 @@ import torch
 from collections import OrderedDict
 from tianshou.data import Batch
 from Network.network_utils import pytorch_model
+from State.pad_selector import PadSelector
 
 def tensor_state(factored_state, cuda=False):
     fs = copy.deepcopy(factored_state)
@@ -32,7 +33,7 @@ def sample_feature(feature_range, step, idx, states):
         return np.concatenate(all_states, axis=0) # if there are no batches, then this is the 0th dim
     return np.concatenate(all_states, axis=1) # if we have a batch of states, then this is the 1st dim
 
-def construct_object_selector(names, environment, masks=None, pad=False):
+def construct_object_selector(names, environment, masks=None, pad=False, append_id=False):
     '''
     constructs a selector to select the elements of all the objects in names\
     masks will select particular features from that object, one mask for each object
@@ -43,7 +44,7 @@ def construct_object_selector(names, environment, masks=None, pad=False):
     for mask, name in zip(masks, names):
         sze = environment.object_sizes[name]
         factored[name] = np.arange(sze)[np.array(mask).astype(bool)]
-    if pad: return PadSelector(environment.object_sizes, environment.object_instanced, names, factored)
+    if pad: return PadSelector(environment.object_sizes, environment.object_instanced, names, factored, append_id)
     return FeatureSelector(factored, names, multiinstanced={name: environment.object_instanced[name] != 1 for name in names})
 
 def construct_object_selector_dict(names, object_sizes, object_instanced, masks=None):

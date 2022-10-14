@@ -156,7 +156,7 @@ class RoboPushing(Environment):
     def get_trace(self, factored_state, action, object_names):
         return [1]
 
-    def full_trace(self, factored_state, action, target_name):
+    def get_full_trace(self, factored_state, action, target_name):
         return np.ones(len(self.all_names))
 
     def current_trace(self, object_names):

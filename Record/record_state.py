@@ -33,4 +33,5 @@ class FullRecord():
         
         append_string(os.path.join(self.save_path, "action_dumps.txt"), action_chain_string([entity_state["Action"]]) + "\t")
         append_string(os.path.join(self.save_path, "object_dumps.txt"), toString(entity_state) + "\n")
-        if self.save_raw: imio.imsave(os.path.join(state_path, "state" + str(count % 2000) + ".png"), frame)
+        if self.save_raw: imio.imsave(os.path.join(state_path, "state" + str(count) + ".png"), frame)
+        self.itr += 1

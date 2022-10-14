@@ -44,7 +44,7 @@
     param_recycle: 0.0
   extract:
     single_obs_setting: 1 1 0 1 0 0
-    relative_obs_setting: 1 0 0 0
+    relative_obs_setting: 1 0 0 0 0
   option:
     term_form: combined
     term_as_done: True

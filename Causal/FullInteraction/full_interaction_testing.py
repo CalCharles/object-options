@@ -1,4 +1,5 @@
-    
+import numpy as np
+
 class InteractionMaskTesting:
     def __init__(self, interaction_params):
         self.interaction_prediction, self.forward_threshold, self.passive_threshold, self.difference_threshold = interaction_params

@@ -37,6 +37,9 @@ CT asteroids: get ship policy
 Run Breakout Training:
 python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/breakout/random/
 
+Run Full Breakout Training:
+python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/full/breakout/small/random/ --num-frames 50000
+
 Run Robopushing training:
 python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/ --num-frames 5000
 python generate_random.py --env RoboPushing --record-rollouts ../data/object_data/robopushing/random/ --num-frames 5000

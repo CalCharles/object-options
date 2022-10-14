@@ -21,6 +21,7 @@ error_names = [# an enumerator for different error types
     "INTERACTION_BINARIES",
     "PROXIMITY",# measures if two objects are close together
     "PROXIMITY_FLAT", # gets the flattened proximity between two states given in names
+    "PROXIMITY_FULL", # gets the full proximity (all other objects) for one object
     "TRACE",# just sends back the trace values
     "DONE", # just sends back the done values
 ]
@@ -46,34 +47,46 @@ def check_proximity(full_model, parent_state, target, normalized=False):
     return np.expand_dims(np.linalg.norm(parent-target, ord=1, axis=-1) < full_model.proximity_epsilon, -1) if full_model.proximity_epsilon > 0 else np.ones((num_batch, 1)).astype(bool) # returns binarized differences
 
 
-def compute_error(full_model, error_type, part, normalized = False, reduced=True, prenormalize=False, object_names=None):
+def compute_error(full_model, error_type, part, obj_part, normalized = False, reduced=True, prenormalize=False, object_names=None):
     # @param part is the segment of rollout data
     # @param normalized asked for normalized outputs and comparisons
     # @param reduced reduces along the final output, combining the features of object state
     # @param prenormalize normalizes the inputs TODO: might not be implemented yet
     # computes the value for 
-    rv = lambda x: full_model.norm.reverse(x, form="dyn" if full_model.predict_dynamics else "target") # self.output_normalization_function.reverse
-    rv_var = lambda x: full_model.norm.reverse(x, form="dyn" if full_model.predict_dynamics else "diff") # self.output_normalization_function.reverse
-    nf = lambda x: full_model.norm(x, form = "dyn" if full_model.predict_dynamics else "target") # self.output_normalization_function
+    rv = lambda x: full_model.norm.reverse(x, form="dyn" if full_model.predict_dynamics else "target", name=full_model.name) # self.output_normalization_function.reverse
+    rv_var = lambda x: full_model.norm.reverse(x, form="dyn" if full_model.predict_dynamics else "diff", name=full_model.name) # self.output_normalization_function.reverse
+    nf = lambda x: full_model.norm(x, form = "dyn" if full_model.predict_dynamics else "target", name=full_model.name) # self.output_normalization_function
     num_batch = len(part)
 
     # if the part is not normalized, this should normalize it
-    if prenormalize: part = full_model.normalize_batch(copy.deepcopy(part))
+    if prenormalize: 
+        part = full_model.normalize_batch(copy.deepcopy(part))
+        if obj_part is not None: obj_part = full_model.normalize_batch(copy.deepcopy(obj_part))
     
+    # if obj_part is not None then the obj_part contains object specific components
+    if obj_part is not None:
+        obj_part.target = obj_part.obs
+        obj_part.next_target = obj_part.obs_next
+        obj_part.inter_state = part.obs
+        obj_part.tarinter_state = np.concatenate([obj_part.target, obj_part.inter_state], axis=-1)
+    use_part = obj_part if obj_part is not None else part
+
     # handles 3 different targets, predicting the trace, predicting the dynamics, or predicting the next target
-    if error_type == error_types.INTERACTION: target = part.trace
-    elif full_model.predict_dynamics: target = part.target_diff
-    else: target = part.next_target
+    if error_type == error_types.INTERACTION: target = use_part.trace
+    elif full_model.predict_dynamics: target = use_part.target_diff
+    else: target = use_part.next_target
 
     
     if error_type == error_types.PASSIVE or error_type == error_types.PASSIVE_RAW:
-        output = pytorch_model.unwrap(full_model.passive_model(pytorch_model.wrap(part.target, cuda=full_model.iscuda))[0])
+        output = pytorch_model.unwrap(full_model.passive_model(pytorch_model.wrap(use_part.target, cuda=full_model.iscuda))[0])
     elif error_type == error_types.ACTIVE or error_type == error_types.ACTIVE_RAW:
-        output = pytorch_model.unwrap(full_model.active_model(pytorch_model.wrap(part.inter_state, cuda=full_model.iscuda))[0])
+        if obj_part is None: output = pytorch_model.unwrap(full_model.active_model(pytorch_model.wrap(use_part.inter_state, cuda=full_model.iscuda))[0])
+        else: output = pytorch_model.unwrap(full_model.active_model(pytorch_model.wrap(use_part.tarinter_state, cuda=full_model.iscuda), pytorch_model.wrap(use_part.inter, cuda=full_model.iscuda))[0])
     if error_type == error_types.PASSIVE_VAR:
-        output = pytorch_model.unwrap(full_model.passive_model(pytorch_model.wrap(part.target, cuda=full_model.iscuda))[1])
+        output = pytorch_model.unwrap(full_model.passive_model(pytorch_model.wrap(use_part.target, cuda=full_model.iscuda))[1])
     elif error_type == error_types.ACTIVE_VAR:
-        output = pytorch_model.unwrap(full_model.active_model(pytorch_model.wrap(part.inter_state, cuda=full_model.iscuda))[1])
+        if obj_part is None: output = pytorch_model.unwrap(full_model.active_model(pytorch_model.wrap(use_part.inter_state, cuda=full_model.iscuda))[1])
+        else: output = pytorch_model.unwrap(full_model.active_model(pytorch_model.wrap(use_part.tarinter_state, cuda=full_model.iscuda), pytorch_model.wrap(use_part.inter, cuda=full_model.iscuda))[1])
     if error_type <= error_types.ACTIVE:
         if reduced:
             if not normalized: # this can only be the case for PASSIVE and ACTIVE
@@ -90,11 +103,11 @@ def compute_error(full_model, error_type, part, normalized = False, reduced=True
 
     # likelihood type error computation
     if error_type == error_types.LIKELIHOOD:
-        output = pytorch_model.unwrap(full_model.weighted_likelihoods(part)[-1])
+        output = pytorch_model.unwrap(full_model.weighted_likelihoods(use_part)[-1])
     elif error_type == error_types.PASSIVE_LIKELIHOOD:
-        output = pytorch_model.unwrap(full_model.passive_likelihoods(part)[-1])
+        output = pytorch_model.unwrap(full_model.passive_likelihoods(use_part)[-1])
     elif error_type == error_types.ACTIVE_LIKELIHOOD:
-        output = pytorch_model.unwrap(full_model.active_likelihoods(part)[-1])
+        output = pytorch_model.unwrap(full_model.active_likelihoods(use_part)[-1])
     if error_type <= error_types.ACTIVE_LIKELIHOOD:
         if reduced: output = - compute_likelihood(full_model, num_batch, - output)
         return output
@@ -112,40 +125,48 @@ def compute_error(full_model, error_type, part, normalized = False, reduced=True
         return binaries
 
     if error_type == error_types.PROXIMITY:
-        return check_proximity(full_model, part.parent_state, part.target)
+        return check_proximity(full_model, part.parent_state, part.target, normalized=normalized)
     if error_type == error_types.PROXIMITY_FLAT:
         factored_state = full_model.unflatten(part.obs)
         part.parent_state, part.target = full_model.get_object[object_names.parent], full_model.get_object[object_names.target]
         return check_proximity(full_model, part.parent_state, part.target)
     if error_type == error_types.PROXIMITY_FULL: # only works with a padding extractor
-        full_state = full_model.extractor.flatten(part.obs)
-        target_state = part.target
-        part.parent_state, part.target = full_model.get_object[object_names.parent], full_model.get_object[object_names.target]
-        return check_proximity(full_model, part.parent_state, part.target)
+        full_state = full_model.norm.reverse(part.obs, form="inter")
+        target_state = full_model.norm.reverse(obj_part.target, name=full_model.name)
+        return get_full_proximity(full_model, full_state, target_state, normalized=normalized)
 
-    if error_type == error_types.TRACE: return part.trace
+    if error_type == error_types.TRACE: return use_part.trace
     if error_type == error_types.DONE: return part.done
     raise Error("invalid error type")
 
-def get_full_proximity(full_model, flattened_state, target_state, normalize=False):
-    flattened_state = flattened_state.reshape(flattened_state.shape[:-1] + (flattened_state.shape[-1] // full_model.pad_size, full_model.pad_size))
-    dists = np.linalg.norm(flattened_state[...,:full_model.pos_size] - target_state[...,:full_model.pos_size], axis=-1)
-    proximity = dists < full_model.proximity_epsilon and full_model.object_proximal
+def get_full_proximity(full_model, flattened_state, target_state, normalized=False):
+    # print(flattened_state.reshape(flattened_state.shape[:-1] + (flattened_state.shape[-1] // full_model.pad_size, full_model.pad_size)).shape)
+    if len(flattened_state.shape) == 1: # no batches
+        flattened_state = flattened_state.reshape(flattened_state.shape[:-1] + (flattened_state.shape[-1] // full_model.pad_size, full_model.pad_size))
+        dists = np.linalg.norm(flattened_state[...,:full_model.pos_size] - target_state[...,:full_model.pos_size], axis=-1)
+    else: 
+        flattened_state = flattened_state.reshape(flattened_state.shape[:-1] + (flattened_state.shape[-1] // full_model.pad_size, full_model.pad_size)).transpose(1,0,2)
+        dists = np.linalg.norm(flattened_state[...,:full_model.pos_size] - target_state[...,:full_model.pos_size], axis=-1).transpose(1,0)
+    proximity = dists < full_model.proximity_epsilon
+    # print(dists[0], proximity[0], proximity.shape)
     return proximity
 
-def get_error(full_model, rollouts, error_type=0, reduced=True, normalized=False, prenormalize = False, object_names=None):
+def get_error(full_model, rollouts, object_rollout=None, error_type=0, reduced=True, normalized=False, prenormalize = False, object_names=None):
     # computes some term over the entire rollout, iterates through batches of 500 to avoid overloading the GPU
 
     # gets all the data from rollouts, in the order of the data (for assignment)
     if type(rollouts) == Batch:
         batch = rollouts
+        obj_batch = object_rollout
     else:
         batch, indices = rollouts.sample(0) if len(rollouts) != rollouts.maxsize else (rollouts, np.arange(rollouts.maxsize))
+        obj_batch = None if object_rollout is None else (object_rollout.sample(0)[0] if len(object_rollout) != object_rollout.maxsize else object_rollout)
 
     model_error = []
     for i in range(int(np.ceil(len(batch) / min(500,len(batch))))): # run 500 at a time, so that we don't overload the GPU
         part = batch[i*500:(i+1)*500]
+        obj_part = None if obj_batch is None else object_rollout[i*500:(i+1)*500]
         done_flags = 1-part.done
-        values = compute_error(full_model, error_type, part, normalized=normalized, reduced=reduced, prenormalize=prenormalize, object_names = object_names) * done_flags if not outputs(error_type) else compute_error(full_model, error_type, part, normalized=normalized, reduced=reduced, object_names = object_names)
+        values = compute_error(full_model, error_type, part, obj_part, normalized=normalized, reduced=reduced, prenormalize=prenormalize, object_names = object_names) * done_flags if not outputs(error_type) else compute_error(full_model, error_type, part, obj_part, normalized=normalized, reduced=reduced, object_names = object_names)
         model_error.append(values)
     return np.concatenate(model_error, axis=0)

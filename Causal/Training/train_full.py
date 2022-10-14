@@ -49,8 +49,8 @@ def train_full(full_model, rollouts, test_rollout, args, object_names, environme
     interaction_optimizer = initialize_optimizer(full_model.interaction_model, args.interaction_net.optimizer, args.interaction_net.optimizer.alt_lr)
 
     # construct proximity batches if necessary
-    proximal = get_error(full_model, rollouts, error_type=error_types.PROXIMITY).astype(int)
-    proximal_inst = get_error(full_model, rollouts, error_type=error_types.PROXIMITY, reduced=False).astype(int) # the same as above if not multiinstanced
+    proximal = get_error(full_model, rollouts, error_type=error_types.PROXIMITY, normalized=True).astype(int)
+    proximal_inst = get_error(full_model, rollouts, error_type=error_types.PROXIMITY, reduced=False, normalized=True).astype(int) # the same as above if not multiinstanced
     non_proximal = (proximal != True).astype(int)
     non_proximal_inst = (proximal_inst != True).astype(int)
     non_proximal_weights = non_proximal.squeeze() / np.sum(non_proximal) if np.sum(non_proximal) != 0 else np.ones(non_proximal.shape) / len(non_proximal)

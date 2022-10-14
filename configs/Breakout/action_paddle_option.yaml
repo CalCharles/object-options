@@ -4,13 +4,14 @@ record:
   record_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle
   record_recycle: -1
   log_filename: logs/temp/paddle_train.log
-  load_dir: /nfs/data/calebc/object_data/breakout/testrun/
-  save_dir: /nfs/data/calebc/object_data/breakout/testrun/
+  load_dir: /hdd/datasets/object_data/breakout/testrun2/
+  # save_dir: /hdd/datasets/object_data/breakout/testrun2/
   # checkpoint_dir: /nfs/data/calebc/object_data/breakout/testrun/action_paddle_checkpoint
   # load_checkpoint: /nfs/data/calebc/object_data/breakout/testrun_inline/action_paddle_checkpoint
-  save_interval: 1200
+  save_interval: 100
 environment:
   env: Breakout
+  variant: drop_stopping
 torch:
   gpu: 0
   no_cuda: False
@@ -20,13 +21,13 @@ train:
   num_steps: 90
   num_frames: 1000
   train_edge: Action Paddle
-  load_rollouts: /hdd/datasets/object_data/breakout/random
-  num_iters: 1200
+  load_rollouts: /hdd/datasets/object_data/breakout/random2
+  num_iters: 200
   batch_size: 64
 critic_net:
 actor_net:
 network:
-  hidden_sizes: 128 128 128
+  hidden_sizes: 128 128
   net_type: basic
   activation_final: tanh
   scale_logits: 30
@@ -41,10 +42,10 @@ sample:
   sample_type: cent
   sample_distance: 0.3
   sample_schedule: 200
-  param_recycle: 4
+  param_recycle: 3
 extract:
   single_obs_setting: 1 0 0 1 0 0
-  relative_obs_setting: 0 0 0 1
+  relative_obs_setting: 0 0 0 0 1
 option:
   term_form: combined
   term_as_done: True

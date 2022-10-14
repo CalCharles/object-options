@@ -80,7 +80,7 @@ class Obstacle(Object):
 	def __init__(self, pos, idx, bound):
 		super().__init__()
 		self.pos = pos
-		self.name = "Obstacle" + str(idx)
+		self.name = "Obstacle" + str(idx) if idx >= 0 else "Obstacle"
 	
 	def get_state(self):
 		return np.array(self.pos.tolist())
@@ -90,7 +90,7 @@ class Block(Object):
 		super().__init__()
 		self.pos = pos
 		self.pushed = False
-		self.name = "Block" + str(idx)
+		self.name = "Block" + str(idx) if idx >= 0 else "Block"
 		self.bound = bound
 
 	def moveable(self, change, occupancy_matrix):
@@ -134,7 +134,7 @@ class Target(Object):
 		self.pos = pos
 		self.attribute = 0
 		self.attribute_change = 0
-		self.name = "Target" + str(idx)
+		self.name = "Target" + str(idx) if idx >= 0 else "Target"
 
 	def step(self, occupancy_matrix):
 		obj_at = occupancy_matrix[self.pos[0]][self.pos[1]]

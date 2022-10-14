@@ -36,8 +36,8 @@ class NormalizationModule():
 		self.lim_dict = lim_dict # the bounds of positions for where an object can be
 		self.dynamics_dict = dynamics_dict # the bounds for the amount an object can change in a single timestep
 		# convert min and max in lim_dict to mean and range/2 in norm dict
-		self.norm_dict = {n: ((self.lim_dict[n][1] + self.lim_dict[n][0])/2, (self.lim_dict[n][1] - self.lim_dict[n][0])/2 + 1e-6) for n in lim_dict.keys()}
-		self.dynamics_norm_dict = {n: ((self.dynamics_dict[n][1] + self.dynamics_dict[n][0])/2, (self.dynamics_dict[n][1] - self.dynamics_dict[n][0])/2 + 1e-6) for n in lim_dict.keys()}
+		self.norm_dict = {n: ((self.lim_dict[n][1] + self.lim_dict[n][0])/2, abs(self.lim_dict[n][1] - self.lim_dict[n][0])/2 + 1e-6) for n in lim_dict.keys()}
+		self.dynamics_norm_dict = {n: ((self.dynamics_dict[n][1] + self.dynamics_dict[n][0])/2, abs(self.dynamics_dict[n][1] - self.dynamics_dict[n][0])/2 + 1e-6) for n in lim_dict.keys()}
 		self.object_names = object_names
 		self.object_counts = object_counts # environment object counts 
 
@@ -80,17 +80,18 @@ class NormalizationModule():
 		var = norm[1][idxes] if idxes is not None else norm[1]
 		return mean, var
 
-	def __call__(self, state, form="target", idxes=None):
+	def __call__(self, state, form="target", idxes=None, name=None):
 		'''
 		takes the normalization of the state, the form decides which norm to use
 		valid forms: target, inter, parent, difference, relative
+		Name is to match the signature of full models and does nothing
 		'''
 		mean, var = self.get_mean_var(form, idxes)
 		# print(state, mean,var, form)
 		if mean is None: return state
 		return compute_norm(mean, var, state)
 
-	def reverse(self, state, form = "target", idxes=None):
+	def reverse(self, state, form = "target", idxes=None, name=None):
 		mean, var = self.get_mean_var(form, idxes)
 		# print(state, mean, var, form)
 		if mean is None: return state

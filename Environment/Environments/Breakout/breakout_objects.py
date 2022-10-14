@@ -251,3 +251,21 @@ class Action(Object):
 
     def interact (self, other):
         if other.name == "Paddle": self.interaction_trace.append(other.name)
+
+class Done():
+    def __init__(self):
+        self.interaction_trace = list()
+        self.name = "Done"
+        self.attribute = False
+    
+    def interact (self, other):
+        if other.name == "Ball" and ((other.top_wall and other.top_reset) or other.bottom_wall) : self.interaction_trace.append(other.name)
+
+class Reward():
+    def __init__(self):
+        self.interaction_trace = list()
+        self.name = "Reward"
+        self.attribute = 0.0
+
+    def interact (self, other):
+        if other.name == "Ball" and other.block == True: self.interaction_trace.append(other.name)

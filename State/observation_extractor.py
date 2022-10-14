@@ -32,7 +32,8 @@ class ObservationExtractor():
         self.max_parent_objects = state_extractor.max_parent_objects
         self.max_additional_objects = state_extractor.max_additional_objects
         self.max_partar = max(self.max_target_objects, self.max_parent_objects)
-        self.max_paraddi = max(np.max(self.max_additional_objects), self.max_parent_objects)
+        max_addi = np.max(self.max_additional_objects) if len(self.max_additional_objects) > 0 else 0
+        self.max_paraddi = max(max_addi, self.max_parent_objects)
         self.parent_select = state_extractor.parent_select
         self.target_select = state_extractor.target_select
         self.inter_select = state_extractor.inter_select

@@ -78,4 +78,5 @@ class Network(nn.Module):
 
 from Network.General.mlp import MLPNetwork
 from Network.General.pair import PairNetwork
-network_type = {"mlp": MLPNetwork, "pair": PairNetwork}
+from Network.General.key_pair import KeyPairNetwork
+network_type = {"mlp": MLPNetwork, "pair": PairNetwork, "keypair": KeyPairNetwork}

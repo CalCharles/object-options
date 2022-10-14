@@ -37,32 +37,45 @@ def load_interaction(pth, name, device=-1):
         return model
     return None
 
-def get_params(model, full_args, is_pair, multi_instanced):
+def get_params(model, full_args, is_pair, multi_instanced, total_inter_size, total_target_size):
+    full_args.interaction_net.object_names = model.names
     active_model_args = copy.deepcopy(full_args.interaction_net)
-    active_model_args.num_inputs = model.extractor.total_inter_size
-    active_model_args.num_outputs = model.extractor.total_target_size
+    active_model_args.num_inputs = total_inter_size
+    active_model_args.num_outputs = total_target_size
 
     passive_model_args = copy.deepcopy(full_args.interaction_net)
-    passive_model_args.num_inputs = model.extractor.total_target_size
-    passive_model_args.num_outputs = model.extractor.total_target_size
+    passive_model_args.num_inputs = total_target_size
+    passive_model_args.num_outputs = total_target_size
 
     interaction_model_args = copy.deepcopy(full_args.interaction_net)
-    interaction_model_args.num_inputs = model.extractor.total_inter_size
+    interaction_model_args.num_inputs = total_inter_size
     interaction_model_args.num_outputs = 1
     
     if is_pair:
         pair = copy.deepcopy(full_args.interaction_net.pair)
         pair.object_dim = model.obj_dim
         pair.first_obj_dim = model.first_obj_dim
+        pair.single_obj_dim = model.single_obj_dim
         pair.post_dim = -1
-        if model.extractor.target_instanced:
+        # parameters specific to key-pair/transformer networks 
+        pair.total_obj_dim = np.sum(model.extractor.complete_object_sizes)
+        pair.expand_dim = model.extractor.expand_dim
+        pair.total_instances = np.sum(model.extractor.complete_instances)
+        pair.total_targets = model.multi_instanced
+        pair.query_pair = False
+        
+        if model.multi_instanced:
             pair.aggregate_final = False # we are multi-instanced in outputs
         else:
             pair.aggregate_final = True # we are multi-instanced, but outputting a single value
         active_model_args.pair, passive_model_args.pair, interaction_model_args.pair = copy.deepcopy(pair), copy.deepcopy(pair), copy.deepcopy(pair)
-        if not multi_instanced: # passive model won't be a pairnet TODO: add additional to passive model
+        full_args.interaction_net.query_pair = True if full_args.interaction_net.net_type in ["keypair"] else False # a query pair means that the query network outputs pairwise
+        if not model.multi_instanced: # passive model won't be a pairnet TODO: add additional to passive model
             passive_model_args.net_type = "mlp" # TODO: defaults to MLP
             print("passive", passive_model_args)
+        if model.multi_instanced and full_args.interaction_net.net_type in ["keypair"]: # in keypair situations, the passive model is a pairnet
+            passive_model_args.net_type = "pair"
+            passive_model_args.pair.object_dim = model.single_obj_dim
         passive_model_args.pair.first_obj_dim = 0
         passive_model_args.pair.difference_first = False # difference first cannot be true since there is no first, at least for now
     print("active_model_args", active_model_args)
@@ -88,10 +101,11 @@ class NeuralInteractionForwardModel(nn.Module):
         
         # construct the active model
         self.padi_first_obj_dim, self.first_obj_dim, self.target_dim, self.obj_dim, self.padi_obj_dim = self.extractor._get_dims(environment)
+        self.single_obj_dim = self.obj_dim
         self.multi_instanced = environment.object_instanced[self.names.target] > 1 # TODO: might need multi-instanced for parents also, but defined differently
         self.multi_parents = environment.object_instanced[self.names.primary_parent] > 1
         self.multi_additional = environment.object_instanced[self.names.additional[0]] > 1 if len(self.names.additional) > 0 else False
-        self.active_model_args, self.passive_model_args, self.interaction_model_args = get_params(self, args, args.interaction_net.net_type == "pair", self.multi_instanced)
+        self.active_model_args, self.passive_model_args, self.interaction_model_args = get_params(self, args, args.interaction_net.net_type in ["pair", "keypair"], environment.object_instanced[self.names.target], self.extractor.total_inter_size, self.extractor.total_target_size)
 
         # set the distributions
         self.dist = assign_distribution("Gaussian") # TODO: only one kind of dist at the moment

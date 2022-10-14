@@ -53,7 +53,10 @@ def _dump_from_line(line, time_dict):
             split = obj.split(":")
             name = split[0]
             vals = split[1].split(" ")
-            state = [float(i) for i in vals]
+            try:
+                state = [float(i) for i in vals]
+            except ValueError as e:
+                state = [bool(i) for i in vals]
             time_dict[name] = np.array(state)
     return time_dict
 

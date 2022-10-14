@@ -3,6 +3,7 @@ from Network.network_utils import pytorch_model
 import numpy as np
 from Record.logging import Logger
 from Causal.Utils.instance_handling import compute_l1
+from Causal.FullInteraction.full_interaction_model import FullNeuralInteractionForwardModel
 
 class forward_logger(Logger):
 # Logging forward model:
@@ -41,7 +42,7 @@ class forward_logger(Logger):
 
         # l1 errors using the means
         if params is not None:
-            l1_error, l1_error_element = compute_l1(full_model, len(targets), params, targets)
+            l1_error, l1_error_element = compute_l1(full_model, len(targets), params, targets, is_full=type(full_model) == FullNeuralInteractionForwardModel)
             self.l1_average_error.append(np.mean(l1_error, axis=0))
 
         # the weighted with the trace instead of interaction values. TODO: use only raw[trace==1] to compute mean
@@ -58,6 +59,7 @@ class forward_logger(Logger):
             self.l1_average_weighted_error.append(np.sum(l1_error_element * unwrapped_likelihoods, axis=0) / np.sum(unwrapped_likelihoods) )
 
         if i % self.log_interval == 0:
+            name = full_model.name
             logging_str = "================\n"
             logging_str = self.type + f' at {i}, mean loss: {np.mean(self.loss)}, '
             if len(self.raw_likelihood) > 0: logging_str += f'raw: {np.mean(self.raw_likelihood)}, '
@@ -68,9 +70,9 @@ class forward_logger(Logger):
             if len(self.l1_average_weighted_error) > 0: logging_str += f'\nl1 weighted: {np.mean(self.l1_average_weighted_error, axis=0)}'
             if len(self.l1_average_true_error) > 0: logging_str += f'\nl1 true: {np.mean(self.l1_average_true_error, axis=0)}'
             if len(self.weight_rates) > 0: logging_str += f'\npercent (weight, trace): {np.mean(self.weight_rates)}, {np.mean(self.trace_rates)}'
-            logging_str += f"\ntarget: {full_model.norm.reverse(pytorch_model.unwrap(targets[0]), form='dyn' if full_model.predict_dynamics else 'target')}, {dones[0]}\n"
-            logging_str += f"mean: {full_model.norm.reverse(pytorch_model.unwrap(params[0][0]), form='dyn' if full_model.predict_dynamics else 'target')}\n"
-            logging_str += f"variance: {full_model.norm.reverse(pytorch_model.unwrap(params[1][0]), form='dyn' if full_model.predict_dynamics else 'diff')}"
+            logging_str += f"\ntarget: {full_model.norm.reverse(pytorch_model.unwrap(targets[0]), form='dyn' if full_model.predict_dynamics else 'target', name=name)}, {dones[0]}\n"
+            logging_str += f"mean: {full_model.norm.reverse(pytorch_model.unwrap(params[0][0]), form='dyn' if full_model.predict_dynamics else 'target', name=name)}\n"
+            logging_str += f"variance: {full_model.norm.reverse(pytorch_model.unwrap(params[1][0]), form='dyn' if full_model.predict_dynamics else 'diff', name=name)}"
             logging.info(logging_str)
             print(logging_str)
             self.reset()

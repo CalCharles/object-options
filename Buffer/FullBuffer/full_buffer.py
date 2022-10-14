@@ -4,7 +4,7 @@ from Buffer.buffer import ParamPrioWeightedReplayBuffer
 
 from tianshou.data import Batch, ReplayBuffer, PrioritizedReplayBuffer
 
-class FullReplayBuffer(PrioritizedReplayBuffer):
+class FullReplayBuffer(ReplayBuffer):
     # obs, obs_next contain the flattened full state from the environment
     _reserved_keys = ("obs", "act", "rew", "done", "obs_next", "info", "policy", "true_reward", "true_done", "time","option_choice", "option_resample")
 
@@ -32,13 +32,13 @@ class FullReplayBuffer(PrioritizedReplayBuffer):
             act=self.act[indice],
             rew=self.rew[indice],
             done=self.done[indice],
-            terminate = self.terminate[indice],
             obs_next=obs_next,
             info=self.get(indice, "info", Batch()),
             policy=self.get(indice, "policy", Batch()),
             true_reward=self.true_reward[indice],
             true_done = self.true_done[indice],
             time = self.time[indice],
+            option_choice = self.option_choice[indice],
             option_resample = self.option_resample[indice], # when the option being run is resampled
         )
 
@@ -89,8 +89,8 @@ class FullReplayBuffer(PrioritizedReplayBuffer):
         return self[indices], indices
 
 class ObjectReplayBuffer(ParamPrioWeightedReplayBuffer): # not using double inheritance so exactly the same as above.
-    _reserved_keys = ("obs", "act", "rew", "done", "obs_next", # the following obs, obs_next, correspond to target, next_target, act corresponds to param
-        "policy_mask", "param_mask", "target_diff", "terminate", "mapped_act", "inter", "trace",
+    _reserved_keys = ("obs", "act", "rew", "done", "obs_next", "info", "policy",# the following obs, obs_next, correspond to target, next_target, act corresponds to param
+        "param", "policy_mask", "param_mask", "target_diff", "terminate", "mapped_act", "inter", "trace",
         "proximity", "weight_binary")
 
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
@@ -107,21 +107,27 @@ class ObjectReplayBuffer(ParamPrioWeightedReplayBuffer): # not using double inhe
             indice = index
         # raise KeyError first instead of AttributeError,
         # to support np.array([ReplayBuffer()])
+        obs = self.get(indice, "obs")
+        if self._save_obs_next:
+            obs_next = self.get(indice, "obs_next", Batch())
+        else:
+            obs_next = self.get(self.next(indice), "obs", Batch())
         return Batch(
             obs=obs,
             act=self.act[indice],
             rew=self.rew[indice],
             done=self.done[indice],
-            terminate = self.terminate[indice],
             obs_next=obs_next,
+            info=self.get(indice, "info", Batch()),
             policy=self.get(indice, "policy", Batch()),
             param = self.param[indice], # all below lines differ from prioritized replay buffer to handle option values
-            mask = self.mask[indice],
+            policy_mask=self.policy_mask[indice],
+            param_mask=self.param_mask[indice],
             target_diff=self.target_diff[indice], 
+            terminate = self.terminate[indice],
             mapped_act = self.mapped_act[indice],
             inter = self.inter[indice],
             trace = self.trace[indice],
             proximity = self.proximity[indice],
             weight_binary = self.weight_binary[indice],
-            option_choice = self.option_choice[indice], # what option is being chosen for this object (node number?)
         )

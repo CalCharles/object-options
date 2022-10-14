@@ -22,33 +22,40 @@ def passive_binary(passive_error, weighting, proximity, done):
     binaries = (binaries.astype(int) * proximity.astype(int)).astype(np.float128).squeeze()
     return binaries
 
-def proximity_binary(full_model, rollouts, full=False)
+def proximity_binary(full_model, rollouts,object_rollouts=None, full=False):
     # construct proximity batches if necessary
-    proximal = get_error(full_model, rollouts, error_type=error_types.PROXIMITY).astype(int)
-    proximal_inst = get_error(full_model, rollouts, error_type=error_types.PROXIMITY, reduced=False).astype(int) # the same as above if not multiinstanced
+    proximal = get_error(full_model, rollouts, object_rollouts, error_type=error_types.PROXIMITY).astype(int)
+    proximal_inst = get_error(full_model, rollouts, object_rollouts, error_type=error_types.PROXIMITY, reduced=False).astype(int) # the same as above if not multiinstanced
     non_proximal = (proximal != True).astype(int)
     non_proximal_inst = (proximal_inst != True).astype(int)
     # non_proximal_weights = non_proximal.squeeze() / np.sum(non_proximal) if np.sum(non_proximal) != 0 else np.ones(non_proximal.shape) / len(non_proximal)
     return non_proximal, proximal
 
-def separate_weights(weighting, full_model, rollouts, proximity, trace):
+def separate_weights(weighting, full_model, rollouts, proximity, trace, object_rollouts=None):
     passive_error_cutoff, passive_error_upper, weighting_ratio, weighting_schedule = weighting
     if weighting_ratio >= 0:
-        passive_error =  - get_error(full_model, rollouts, error_type = error_types.PASSIVE_LIKELIHOOD)
-        done =  get_error(full_model, rollouts, error_type = error_types.DONE)
-        print(np.concatenate([passive_error, rollouts.target_diff, done], axis=-1)[(passive_error > 0).squeeze()][:100])
-        print(np.concatenate([passive_error, rollouts.target_diff, done], axis=-1)[(passive_error > 0).squeeze()][100:200])
-        print(np.concatenate([passive_error, rollouts.target_diff, done], axis=-1)[(passive_error > 0).squeeze()][200:300])
+        passive_error =  - get_error(full_model, rollouts, object_rollouts, error_type = error_types.PASSIVE_LIKELIHOOD)
+        done =  get_error(full_model, rollouts, object_rollouts, error_type = error_types.DONE)
+        print(object_rollouts.target_diff.shape)
+        print(np.concatenate([passive_error, rollouts.target_diff if object_rollouts is None else object_rollouts.target_diff, done], axis=-1))
+        print("passive", np.concatenate([passive_error, rollouts.target_diff if object_rollouts is None else object_rollouts.target_diff, done], axis=-1)[(passive_error > passive_error_cutoff).squeeze()][:100])
+        print("passive", np.concatenate([passive_error, rollouts.target_diff if object_rollouts is None else object_rollouts.target_diff, done], axis=-1)[(passive_error > passive_error_cutoff).squeeze()][100:200])
+        print(np.concatenate([passive_error, rollouts.target_diff if object_rollouts is None else object_rollouts.target_diff, done], axis=-1)[(passive_error > passive_error_cutoff).squeeze()][200:300])
         # weighting hyperparameters, if passive_error_cutoff > 0 then using passive weighting
         binaries = passive_binary(passive_error, weighting, proximity, done)
         weights = get_weights(weighting_ratio, binaries)
+        if np.sum(binaries) == 0:
+            print("NO PASSIVE FOUND")
+            passive_error, weights, binaries = uni_weights(rollouts)
+        print("assive error", np.sum(binaries), passive_error[passive_error > 0], binaries, weights)
     elif trace is not None:
         passive_error = trace.copy()
         binaries = torch.max(trace, dim=1)[0].squeeze() if full_model.multi_instanced else trace
         weights = get_weights(weighting_ratio, binaries)
     else: # no special weighting on the samples
         passive_error, weights, binaries = uni_weights(rollouts)
-    rollouts.weight_binary[:len(rollouts)] = binaries
+    if object_rollouts is None: rollouts.weight_binary[:len(rollouts)] = binaries
+    else: object_rollouts.weight_binary[:len(rollouts)] = binaries
     return passive_error, weights, binaries
 
 
