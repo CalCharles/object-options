@@ -20,8 +20,8 @@
     predict_dynamics: True
     interaction_testing: 0.5 -1 -1 -1
     interaction_iters: 0
-    # load_intermediate: /hdd/datasets/object_data/temp/
-    save_intermediate: /hdd/datasets/object_data/temp/
+    # load_intermediate: /hdd/datasets/object_data/robopush/temp/
+    save_intermediate: /hdd/datasets/object_data/robopush/temp/
     compare_trace: True
     passive:
       passive_iters: 10000

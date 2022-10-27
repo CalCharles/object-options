@@ -261,6 +261,7 @@ class NeuralInteractionForwardModel(nn.Module):
             return binary
         else:
             val = bat.inter_state
+            # print(bat.inter_state)
             return self.interaction_model(pytorch_model.wrap(val, cuda=self.iscuda))
 
     def _target_dists(self, batch, params):

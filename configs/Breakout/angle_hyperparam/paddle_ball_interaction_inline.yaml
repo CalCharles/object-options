@@ -15,7 +15,8 @@
     num_frames: 100000
     train_test_order: time
     train_edge: Paddle Ball
-    load_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle2/
+    # load_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle2/
+    load_rollouts: /nfs/data/calebc/object_data/breakout/testrun/ball3/
     num_iters: 100000
     batch_size: 256
   inter:
@@ -23,7 +24,7 @@
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
     # load_intermediate: True
-    save_intermediate: True
+    # save_intermediate: True
     compare_trace: True
     proximity_epsilon: 7
     passive:
@@ -31,12 +32,12 @@
       passive_log_interval: 100
     active:
       active_log_interval: 100
-      inline_iters: 20 20 20000
+      inline_iters: 20 0 20000
       interaction_weighting: 100 -1
       interaction_schedule: 10000
       weighting: 0 200000 100 100000
   interaction_net:
-    hidden_sizes: 128 128 128 128 128
+    hidden_sizes: 512 256 256 128 128
     net_type: mlp
     init_form: xnorm
     optimizer:

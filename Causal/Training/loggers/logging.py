@@ -8,8 +8,9 @@ def print_errors(full_model, rollouts, object_rollouts=None, error_types=[0], sa
 	else: sample_list = [inter_state, next_target]
 	for error_type in error_types:
 		err_vals = get_error(full_model, rollouts, error_type=error_type, object_rollout = object_rollouts, reduced=False, normalized=False, prenormalize=prenormalize)
-		print("error total", error_names[error_type], np.mean(err_vals, axis=0), np.sum(err_vals, axis=0))
+		if len(err_vals.shape) == 3: err_vals = np.sum(err_vals, axis=-1)
 		if len(err_vals.shape) == 1: err_vals = np.expand_dims(err_vals, axis=-1)
+		print("error total", error_names[error_type], np.mean(err_vals, axis=0), np.sum(err_vals, axis=0), err_vals.shape)
 		sample_list.append(err_vals[:sample_num])
 	np.set_printoptions(threshold=100000, linewidth=300, precision=4, suppress=True)
 	print("error values", "Inter", "Next Target", [error_names[et] for et in error_types], np.concatenate(sample_list, axis=-1))

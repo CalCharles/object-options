@@ -36,14 +36,13 @@ def train_passive(full_model, args, rollouts, object_rollout, active_optimizer, 
 
         # compute network values
         passive_prediction_params = full_model.passive_model(pytorch_model.wrap(batch.obs, cuda=full_model.iscuda)) # batch.target != target
-        # print(passive_prediction_params[0].shape)
         
         # Train the passive model
-        done_flags = np.expand_dims(1-batch.done, -1)
+        done_flags = np.expand_dims(1-full_batch.done.squeeze(), -1)
         # print(full_model.passive_model.mean.aggregate_final, batch.obs.shape, target.shape, full_model.name)
         passive_likelihood_full = - full_model.dist(*passive_prediction_params).log_prob(target)
         passive_loss = compute_likelihood(full_model, args.train.batch_size, passive_likelihood_full, done_flags=done_flags, is_full = True)
-        run_optimizer(passive_optimizers, full_model.passive_model, passive_loss)
+        # run_optimizer(passive_optimizers, full_model.passive_model, passive_loss)
 
         # logging the passive model outputs
         logger.log(i, passive_loss, None, None, passive_likelihood_full  * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, weight_rate, batch.done,
@@ -56,10 +55,13 @@ def train_passive(full_model, args, rollouts, object_rollout, active_optimizer, 
             # print(active_prediction_params[0].shape, batch.tarinter_state.shape, full_model.active_model.mean.object_dim, full_model.active_model.mean.single_object_dim, full_model.active_model.mean.first_obj_dim)
             active_likelihood_full = - full_model.dist(*active_prediction_params).log_prob(target)
             active_loss = compute_likelihood(full_model, args.train.batch_size, active_likelihood_full, done_flags=done_flags, is_full = True)
+            # print(full_model.name, batch.tarinter_state[0], target[0])
+            # print("prediction", torch.ones(len(full_model.all_names) * full_model.target_num).shape, active_prediction_params[0][0], full_model.active_open_likelihood(batch)[0][0][0], full_model.likelihoods(batch)[1][0][0])
+            # print("likelihood", active_likelihood_full[0], full_model.active_open_likelihood(batch)[-1][0], full_model.likelihoods(batch)[-2][0])
             run_optimizer(active_optimizer, full_model.active_model, active_loss)
             # logging the active model outputs
             active_logger.log(i, active_loss, None, None, active_likelihood_full * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, weight_rate, batch.done,
-                                active_prediction_params, target, None, full_model) 
+                                active_prediction_params, target, None, full_model)
         if i % args.inter.passive.passive_log_interval == 0:
-            print(full_model.norm.reverse(full_batch.obs[0], form="inter", name=full_model.name), full_model.norm.reverse(target[0], name=full_model.name, form="dyn" if full_model.predict_dynamics else "target"))
+            print(full_model.name,batch.tarinter_state[0]  ,  full_model.norm.reverse(full_batch.obs[0], form="inter", name=full_model.name), target[0], full_model.norm.reverse(target[0], name=full_model.name, form="dyn" if full_model.predict_dynamics else "target"))
     return outputs

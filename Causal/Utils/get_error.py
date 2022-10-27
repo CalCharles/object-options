@@ -59,17 +59,18 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
     num_batch = len(part)
 
     # if the part is not normalized, this should normalize it
+    is_full = obj_part is not None
     if prenormalize: 
         part = full_model.normalize_batch(copy.deepcopy(part))
-        if obj_part is not None: obj_part = full_model.normalize_batch(copy.deepcopy(obj_part))
+        if is_full: obj_part = full_model.normalize_batch(copy.deepcopy(obj_part))
     
-    # if obj_part is not None then the obj_part contains object specific components
-    if obj_part is not None:
+    # if is_full then the obj_part contains object specific components
+    if is_full:
         obj_part.target = obj_part.obs
         obj_part.next_target = obj_part.obs_next
         obj_part.inter_state = part.obs
         obj_part.tarinter_state = np.concatenate([obj_part.target, obj_part.inter_state], axis=-1)
-    use_part = obj_part if obj_part is not None else part
+    use_part = obj_part if is_full else part
 
     # handles 3 different targets, predicting the trace, predicting the dynamics, or predicting the next target
     if error_type == error_types.INTERACTION: target = use_part.trace
@@ -80,12 +81,12 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
     if error_type == error_types.PASSIVE or error_type == error_types.PASSIVE_RAW:
         output = pytorch_model.unwrap(full_model.passive_model(pytorch_model.wrap(use_part.target, cuda=full_model.iscuda))[0])
     elif error_type == error_types.ACTIVE or error_type == error_types.ACTIVE_RAW:
-        if obj_part is None: output = pytorch_model.unwrap(full_model.active_model(pytorch_model.wrap(use_part.inter_state, cuda=full_model.iscuda))[0])
+        if not is_full: output = pytorch_model.unwrap(full_model.active_model(pytorch_model.wrap(use_part.inter_state, cuda=full_model.iscuda))[0])
         else: output = pytorch_model.unwrap(full_model.active_model(pytorch_model.wrap(use_part.tarinter_state, cuda=full_model.iscuda), pytorch_model.wrap(use_part.inter, cuda=full_model.iscuda))[0])
     if error_type == error_types.PASSIVE_VAR:
         output = pytorch_model.unwrap(full_model.passive_model(pytorch_model.wrap(use_part.target, cuda=full_model.iscuda))[1])
     elif error_type == error_types.ACTIVE_VAR:
-        if obj_part is None: output = pytorch_model.unwrap(full_model.active_model(pytorch_model.wrap(use_part.inter_state, cuda=full_model.iscuda))[1])
+        if not is_full: output = pytorch_model.unwrap(full_model.active_model(pytorch_model.wrap(use_part.inter_state, cuda=full_model.iscuda))[1])
         else: output = pytorch_model.unwrap(full_model.active_model(pytorch_model.wrap(use_part.tarinter_state, cuda=full_model.iscuda), pytorch_model.wrap(use_part.inter, cuda=full_model.iscuda))[1])
     if error_type <= error_types.ACTIVE:
         if reduced:
@@ -106,23 +107,24 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
         output = pytorch_model.unwrap(full_model.weighted_likelihoods(use_part)[-1])
     elif error_type == error_types.PASSIVE_LIKELIHOOD:
         output = pytorch_model.unwrap(full_model.passive_likelihoods(use_part)[-1])
+        print(output, use_part.obs)
     elif error_type == error_types.ACTIVE_LIKELIHOOD:
         output = pytorch_model.unwrap(full_model.active_likelihoods(use_part)[-1])
     if error_type <= error_types.ACTIVE_LIKELIHOOD:
-        if reduced: output = - compute_likelihood(full_model, num_batch, - output)
+        if reduced: output = - compute_likelihood(full_model, num_batch, - output, is_full=is_full)
         return output
 
     # interaction type errors
     if error_type == error_types.INTERACTION:
-        output = full_model.interaction(part)
+        output = full_model.interaction(use_part)
         return np.abs(pytorch_model.unwrap(output)-target) # should probably use CE loss
     elif error_type == error_types.INTERACTION_RAW:
-        return pytorch_model.unwrap(full_model.interaction(part))
+        return pytorch_model.unwrap(full_model.interaction(use_part))
     elif error_type == error_types.INTERACTION_BINARIES:
         _, _, _, _, _, _, active_log_probs, passive_log_probs = full_model.likelihoods(part)
         binaries = pytorch_model.unwrap(full_model.test.compute_binary(- active_log_probs.sum(dim=-1),
                                                 - passive_log_probs.sum(dim=-1)).unsqueeze(-1))
-        return binaries
+        return binaries        
 
     if error_type == error_types.PROXIMITY:
         return check_proximity(full_model, part.parent_state, part.target, normalized=normalized)
@@ -166,7 +168,9 @@ def get_error(full_model, rollouts, object_rollout=None, error_type=0, reduced=T
     for i in range(int(np.ceil(len(batch) / min(500,len(batch))))): # run 500 at a time, so that we don't overload the GPU
         part = batch[i*500:(i+1)*500]
         obj_part = None if obj_batch is None else object_rollout[i*500:(i+1)*500]
-        done_flags = 1-part.done
-        values = compute_error(full_model, error_type, part, obj_part, normalized=normalized, reduced=reduced, prenormalize=prenormalize, object_names = object_names) * done_flags if not outputs(error_type) else compute_error(full_model, error_type, part, obj_part, normalized=normalized, reduced=reduced, object_names = object_names)
+        done_flags = np.expand_dims((1-part.done).squeeze(), -1)
+        values = compute_error(full_model, error_type, part, obj_part, normalized=normalized, reduced=reduced, prenormalize=prenormalize, object_names = object_names)
+        if not outputs(error_type): values = values * done_flags
+        # print("done flags", error_names[error_type], done_flags.shape, values.shape, compute_error(full_model, error_type, part, obj_part, normalized=normalized, reduced=reduced, prenormalize=prenormalize, object_names = object_names).shape)
         model_error.append(values)
     return np.concatenate(model_error, axis=0)

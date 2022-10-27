@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torch.distributions as dist
 from collections import Counter
 from tianshou.data import Collector, Batch, ReplayBuffer
 from Record.file_management import create_directory
@@ -21,11 +22,13 @@ from Environment.Normalization.norm import NormalizationModule
 from Environment.Normalization.full_norm import FullNormalizationModule
 from Environment.Normalization.pad_norm import PadNormalizationModule
 
-
-def assign_distribution(dist):
-        if dist == "Gaussian": return torch.distributions.normal.Normal
-        # elif dist == "Discrete": return Categorical(kwargs['num_outputs'], kwargs['num_outputs'])
-        # elif dist == "MultiBinary": return Bernoulli(kwargs['num_outputs'], kwargs['num_outputs'])
+def assign_distribution(assign_dist):
+        if assign_dist == "Gaussian": return torch.distributions.normal.Normal
+        if assign_dist == "Identity": return None
+        if assign_dist == "RelaxedBernoulli": return dist.relaxed_bernoulli.RelaxedBernoulli
+        if assign_dist == "Bernoulli": return dist.bernoulli.Bernoulli
+        # elif assign_dist == "Discrete": return Categorical(kwargs['num_outputs'], kwargs['num_outputs'])
+        # elif assign_dist == "MultiBinary": return Bernoulli(kwargs['num_outputs'], kwargs['num_outputs'])
         else: raise NotImplementedError
 
 def load_interaction(pth, name, device=-1):
@@ -49,8 +52,8 @@ def make_name(object_names):
 def regenerate(append_id, environment):
     extractor = CausalPadExtractor(environment, append_id)
     # norm = FullNormalizationModule(environment.object_range, environment.object_dynamics, name, environment.object_instanced, environment.object_names)
-    pad_size = max(list(environment.object_sizes.values()))
-    append_size = len(list(environment.object_sizes.keys())) * int(append_id)
+    pad_size = extractor.pad_dim
+    append_size = extractor.append_dim
     norm = PadNormalizationModule(environment.object_range, environment.object_dynamics, environment.object_instanced, environment.object_names, pad_size, append_size)
     return extractor, norm
 
@@ -62,7 +65,7 @@ class FullNeuralInteractionForwardModel(nn.Module):
         self.is_full = True
         self.name = target
         self.names = environment.object_names
-        self.all_names = environment.all_names
+        self.all_names = [n for n in environment.all_names if n not in ["Reward", "Done"]]
         self.target_select = np.array([True if n == self.name else False for n in self.names])
         self.extractor = causal_extractor
         self.norm = normalization
@@ -82,6 +85,8 @@ class FullNeuralInteractionForwardModel(nn.Module):
 
         # set the distributions
         self.dist = assign_distribution("Gaussian") # TODO: only one kind of dist at the moment
+        self.relaxed_inter_dist = assign_distribution(args.full_inter.soft_distribution)
+        self.inter_dist = assign_distribution("Bernoulli")
 
         # set the forward model
         self.active_model = DiagGaussianForwardPadMaskNetwork(self.active_model_args)
@@ -116,7 +121,7 @@ class FullNeuralInteractionForwardModel(nn.Module):
 
     def regenerate(self, extractor, norm):
         self.norm, self.extractor = norm, extractor
-        self.target_num = extractor.complete_instances[extractor.names.index(self.name)]
+        self.target_num = extractor.complete_instances[extractor.object_names.index(self.name)]
         if hasattr(self, "mask") and self.mask is not None: self.mask.regenerate_norm(norm)
 
     def reset_network(self, net = None):
@@ -254,24 +259,38 @@ class FullNeuralInteractionForwardModel(nn.Module):
         batch.target_diff = self.norm(batch.target_diff, form="dyn", name=self.name)
         return batch
 
+    def apply_mask(self, inter_mask, soft=True):
+        # TODO: generate the interaction mask out of the outputs of the interaction model
+        if soft:
+            return inter_mask if self.relaxed_inter_dist is None else self.relaxed_inter_dist(args.full_inter.dist_temperature, probs=inter_mask).sample()
+        return self.inter_dist(inter_mask).sample()
+
     # likelihood functions (below) get the gaussian distributions output by the active and passive models
-    def likelihoods(self, batch, normalize=False):
+    def likelihoods(self, batch, normalize=False, mixed=False):
         if normalize: batch = self.normalize_batch(batch)
         inter = self.interaction_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda))
-        print(batch.tarinter_state.shape, inter.shape)
-        active_params = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), inter)
+        soft_inter_mask = self.apply_mask(inter, soft=True)
+        hard_inter_mask = self.apply_mask(inter, soft=False)
+        full_mask = pytorch_model.wrap(torch.ones(len(self.all_names) * self.target_num), cuda = self.iscuda)
+        active_hard_params = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), hard_inter_mask)
+        if mixed: active_soft_params = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), soft_inter_mask * hard_inter_mask)
+        else: active_soft_params = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), soft_inter_mask)
+        active_full_params = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), full_mask)
         passive_params = self.passive_model(pytorch_model.wrap(batch.obs, cuda=self.iscuda))
         # print(np.concatenate([batch.inter_state, batch.target_diff, pytorch_model.unwrap(active_params[0])], axis=-1))
         # print(np.concatenate([self.norm.reverse(batch.inter_state, form="inter"), self.norm.reverse(batch.target_diff, form="dyn"), self.norm.reverse(pytorch_model.unwrap(active_params[0]), form = 'dyn')], axis=-1))
-        target, active_dist, active_log_probs = self._target_dists(batch, active_params)
+        target, active_hard_dist, active_hard_log_probs = self._target_dists(batch, active_hard_params)
+        target, active_soft_dist, active_soft_log_probs = self._target_dists(batch, active_soft_params)
+        target, active_full_dist, active_full_log_probs = self._target_dists(batch, active_full_params)
         target, passive_dist, passive_log_probs = self._target_dists(batch, passive_params)
-        return active_params, passive_params, inter, target, active_dist, passive_dist, active_log_probs, passive_log_probs        
+        return active_hard_params, active_soft_params, active_full_params, passive_params, inter, soft_inter_mask, hard_inter_mask, target, active_hard_dist, active_soft_dist, active_full_dist, passive_dist, active_hard_log_probs, active_soft_log_probs, active_full_log_probs, passive_log_probs        
 
     # gets the active likelihood without the interaction mask blocking any inputs
     def active_open_likelihood(self, batch, normalize=False):
         if normalize: batch = self.normalize_batch(batch)
-        inter = pytorch_model.wrap(torch.ones(len(self.active_model.total_object_sizes)), cuda=self.iscuda)
-        active_params = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), inter)
+        inter = pytorch_model.wrap(torch.ones(len(self.all_names) * self.target_num), cuda=self.iscuda)
+        inter_mask = self.apply_mask(inter)
+        active_params = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), inter_mask)
         target, active_dist, active_log_probs = self._target_dists(batch, active_params)
         return active_params, active_dist, active_log_probs
 
@@ -282,7 +301,8 @@ class FullNeuralInteractionForwardModel(nn.Module):
 
     def active_likelihoods(self, batch):
         inter = self.interaction_model(pytorch_model.wrap(batch.batch.tarinter_state, cuda=self.iscuda))
-        active_params = self.active_model(pytorch_model.wrap(batch.batch.tarinter_state, cuda=self.iscuda), inter)
+        inter_mask = self.apply_mask(inter, soft=False)
+        active_params = self.active_model(pytorch_model.wrap(batch.batch.tarinter_state, cuda=self.iscuda), inter_mask)
         target, dist, log_probs = self._target_dists(batch, active_params)
         return active_params, dist, log_probs
 

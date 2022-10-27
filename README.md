@@ -33,6 +33,9 @@ Asteroids: get ship policy
 
 CT asteroids: get ship policy
 
+Run Random conditionals
+python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random/ --num-frames 1000
+python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random/ --num-frames 1000 --variant conditional
 
 Run Breakout Training:
 python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/breakout/random/
@@ -55,6 +58,7 @@ Run Sokoban training:
 python generate_random.py --env Sokoban --record-rollouts /hdd/datasets/object_data/Sokoban/random/ --num-frames 10000
 
 python generate_random.py --env Asteroids --demonstrate --num-frames 5000
+
 
 
 

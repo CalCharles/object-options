@@ -106,7 +106,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         if self.test:
             if len(self.stream_print_file) == 0:
                 if np.any(self.data.terminate[0]): print("new_param", self.data.param[0])
-                print(self.counter, self.data.param[0], self.data.next_target, self.data.action_chain,self.data.act, self.data.inter[0] , self.data.rew[0], self.data.terminate[0],self.data.done[0], self.state_extractor.reverse_obs_norm(self.data.obs, self.data.mask.squeeze()), pytorch_model.unwrap(self.option.policy.compute_Q(self.data, False)))
+                if np.any(self.data.done): print(self.counter, self.data.param[0], self.data.next_target, self.data.action_chain,self.data.act, self.data.inter[0] , self.data.rew[0], self.data.terminate[0],self.data.done[0], self.state_extractor.reverse_obs_norm(self.data.obs, self.data.mask.squeeze()), pytorch_model.unwrap(self.option.policy.compute_Q(self.data, False)))
             else:
                 stream_str = str(self.counter) + " ".join(map(str, [self.data.param[0], self.data.next_target, self.data.action_chain,self.data.act, self.data.inter[0],self.data.rew[0], self.data.terminate[0],self.data.done[0], self.state_extractor.reverse_obs_norm(self.data.obs, self.data.mask.squeeze()), pytorch_model.unwrap(self.option.policy.compute_Q(self.data, False))]))
                 if np.any(self.data.terminate[0]): "new_param" + str(self.data.param[0]) + "\n" + stream_str
@@ -226,7 +226,10 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
     def show_param(self, param, frame):
         if self.display_frame == 2:
             param = None
-        frame = display_param(frame, param, rescale=1, waitkey=50)
+        if self.display_frame == 3: # display angles
+            param.squeeze()[:2] = self.data.parent_state.squeeze()[:2]
+            # print("param", param)
+        frame = display_param(frame, param, rescale=8, waitkey=50, transpose=True)
         if len(self.save_display) > 0: imio.imsave(os.path.join(self.save_display, "state" + str(self.counter) + ".png"), frame)
 
 
@@ -364,7 +367,8 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
                 proximity_inst=[proximity_inst.squeeze()], weight_binary=[binaries.squeeze()],
                 rew=[rew], done=[done], terminate=[term], ext_term = [ext_term], # all prior are stored, after are not 
                 terminations= terminations, rewards=rewards, masks=masks, ext_terms=terminations[:len(terminations) - 1])
-
+            # print(self.data.inter_state,type(self.data.inter_state))
+            # print("term", terminations, inter, self.option.interaction_model.interaction(self.data, prenormalize=True))
             if self.preprocess_fn:
                 self.data.update(self.preprocess_fn(
                     obs_next=self.data.obs_next,
@@ -405,7 +409,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             next_data, skipped, added, self.at = self._aggregate(self.data, self.buffer, full_ptr, ready_env_ids)
             # print(self.data.target, not self.test, self.hindsight is not None)
             if not self.test and self.hindsight is not None: self.her_at, her_list = self.her_collect(self.her_buffer, next_data, self.data, added, debug=debug)
-            if self.display_frame > 0: self.show_param(param if self.display_frame < 3 else action_chain[-1], self.environment.render())
+            if self.display_frame > 0: self.show_param(param if self.display_frame < 4 else action_chain[-1], self.environment.render())
             tc_aggregate = time.time()
             # collect statistics
             step_count += len(ready_env_ids)

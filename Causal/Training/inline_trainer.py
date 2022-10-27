@@ -52,7 +52,7 @@ class InlineTrainer():
         if type(self.interaction_model) == DummyInteraction or not self.train: # since these values are expensive, don't use them if not training
             binaries = np.ones(proximity.shape)
         else:
-            new_data = Batch(target = self.interaction_model.norm(data.target), target_diff = self.interaction_model.norm(data.target_diff, form="diff"), next_target = self.interaction_model.norm(data.next_target))
+            new_data = Batch(target = self.interaction_model.norm(data.target), inter_state = self.interaction_model.norm(data.inter_state, form="inter"), target_diff = self.interaction_model.norm(data.target_diff, form="diff"), next_target = self.interaction_model.norm(data.next_target))
             tc_create = time.time()
             passive_error = - pytorch_model.unwrap(self.interaction_model.passive_likelihoods(new_data)[-1].sum().unsqueeze(-1).unsqueeze(-1)) # TODO: fails for multi-instanced
             tc_error = time.time()
@@ -61,6 +61,8 @@ class InlineTrainer():
             tc_bin = time.time()
             # print(f"bin calc create {tc_create - tc_done} error {tc_error - tc_create} bin {tc_bin -tc_error}")
         tc_binaries = time.time()
+        # if np.any(done): 
+        print("inline", new_data.inter_state, self.interaction_model.interaction(new_data), binaries, proximity)
         # print(f"inline: prox: {tc_proximity - tc_start}, done: {tc_done - tc_proximity}, binaries: {tc_binaries - tc_done}, total: {tc_binaries -tc_start}")
         # print(data.full_state.factored_state.Paddle, data.full_state.factored_state.Ball,data.next_full_state.factored_state.Ball, proximity, binaries)
         return proximity, proximity_inst, binaries

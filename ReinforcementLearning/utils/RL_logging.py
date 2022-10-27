@@ -3,7 +3,7 @@ from Network.network_utils import pytorch_model
 from Record.file_management import write_string
 import os
 
-def collect_test_trials(logger, option, test_collector, term_step, i, trials, random):
+def collect_test_trials(logger, option, test_collector, term_step, i, trials, random, demonstrate_option):
     '''
     collect trials with the test collector
     the environment is reset before starting these trials
@@ -17,7 +17,7 @@ def collect_test_trials(logger, option, test_collector, term_step, i, trials, ra
     for j in range(trials):
         print("next_trial", j)
         option.reset(test_collector.data.full_state)
-        result = test_collector.collect(n_episode=1, n_term=None if term_step[0] <=0 else term_step[0], n_step=term_step[1], random=random, new_param=True)
+        result = test_collector.collect(n_episode=1, n_term=None if term_step[0] <=0 else term_step[0], n_step=term_step[1], random=random, new_param=True, demonstrate=demonstrate_option)
         result['n/tr'] = max(1, result['n/tr']) # at least one (virtual) epsiode occurs before the end, for testing purposes
         result['n/ep'] = max(1, result['n/ep']) # at least one (virtual) epsiode occurs before the end, for testing purposes
         result['n/m'] = int(result['n/m'] > 0 or term_step[1] == result['n/st']) 

@@ -34,6 +34,7 @@ def compute_likelihood(full_model, batch_size, likelihood_full, done_flags=None,
     else: # assumes it's a numpy array and perform the same operation
         if full_model.multi_instanced: loss = np.expand_dims(np.max(np.sum(likelihood_full.reshape(batch_size, -1, obj_dim), axis=-1), axis=-1), axis=-1)  * done_flags
         else: loss = np.expand_dims(np.sum(likelihood_full, axis=-1), axis=-1) * done_flags
+    # print("ce", loss.shape, done_flags.shape)
     return loss
 
 def compute_l1(full_model, batch_size, params, targets, is_full = False):

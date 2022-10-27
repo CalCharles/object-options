@@ -2,10 +2,16 @@ from State.full_selector import FullSelector
 from State.pad_selector import PadSelector
 from State.feature_selector import construct_object_selector
 import numpy as np
+import copy
 
 class CausalFullExtractor():
 	def __init__(self, environment, append_id=False):
 		self.names = environment.object_names
+		object_sizes, object_instanced, object_names = copy.deepcopy(environment.object_sizes), copy.deepcopy(environment.object_instanced), copy.deepcopy(environment.object_names)
+		for n in ["Reward", "Done"]:
+			del object_sizes[n]
+			del object_instanced[n]
+			object_names.remove(n)
 		self.inter_selector = FullSelector(environment.object_sizes, environment.object_instanced, environment.object_names)
 		self.target_selectors = {n: construct_object_selector([n], environment) for n in self.names}
 		self.full_object_sizes = [int(environment.object_instanced[n] * environment.object_sizes[n]) for n in self.names]
@@ -30,14 +36,20 @@ class CausalFullExtractor():
 class CausalPadExtractor():
 	def __init__(self, environment, append_id):
 		self.names = environment.object_names
-		self.inter_selector = PadSelector(environment.object_sizes, environment.object_instanced, environment.object_names, {n: np.ones(environment.object_sizes[n]).astype(bool) for n in environment.object_names}, append_id=append_id)
+		object_sizes, object_instanced, object_names = copy.deepcopy(environment.object_sizes), copy.deepcopy(environment.object_instanced), copy.deepcopy(environment.object_names)
+		for n in ["Reward", "Done"]:
+			del object_sizes[n]
+			del object_instanced[n]
+			object_names.remove(n)
+		self.object_names = object_names
+		self.inter_selector = PadSelector(object_sizes, object_instanced, object_names, {n: np.ones(object_sizes[n]).astype(bool) for n in object_names}, append_id=append_id)
 		self.target_selectors = {n: construct_object_selector([n], environment, pad=True, append_id=False) for n in self.names} # don't append ID for target state
-		self.full_object_sizes = [int(environment.object_instanced[n] * environment.object_sizes[n]) for n in self.names]
-		self.complete_instances = [int(environment.object_instanced[n]) for n in environment.object_names]
-		self.pad_dim = max(list(environment.object_sizes.values()))
-		self.append_dim =len(list(environment.object_sizes.keys())) * int(append_id)
+		self.full_object_sizes = [int(object_instanced[n] * object_sizes[n]) for n in self.object_names]
+		self.complete_instances = [int(object_instanced[n]) for n in object_names]
+		self.pad_dim = max(list(object_sizes.values()))
+		self.append_dim =len(list(object_sizes.keys())) * int(append_id)
 		self.expand_dim = self.pad_dim + self.append_dim
-		self.complete_object_sizes = [int(environment.object_instanced[n] * self.expand_dim) for n in self.names]
+		self.complete_object_sizes = [int(object_instanced[n] * self.expand_dim) for n in self.object_names]
 
 		# sizes
 		self.total_inter_size = self.inter_selector.output_size()

@@ -3,7 +3,7 @@
     # record_rollouts: ""
     record_recycle: -1
     # load_dir: /nfs/data/calebc/object_data/breakout/testrun/
-    save_dir: /hdd/datasets/object_data/breakout/testrun2/
+    # save_dir: /hdd/datasets/object_data/breakout/testrun2/
   environment:
     env: Breakout
     variant: default
@@ -15,19 +15,20 @@
     num_frames: 100000
     train_test_order: time
     train_edge: Paddle Ball
-    load_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle
+    # load_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle
+    load_rollouts: /nfs/data/calebc/object_data/breakout/testrun/ball3/
     num_iters: 50000
     batch_size: 256
   inter:
     predict_dynamics: False
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    # load_intermediate: /hdd/datasets/object_data/breakout/temp/
-    save_intermediate: /hdd/datasets/object_data/breakout/temp/
+    load_intermediate: /hdd/datasets/object_data/breakout/temp_ball/
+    # save_intermediate: /hdd/datasets/object_data/breakout/temp_ball/
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 50000
+      # passive_iters: 50000
       passive_log_interval: 100
     active:
       active_log_interval: 500

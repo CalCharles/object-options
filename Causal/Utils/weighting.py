@@ -35,14 +35,17 @@ def separate_weights(weighting, full_model, rollouts, proximity, trace, object_r
     passive_error_cutoff, passive_error_upper, weighting_ratio, weighting_schedule = weighting
     if weighting_ratio >= 0:
         passive_error =  - get_error(full_model, rollouts, object_rollouts, error_type = error_types.PASSIVE_LIKELIHOOD)
-        done =  get_error(full_model, rollouts, object_rollouts, error_type = error_types.DONE)
-        print(object_rollouts.target_diff.shape)
+        done =  np.expand_dims(get_error(full_model, rollouts, object_rollouts, error_type = error_types.DONE).squeeze(), -1)
+        # print(object_rollouts.target_diff.shape, done.shape, passive_error.shape)
         print(np.concatenate([passive_error, rollouts.target_diff if object_rollouts is None else object_rollouts.target_diff, done], axis=-1))
         print("passive", np.concatenate([passive_error, rollouts.target_diff if object_rollouts is None else object_rollouts.target_diff, done], axis=-1)[(passive_error > passive_error_cutoff).squeeze()][:100])
         print("passive", np.concatenate([passive_error, rollouts.target_diff if object_rollouts is None else object_rollouts.target_diff, done], axis=-1)[(passive_error > passive_error_cutoff).squeeze()][100:200])
         print(np.concatenate([passive_error, rollouts.target_diff if object_rollouts is None else object_rollouts.target_diff, done], axis=-1)[(passive_error > passive_error_cutoff).squeeze()][200:300])
         # weighting hyperparameters, if passive_error_cutoff > 0 then using passive weighting
         binaries = passive_binary(passive_error, weighting, proximity, done)
+        if len(binaries.shape) > 1 and binaries.shape[-1] > 1: 
+            binaries = np.sum(binaries, axis=-1)
+            binaries[binaries > 1] = 1 
         weights = get_weights(weighting_ratio, binaries)
         if np.sum(binaries) == 0:
             print("NO PASSIVE FOUND")
@@ -55,7 +58,7 @@ def separate_weights(weighting, full_model, rollouts, proximity, trace, object_r
     else: # no special weighting on the samples
         passive_error, weights, binaries = uni_weights(rollouts)
     if object_rollouts is None: rollouts.weight_binary[:len(rollouts)] = binaries
-    else: object_rollouts.weight_binary[:len(rollouts)] = binaries
+    else: object_rollouts.weight_binary[:len(rollouts)] = (np.sum(binaries, axis=-1) > 0).astype(int) if len(binaries.shape) > 1 else binaries
     return passive_error, weights, binaries
 
 

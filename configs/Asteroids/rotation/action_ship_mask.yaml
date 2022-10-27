@@ -15,5 +15,5 @@
     num_frames: 1000
   mask:
     min_sample_difference: 0.1
-    var_cutoff: 0.02
+    var_cutoff: 0.01
 ...

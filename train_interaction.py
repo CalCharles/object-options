@@ -45,8 +45,9 @@ if __name__ == '__main__':
             args.padi_selector, args.parent_select, args.inter_select = full_model.extractor.get_selectors()
 
     # get the train and test buffers
-    if len(args.inter.load_intermediate) > 0: train_buffer, test_buffer = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_" + full_model.name + "_traintest.pkl"))
-    else: train_buffer, test_buffer = generate_buffers(environment, args, args.object_names, full_model)
+    # if len(args.inter.load_intermediate) > 0: train_buffer, test_buffer = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_" + full_model.name + "_traintest.pkl"))
+    # else: 
+    train_buffer, test_buffer = generate_buffers(environment, args, args.object_names, full_model)
     if len(args.inter.save_intermediate) > 0: save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name + "_" + full_model.name + "_traintest.pkl"), (train_buffer, test_buffer))
 
     if args.train.train: train_full(full_model, train_buffer, test_buffer, args, args.object_names, environment)

@@ -1,7 +1,7 @@
-import sys, time, cv2
+import sys, time, cv2, os
 import argparse
 from Environment.Environments.initialize_environment import initialize_environment
-from Record.file_management import display_frame, display_param
+from Record.file_management import display_frame, display_param, save_to_pickle
 from Causal.Sampling.sampling import samplers
 import numpy as np
 from State.feature_selector import construct_object_selector
@@ -22,6 +22,8 @@ if __name__ == "__main__":
                         help='amount of frameskip, 1=no frameskip')
     parser.add_argument('--variant', default="default",
                         help='environment variant to use')
+    parser.add_argument('--load-environment', default="",
+                        help='load the environment from here')
     parser.add_argument('--horizon', type=int, default=-1,
                         help='time cutoff for environment resets, defaults -1 (no cutoff)')
     parser.add_argument('--num-frames', type=int, default=1000,
@@ -56,4 +58,5 @@ if __name__ == "__main__":
         elif args.render and args.display_frame: display_frame(full_state['raw_state'], rescale=10, waitkey=30)
         if record is not None: record.save(full_state['factored_state'], full_state["raw_state"], environment.toString)
         if i % 1000 == 0: print(i, "fps", i / (time.time() - start))
+    save_to_pickle(os.path.join(args.record_rollouts, "environment.pkl"), environment)
     print("fps", args.num_frames / (time.time() - start))

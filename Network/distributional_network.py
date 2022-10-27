@@ -97,7 +97,6 @@ class DiagGaussianForwardPadMaskNetwork(Network):
         # TODO: make this not a for loop
         comb = list()
         for i in range(m.shape[-1]):
-            # print(self.object_dim, m.shape)
             comb.append(m[...,i].unsqueeze(-1) * pytorch_model.wrap(torch.ones(self.object_dim), cuda=self.iscuda))
         return torch.cat(comb, dim=-1)
 

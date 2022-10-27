@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 from State.feature_selector import broadcast
 from Network.network_utils import pytorch_model
 from Environment.Normalization.full_norm import compute_norm, compute_reverse, generate_multiobject_norm
@@ -43,7 +44,10 @@ class PadNormalizationModule(): # TODO: FULL REWRITE TO HANDLE INSTANCED-COUNTED
 		self.raw_norm, self.raw_lim = (128, 128), (0, 256) # assumes images are ranged 256
 		# interaction state norm
 		self.append_norm_dict, self.append_lim_dict = create_dict(self.lim_dict, self.pad_size, append_length)
-		self.inter_norm, self.inter_lim = generate_multiobject_norm(self.append_norm_dict, self.inter_names, object_counts), generate_multiobject_norm(self.append_lim_dict, self.inter_names, object_counts)
+		inter_names = copy.deepcopy(self.inter_names)
+		for n in ["Reward", "Done"]:
+			inter_names.remove(n)
+		self.inter_norm, self.inter_lim = generate_multiobject_norm(self.append_norm_dict, inter_names, object_counts), generate_multiobject_norm(self.append_lim_dict, self.inter_names, object_counts)
 		self.rel_norm, self.rel_lim = (np.zeros(self.inter_norm[0].shape), self.inter_norm[1] * 2), \
 							(self.inter_lim[0] - self.inter_lim[1], self.inter_lim[0] + self.inter_lim[1])
 		

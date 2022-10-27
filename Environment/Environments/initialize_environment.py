@@ -1,5 +1,6 @@
-
+from Record.file_management import load_from_pickle
 from Record.record_state import FullRecord
+import os
 
 
 def initialize_environment(args, record_args):
@@ -15,6 +16,11 @@ def initialize_environment(args, record_args):
     if args.env == "Sokoban":
         from Environment.Environments.Sokoban.sokoban import Sokoban
         environment = Sokoban(frameskip = args.frameskip, variant=args.variant)
+        environment.seed(args.seed)
+    if args.env == "RandomDistribution":
+        from Environment.Environments.RandomDistribution.random_distribution import RandomDistribution
+        if len(args.load_environment) > 0: environment = load_from_pickle(os.path.join(args.load_environment, "environment.pkl"))
+        else: environment = RandomDistribution(frameskip = args.frameskip, variant=args.variant)
         environment.seed(args.seed)
     # elif args.env == "Nav2D":
         # environment = Nav2D()

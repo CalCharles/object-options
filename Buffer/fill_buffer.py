@@ -29,7 +29,7 @@ def fill_buffer(environment, data, args, object_names, norm, predict_dynamics):
         # add one step to the buffer
         use_done = factored_state["Done"] if object_names.primary_parent == "Action" else next_factored_state["Done"] # collect shifts dones late
         # use_done = factored_state["Done"] if predict_dynamics else last_done
-        print(target, next_target, target_diff, use_done, factored_state["Done"])
+        print(target, next_target, args.target_select(factored_state), target_diff, use_done, factored_state["Done"], factored_state["Action"])
         # if np.linalg.norm(target) > 0: print(last_done, use_done, next_factored_state["Done"], args.target_select(next_factored_state) - args.target_select(factored_state), target_diff, factored_state["Target"],factored_state["Block"])
         # if np.linalg.norm(target_diff) > 0: print(i, last_done, use_done, factored_state["Action"], next_factored_state["Done"], args.inter_select(factored_state), target)
         # else: print(i, factored_state["Action"])

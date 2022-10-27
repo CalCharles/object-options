@@ -37,17 +37,20 @@ if __name__ == '__main__':
     else: train_full_buffer, train_object_buffers, test_full_buffer, test_object_buffers = generate_buffers(environment, args, environment.object_names, list(full_models.values())[0], full=True)
     if len(args.inter.save_intermediate) > 0: save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_traintest.pkl"), (train_full_buffer, train_object_buffers, test_full_buffer, test_object_buffers))
 
+    if len(args.inter.load_intermediate) > 0: 
+        print("loaded model")
+        full_models = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_inter_model.pkl"))
     for name in environment.object_names:
         if name not in ["Action"]:
+            print("TRAINING", name)
             if args.train.train and args.inter.passive.passive_iters > 0: run_train_passive(full_models[name], train_full_buffer, train_object_buffers[name], test_full_buffer, test_object_buffers[name], args, environment)
     if len(args.inter.save_intermediate) > 0: save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_inter_model.pkl"), full_models)
-    if len(args.inter.load_intermediate) > 0: full_models = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_inter_model.pkl"))
     for name in environment.object_names:
         if name not in ["Action"]:
             full_models[name].regenerate(extractor, normalization)
     for name in environment.object_names:
         if name not in ["Action"]:
-            print(name)
+            print("TRAINING", name)
             if args.train.train: train_full(full_models[name], train_full_buffer, train_object_buffers[name], test_full_buffer, test_object_buffers[name], args, environment)
             test_full_train(full_model, train_buffer, args, args.object_names, environment)
             test_full(full_model, test_buffer, args, args.object_names, environment)

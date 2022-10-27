@@ -56,6 +56,7 @@ expected_args = {
         "horizon": -1,
         "seed": -1,
         "demonstrate": False,
+        "load_environment": "",
     },
     "torch": {
         "gpu": 1,
@@ -79,6 +80,10 @@ expected_args = {
     "full_inter": {
         "object_id": False,
         "proximal_weights": False,
+        "lasso_lambda": 1,
+        "soft_distribution": "Identity",
+        "dist_temperature": 1,
+        "mixed_interaction": False,
     },
     "inter": {
         "predict_dynamics": False,

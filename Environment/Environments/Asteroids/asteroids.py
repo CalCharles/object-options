@@ -71,7 +71,7 @@ class Asteroids(Environment):
         self.shot_counter = 0
         self.lives = 0 # lives is not implemented in the current version
         self.itr = 0
-        self.all_names = sum([[name + str(i) for i in instanced[name]] for name in self.object_names], start = [])
+        self.all_names = sum([[name + str(i) for i in range(instanced[name])] for name in self.object_names], start = [])
         self.instance_length = len(self.all_names)
         self.reset()
 
@@ -122,7 +122,7 @@ class Asteroids(Environment):
 
     def get_state(self, render=False):
         rdset = set(["Reward", "Done"])
-        extracted_state = {**{obj.name: obj.get_state() for obj in self.objects if obj.name not in rdset}, **{"Done": [self.done.attribute], "Reward": [self.reward.attribute]}}
+        extracted_state = numpy_factored({**{obj.name: obj.get_state() for obj in self.objects if obj.name not in rdset}, **{"Done": [self.done.attribute], "Reward": [self.reward.attribute]}})
         if render: self.frame = self.render()
         return {"raw_state": self.frame, "factored_state": extracted_state}
 
@@ -154,21 +154,22 @@ class Asteroids(Environment):
                     self.reward.interact(self.ship)
                 self.reward.attribute += crash * self.crash_penalty
             self.laser.update()
+            # print(self.ship.pos)
         asteroid_count = self.count_asteroids()
         if asteroid_count == 0:
             self.reward.attribute += self.completion_reward
-            self.done = True
+            self.done.attribute = True
         trunc = False
         if self.reset_counter == self.max_steps:
-            self.done = True
+            self.done.attribute = True
             trunc = True
         # print(asteroid_count, self.reward)
         info = {"lives": self.lives, "TimeLimit.truncated": trunc, "total_score": self.num_asteroids - asteroid_count}
         full_state = self.get_state(render)
         self.itr += 1
-        if self.done: self.reset()
+        if self.done.attribute: self.reset()
 
-        return full_state, self.reward.attribute, self.done, info
+        return full_state, self.reward.attribute, self.done.attribute, info
 
     def set_from_factored_state(self, factored_state, seed_counter=-1, render=False):
         self.ship.pos = factored_state["Ship"][:2]
