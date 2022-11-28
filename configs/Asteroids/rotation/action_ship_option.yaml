@@ -21,7 +21,7 @@
     pretrain_frames: 50000
     load_rollouts: /hdd/datasets/object_data/asteroids/random
     train_edge: Action Ship
-    num_iters: 1000
+    num_iters: 10000
     batch_size: 128
   critic_net:
   actor_net:
@@ -48,7 +48,7 @@
   option:
     term_form: param
     term_as_done: True
-    epsilon_close: 2 2 0.3 0.3 0.5
+    epsilon_close: 2.5 2.5 0.3 0.3 0.5
     param_norm: 1
     constant_lambda: -1
     param_lambda: 1

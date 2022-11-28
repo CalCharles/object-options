@@ -55,6 +55,10 @@ def train_full(full_model, rollouts, test_rollout, args, object_names, environme
     non_proximal_inst = (proximal_inst != True).astype(int)
     non_proximal_weights = non_proximal.squeeze() / np.sum(non_proximal) if np.sum(non_proximal) != 0 else np.ones(non_proximal.shape) / len(non_proximal)
 
+    # Proximity for Test rollouts
+    test_proximal = get_error(full_model, test_rollout, error_type=error_types.PROXIMITY, normalized=True).astype(int)
+    test_proximal_inst = get_error(full_model, test_rollout, error_type=error_types.PROXIMITY, reduced=False, normalized=True).astype(int) # the same as above if not multiinstanced
+
     train_passive(full_model, rollouts, args, active_optimizer, passive_optimizer, weights=non_proximal_weights if full_model.proximity_epsilon > 0 else None)
 
     # saving the intermediate model in the case of crashing during subsequent phases

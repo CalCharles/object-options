@@ -18,8 +18,8 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
         factored_state["Action"] = next_factored_state["Action"]
         full_state = args.inter_select(factored_state)
         rew = factored_state["Reward"]
-        full_traces = environment.get_full_trace(factored_state, act)
         print(i, use_done, last_done, predict_dynamics)
+        full_traces = environment.get_full_trace(factored_state, act)
         for name in environment.object_names:
             denorm_target = full_model.target_selectors[name](factored_state)
             target = norm(denorm_target, name=name)
@@ -28,7 +28,7 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
 
             # get the trace for this object class
             if environment.object_instanced[name] > 1: # if there are multiple instances of the object, it is object_instance x other objects for the mask
-                full_trace = np.stack([full_traces[name + str(i)] for i in range(environment.object_instanced[name])], axis=0)
+                full_trace = np.concatenate([full_traces[name + str(i)] for i in range(environment.object_instanced[name])], axis=0)
                 inter = np.ones((environment.object_instanced[name] * environment.instance_length))
             else: 
                 full_trace = full_traces[name]
@@ -38,8 +38,8 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
             object_buffers[name].add(Batch(obs=target, obs_next=next_target, target_diff=target_diff, act=target, param=target,
                 rew=0, done=use_done, policy_mask = np.ones(environment.instance_length), param_mask=np.ones(args.pad_size),
                 terminate=False, mapped_act=np.ones(args.pad_size), inter=inter, info=dict(), policy=dict(), 
-                trace=full_trace, proximity=proximity, weight_binary=False))
-            print(name, full_model.target_selectors[name](factored_state), full_model.target_selectors[name](next_factored_state) - full_model.target_selectors[name](factored_state))
+                trace=full_trace, proximity=proximity, weight_binary=0))
+            print(name, full_trace, target_diff, full_model.target_selectors[name](next_factored_state), full_model.target_selectors[name](factored_state))
             
         # assign selections of the state
         obs = norm(full_state, form="inter")

@@ -94,8 +94,8 @@ class RLLogger(Logger):
                 self.tensorboard_logger.add_scalar("Success/"+self.name + "_h/m", np.sum(self.success)/miss_hit, i)
                 self.tensorboard_logger.add_scalar("Success/"+self.name + "_drop", np.sum(self.dropped)/np.sum(self.current_episodes), i)
                 # log the loss values
-                print(self.total_losses)
                 for k in self.total_losses.keys():
+                    print(k, np.mean(self.total_losses[k]))
                     self.tensorboard_logger.add_scalar("Loss/" + k, np.mean(self.total_losses[k]), i)
                 self.tensorboard_logger.flush()
             logging.info(log_string)

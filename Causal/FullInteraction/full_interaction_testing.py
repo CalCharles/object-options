@@ -1,4 +1,7 @@
 import numpy as np
+import copy
+from Network.network_utils import pytorch_model
+import torch
 
 class InteractionMaskTesting:
     def __init__(self, interaction_params):
@@ -20,5 +23,8 @@ class InteractionMaskTesting:
         return ((not_passive) * (active_prediction) * (difference)).float() #(active_prediction+not_passive > 1).float()
 
     def __call__(self, interactions):
-        interactions[interactions < self.interaction_prediction] = 0
-        return np.sum(interactions, axis=-1) > self.interaction_prediction
+        rewrap = type(interactions) == torch.Tensor
+        new_interactions = pytorch_model.wrap(copy.deepcopy(pytorch_model.unwrap(interactions)), cuda=interactions.is_cuda) if rewrap else copy.deepcopy(interactions)
+        new_interactions[interactions < self.interaction_prediction] = 0
+        new_interactions[interactions >= self.interaction_prediction] = 1
+        return new_interactions

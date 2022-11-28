@@ -33,16 +33,18 @@ def train_passive(full_model, args, rollouts, object_rollout, active_optimizer, 
         # the values to be predicted, values in the buffer are pre-normalized
         target = batch.target_diff if args.inter.predict_dynamics else batch.obs_next
         target = pytorch_model.wrap(target, cuda=full_model.iscuda)
+        # print(target.shape, target[0])
 
         # compute network values
-        passive_prediction_params = full_model.passive_model(pytorch_model.wrap(batch.obs, cuda=full_model.iscuda)) # batch.target != target
-        
+        # passive_prediction_params = full_model.passive_model(pytorch_model.wrap(batch.obs, cuda=full_model.iscuda)) # batch.target != target
+        passive_prediction_params = full_model.apply_passive((pytorch_model.wrap(batch.tarinter_state, cuda=full_model.iscuda), pytorch_model.wrap(batch.obs, cuda=full_model.iscuda))) # batch.target != target
         # Train the passive model
         done_flags = np.expand_dims(1-full_batch.done.squeeze(), -1)
         # print(full_model.passive_model.mean.aggregate_final, batch.obs.shape, target.shape, full_model.name)
         passive_likelihood_full = - full_model.dist(*passive_prediction_params).log_prob(target)
         passive_loss = compute_likelihood(full_model, args.train.batch_size, passive_likelihood_full, done_flags=done_flags, is_full = True)
-        # run_optimizer(passive_optimizers, full_model.passive_model, passive_loss)
+        # print(passive_prediction_params[1][0], passive_prediction_params[0][0])
+        run_optimizer(active_optimizer, full_model.active_model, passive_loss) if args.full_inter.use_active_as_passive else run_optimizer(passive_optimizers, full_model.passive_model, passive_loss)
 
         # logging the passive model outputs
         logger.log(i, passive_loss, None, None, passive_likelihood_full  * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, weight_rate, batch.done,
@@ -51,9 +53,17 @@ def train_passive(full_model, args, rollouts, object_rollout, active_optimizer, 
         # If pretraining the active model, trains with a fully permissible interaction model
         if args.inter.passive.pretrain_active:
             # print(full_model.target_num, len(full_model.all_names))
-            active_prediction_params = full_model.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=full_model.iscuda), pytorch_model.wrap(torch.ones(len(full_model.all_names) * full_model.target_num), cuda = full_model.iscuda)) # THE ONLY DIFFERENT LINE FROM train_passive.py
+            full_mask = torch.ones(args.train.batch_size, len(full_model.all_names) * full_model.target_num)
+            active_prediction_params, mask = full_model.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=full_model.iscuda), pytorch_model.wrap(full_mask, cuda = full_model.iscuda)) # THE ONLY DIFFERENT LINE FROM train_passive.py
             # print(active_prediction_params[0].shape, batch.tarinter_state.shape, full_model.active_model.mean.object_dim, full_model.active_model.mean.single_object_dim, full_model.active_model.mean.first_obj_dim)
             active_likelihood_full = - full_model.dist(*active_prediction_params).log_prob(target)
+            
+            # active_hard_params, active_soft_params, active_full, passive_params, \
+            #     interaction_likelihood, soft_interaction_mask, hard_interaction_mask,\
+            #     target, active_hard_dist, active_soft_dist, active_full_dist, passive_dist, \
+            #     active_hard_log_probs, active_soft_log_probs, active_likelihood_full, passive_log_probs = full_model.likelihoods(batch, normalize=False, mixed=args.full_inter.mixed_interaction)
+            # active_likelihood_full = - active_likelihood_full
+
             active_loss = compute_likelihood(full_model, args.train.batch_size, active_likelihood_full, done_flags=done_flags, is_full = True)
             # print(full_model.name, batch.tarinter_state[0], target[0])
             # print("prediction", torch.ones(len(full_model.all_names) * full_model.target_num).shape, active_prediction_params[0][0], full_model.active_open_likelihood(batch)[0][0][0], full_model.likelihoods(batch)[1][0][0])

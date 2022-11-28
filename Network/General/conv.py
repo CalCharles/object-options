@@ -18,8 +18,8 @@ class ConvNetwork(Network): # basic 1d conv network
             if len(self.hs) == 1:
                 layers = [nn.Conv1d(self.object_dim, self.hs[0], 1)]
             elif self.use_layer_norm:
-                layers = ([nn.Conv1d(self.object_dim, self.hs[0], 1), nn.ReLU(inplace=True),nn.LayerNorm(self.hs[0])] + 
-                  sum([[nn.Conv1d(self.hs[i-1], self.hs[i], 1), nn.ReLU(inplace=True), nn.LayerNorm(self.hs[i])] for i in range(1, len(self.hs) - 1)], list())
+                layers = ([nn.Conv1d(self.object_dim, self.hs[0], 1), nn.ReLU(inplace=True),nn.GroupNorm(1, self.hs[0])] + 
+                  sum([[nn.Conv1d(self.hs[i-1], self.hs[i], 1), nn.ReLU(inplace=True), nn.GroupNorm(1, self.hs[i])] for i in range(1, len(self.hs) - 1)], list())
                     + [nn.Conv1d(self.hs[-2], self.hs[-1], 1), nn.ReLU(inplace=True)])
             else:
                 layers = ([nn.Conv1d(self.object_dim, self.hs[0], 1), nn.ReLU(inplace=True)] + 

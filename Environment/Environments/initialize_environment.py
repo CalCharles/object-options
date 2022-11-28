@@ -9,15 +9,19 @@ def initialize_environment(args, record_args):
         from Environment.Environments.Breakout.breakout_screen import Breakout
         environment = Breakout(frameskip = args.frameskip, breakout_variant=args.variant)
         environment.seed(args.seed)
-    if args.env == "Asteroids":
+    elif args.env == "Asteroids":
         from Environment.Environments.Asteroids.asteroids import Asteroids
         environment = Asteroids(frameskip = args.frameskip, variant=args.variant)
         environment.seed(args.seed)
-    if args.env == "Sokoban":
+    elif args.env == "Sokoban":
         from Environment.Environments.Sokoban.sokoban import Sokoban
         environment = Sokoban(frameskip = args.frameskip, variant=args.variant)
         environment.seed(args.seed)
-    if args.env == "RandomDistribution":
+    elif args.env == "TaxiCar":
+        from Environment.Environments.TaxiCar.taxi_car import TaxiCar
+        environment = TaxiCar(frameskip = args.frameskip, variant=args.variant)
+        environment.seed(args.seed)
+    elif args.env == "RandomDistribution":
         from Environment.Environments.RandomDistribution.random_distribution import RandomDistribution
         if len(args.load_environment) > 0: environment = load_from_pickle(os.path.join(args.load_environment, "environment.pkl"))
         else: environment = RandomDistribution(frameskip = args.frameskip, variant=args.variant)

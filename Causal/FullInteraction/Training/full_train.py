@@ -21,7 +21,7 @@ def initialize_optimizer(model, args, lr):
 def run_train_passive(full_model, rollouts, object_rollout, test_rollout, test_object_rollout, args, environment):
     # initialize the optimizers
     active_optimizer = initialize_optimizer(full_model.active_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
-    passive_optimizer = initialize_optimizer(full_model.passive_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
+    passive_optimizer = None if args.full_inter.use_active_as_passive else initialize_optimizer(full_model.passive_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
     interaction_optimizer = initialize_optimizer(full_model.interaction_model, args.interaction_net.optimizer, args.interaction_net.optimizer.alt_lr)
 
     train_passive(full_model, args, rollouts, object_rollout, active_optimizer, passive_optimizer)
@@ -48,14 +48,15 @@ def train_full(full_model, rollouts, object_rollout, test_rollout, test_object_r
     # if args.inter.save_intermediate and args.inter.interaction.interaction_pretrain > 0:
     #     torch.save(full_model.interaction_model, os.path.join(args.inter.save_intermediate, environment.name + "_" + full_model.name + "_interaction_model.pt"))
     active_optimizer = initialize_optimizer(full_model.active_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
-    passive_optimizer = initialize_optimizer(full_model.passive_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
+    passive_optimizer = None if args.full_inter.use_active_as_passive else initialize_optimizer(full_model.passive_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
     interaction_optimizer = initialize_optimizer(full_model.interaction_model, args.interaction_net.optimizer, args.interaction_net.optimizer.alt_lr)
 
     # if len(args.inter.load_intermediate) > 0: full_model.passive_model, full_model.active_model, full_model.interaction_model, active_optimizer, passive_optimizer, interaction_optimizer = load_intermediate(args, full_model, environment)
     # sampling weights, either wit hthe passive error or if we can upweight the true interactions
     proximal = get_error(full_model, rollouts, object_rollout, error_type=error_types.PROXIMITY_FULL, normalized = True)
     passive_error, active_weights, binaries = separate_weights(args.inter.active.weighting, full_model, rollouts, proximal, trace if args.inter.interaction.interaction_pretrain > 0 else None, object_rollouts=object_rollout)
-    print(passive_error.shape, active_weights.shape)
+    # print(passive_error, binaries)
+    # error
     interaction_weights = get_weights(args.inter.active.weighting[2], object_rollout.weight_binary)
     train_combined(full_model, rollouts, object_rollout, test_rollout, test_object_rollout, args,
                         active_weights, interaction_weights, proximal, active_optimizer,

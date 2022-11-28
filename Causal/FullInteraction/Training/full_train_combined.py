@@ -9,26 +9,34 @@ from collections import Counter
 from Causal.Training.loggers.forward_logger import forward_logger
 from Causal.Training.loggers.interaction_logger import interaction_logger
 from Causal.Training.loggers.logging import print_errors
+from Causal.FullInteraction.Training.full_test import test_full
 from Causal.Utils.weighting import get_weights
 from Causal.Utils.get_error import error_types, get_error
 from Network.network_utils import pytorch_model, run_optimizer
 from Causal.Utils.instance_handling import compute_likelihood
 
-def evaluate_active_interaction(full_model, args, active_params, interaction_likelihood, interaction_mask, active_log_probs, done_flags, proximity):
+def evaluate_active_interaction(full_model, args, onemask_lambda, lasso_lambda, active_params, interaction_likelihood, interaction_mask, active_log_probs, done_flags, proximity):
     active_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - active_log_probs, done_flags=done_flags, reduced=False, is_full = True)
     # passive_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - passive_log_probs, done_flags=done_flags, reduced=False, is_full = True)
-    mask_loss = interaction_likelihood.sum(-1).mean()
-    full_loss = active_nlikelihood + mask_loss * args.full_inter.lasso_lambda
+    mask_loss = (interaction_likelihood - full_model.check_passive_mask(interaction_likelihood)).abs().sum(-1).mean() # penalize for deviating from the passive mask
+    zero_mask_loss = (interaction_likelihood).abs().sum(-1).mean() # penalize for deviating from the passive mask
+    one_mask_loss = (1-interaction_likelihood).abs().sum(-1).mean()
+    full_loss = active_nlikelihood + (mask_loss * (1-onemask_lambda) + one_mask_loss * (onemask_lambda)) * lasso_lambda
+    # print(mask_loss, one_mask_loss, lasso_lambda)
+    # print(mask_loss.mean()  * args.full_inter.lasso_lambda, active_log_probs[0], full_loss, full_loss.mean())
+    # print(pytorch_model.unwrap(full_loss.mean()), pytorch_model.unwrap(mask_loss.mean()))
     return full_loss
 
 # def evaluate_active_forward(full_model, args, active_params, interaction_mask, active_log_probs, done_flags, proximity)
 
-def _train_combined_interaction(full_model, args, rollouts, object_rollout, weights, inter_loss, interaction_optimizer, normalize=False):
+def _train_combined_interaction(full_model, args, rollouts, object_rollout, onemask_lambda, lasso_lambda, weights, inter_loss, interaction_optimizer, normalize=False):
     # resamples because the interaction weights are different from the normal weights, and get the weight count for this
-    full_batch, idxes = rollouts.sample(args.train.batch_size // 2, weights=weights)
-    batch_uni, idxes_uni = rollouts.sample(args.train.batch_size // 2)
-    idxes = idxes.tolist() + idxes_uni.tolist()
-    full_batch = full_batch.cat([full_batch, batch_uni])
+    full_model.dist_temperature = args.full_inter.dist_temperature
+    full_batch, idxes = rollouts.sample(args.train.batch_size, weights=weights)
+    # full_batch, idxes = rollouts.sample(args.train.batch_size // 2, weights=weights)
+    # batch_uni, idxes_uni = rollouts.sample(args.train.batch_size // 2)
+    # idxes = idxes.tolist() + idxes_uni.tolist()
+    # full_batch = full_batch.cat([full_batch, batch_uni])
     batch = object_rollout[idxes]
     batch.tarinter_state = np.concatenate([batch.obs, full_batch.obs], axis=-1)
     batch.inter_state = full_batch.obs
@@ -40,13 +48,14 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, weig
     active_hard_params, active_soft_params, active_full, passive_params, \
         interaction_likelihood, soft_interaction_mask, hard_interaction_mask,\
         target, active_hard_dist, active_soft_dist, active_full_dist, passive_dist, \
-        active_hard_log_probs, active_soft_log_probs, active_full_log_probs, passive_log_probs = full_model.likelihoods(batch, normalize=normalize, mixed=args.full_inter.mixed_interaction)
+        active_hard_log_probs, active_soft_log_probs, active_full_log_probs, passive_log_probs = full_model.likelihoods(batch, normalize=normalize, mixed="mixed" if args.full_inter.mixed_interaction == "hard" else args.full_inter.mixed_interaction)
 
     # done flags
     done_flags = pytorch_model.wrap(1-full_batch.done, cuda = full_model.iscuda).squeeze().unsqueeze(-1)
 
     # combine the cost function (extend possible interaction losses here)
-    interaction_loss = evaluate_active_interaction(full_model, args, active_soft_params, interaction_likelihood, hard_interaction_mask, active_soft_log_probs, done_flags, batch.proximity)
+    interaction_loss = evaluate_active_interaction(full_model, args, onemask_lambda, lasso_lambda, 
+                        active_soft_params, interaction_likelihood, soft_interaction_mask, active_soft_log_probs, done_flags, batch.proximity)
     
     # loss and optimizer
     run_optimizer(interaction_optimizer, full_model.interaction_model, interaction_loss)
@@ -72,10 +81,16 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
     # initialize weighting schedules, by which the sampling weights change (shrink) over training
     _,_,awl,aws = args.inter.active.weighting 
     iwl, iws = args.inter.active.interaction_weighting
-    print("awliwl", awl, iwl)
+    lasso_lambda, lwl, olls, lws = args.full_inter.lasso_lambda
     active_weighting_schedule = (lambda i: awl * np.power(0.5, (i/aws))) if aws > 0 else (lambda i: awl)
     interaction_weighting_schedule = (lambda i: iwl * np.power(0.5, (i/iws))) if iws > 0 else (lambda i: iwl)
+    lasso_oneloss_schedule = (lambda i: lwl * np.power(0.5, (i/olls))) if olls > 0 else (lambda i: lwl) 
+    lasso_schedule = (lambda i: args.full_inter.lasso_lambda[0] * (1-np.power(0.5, (i * 3.0/lws)))) if lws > 0 else (lambda i: args.full_inter.lasso_lambda[0]) 
+    lasso_oneloss_lambda = lasso_oneloss_schedule(0)
+    lasso_lambda = lasso_schedule(0)
+    print("awliwl", awl, iwl, olls, lws, lasso_schedule(100))
 
+    uw = pytorch_model.unwrap
     print_errors(full_model, rollouts, object_rollouts, error_types=[error_types.ACTIVE_RAW, error_types.ACTIVE, error_types.TRACE, error_types.DONE], prenormalize=normalize)
     start = time.time()
     for i in range(args.train.num_iters):
@@ -94,14 +109,13 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
         active_hard_params, active_soft_params, active_full, passive_params, \
             interaction_likelihood, soft_interaction_mask, hard_interaction_mask,\
             target, active_hard_dist, active_soft_dist, active_full_dist, passive_dist, \
-            active_hard_log_probs, active_soft_log_probs, active_full_log_probs, passive_log_probs = full_model.likelihoods(batch, normalize=normalize)
+            active_hard_log_probs, active_soft_log_probs, active_full_log_probs, passive_log_probs = full_model.likelihoods(batch, normalize=normalize, mixed=args.full_inter.mixed_interaction)
 
-        print(full_model.name, active_full_log_probs[0], active_log_probs[0], interaction_schedule(i), hard_interaction_mask[0] )
         # assign done flags
         done_flags = pytorch_model.wrap(1-full_batch.done, cuda = full_model.iscuda).squeeze().unsqueeze(-1)
 
         # combine likelihoods to get a single likelihood for losses TODO: a per-element binary?
-        active_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - active_hard_log_probs, done_flags=done_flags, is_full=True)
+        active_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - active_soft_log_probs, done_flags=done_flags, is_full=True) if args.full_inter.mixed_interaction == "weighting" else compute_likelihood(full_model, args.train.batch_size, - active_hard_log_probs, done_flags=done_flags, is_full=True)
         active_full_nlikelihood = compute_likelihood(full_model, args.train.batch_size, -active_full_log_probs, done_flags=done_flags, is_full=True)
         passive_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - passive_log_probs, done_flags=done_flags, is_full=True)
 
@@ -118,7 +132,9 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
                     (active_hard_params[0] * done_flags, active_hard_params[1] * done_flags), target * done_flags, np.expand_dims(np.sum(pytorch_model.unwrap(interaction_likelihood) - 1, axis=-1), axis=-1), full_model)
 
         # training the passive model with the weighted states, which is dangerous and not advisable
-        if args.inter.active.intrain_passive: run_optimizer(passive_optimizer, full_model.passive_model, passive_nlikelihood)
+        if args.inter.active.intrain_passive: 
+            print("training passive")
+            run_optimizer(active_optimizer, full_model.active_model, passive_nlikelihood) if args.full_inter.use_active_as_passive else run_optimizer(passive_optimizers, full_model.passive_model, passive_nlikelihood)
 
         # run the interaction model training if the interaction model is not already trained
         # print("interaction pretrain", args.inter.interaction.interaction_pretrain)
@@ -127,7 +143,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             for ii in range(int(inline_iters)):
                 inter_idxes, interaction_loss, interaction_calc_likelihood,\
                      interaction_binaries, weight_count, inter_done_flags = _train_combined_interaction(full_model, args, rollouts, object_rollouts,
-                                                                         interaction_weights, inter_loss, interaction_optimizer, normalize=normalize)
+                                                                         lasso_oneloss_lambda, lasso_lambda, interaction_weights, inter_loss, interaction_optimizer, normalize=normalize)
                 single_trace = None
                 if object_rollouts.trace is not None:
                     single_trace = np.expand_dims(np.sum(np.sum(object_rollouts.trace[inter_idxes] - 1, axis=-1), axis=-1), axis=-1) if len(object_rollouts.trace[inter_idxes].shape) == 3 else np.expand_dims(np.sum(object_rollouts.trace[inter_idxes] - 1, axis=-1), axis=-1)
@@ -135,21 +151,38 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
                 # reweight only when logging TODO: probably should not link  these two
                 inter_logger.log(i, interaction_loss, interaction_calc_likelihood, interaction_binaries, pytorch_model.unwrap(inter_done_flags), weight_count,
                     trace=None if single_trace is None else single_trace, no_print=ii != 0)
+        print(i, lasso_lambda, lasso_oneloss_lambda, uw(loss.mean()), uw(interaction_loss.mean()), full_model.name,interaction_schedule(i),args.full_inter.mixed_interaction, 
+            uw(active_nlikelihood.mean()), uw(active_full_nlikelihood.mean()), uw(passive_nlikelihood.mean()), 
+            uw(soft_interaction_mask[0]), uw(soft_interaction_mask[2]), uw(soft_interaction_mask[3]), uw(soft_interaction_mask[4]), 
+            batch.trace[0], batch.trace[1], batch.trace[2], batch.trace[3], np.sum(np.abs(batch.trace - uw(hard_interaction_mask))) / args.train.batch_size / batch.trace.shape[-1])
         
         if i % args.inter.active.active_log_interval == 0:
             print(i, "speed", (args.inter.active.active_log_interval * i) / (time.time() - start))
             # change the lambdas for reweighting, and generate new sampling weights
             # if int(inline_iters) > 0:
             #     print_errors(full_model, rollouts[inter_idxes[90:]], error_types=[error_types.ACTIVE_RAW, error_types.ACTIVE, error_types.PASSIVE_LIKELIHOOD, error_types.ACTIVE_LIKELIHOOD, error_types.TRACE, error_types.INTERACTION, error_types.INTERACTION_BINARIES, error_types.PROXIMITY, error_types.DONE], prenormalize=normalize)
+            lasso_oneloss_lambda = lasso_oneloss_schedule(i)
+            lasso_lambda = lasso_schedule(i)
             inline_iters = inline_iter_schedule(i)
             active_weighting_lambda = active_weighting_schedule(i)
             print(active_weighting_lambda)
             active_weights = get_weights(active_weighting_lambda, object_rollouts.weight_binary[:len(rollouts)].squeeze())
             print(active_weights)
             inter_weighting_lambda = interaction_weighting_schedule(i)
+
             mask_binary = (np.sum(np.round(full_model.apply_mask(get_error(full_model, rollouts, object_rollout=object_rollouts, error_type = error_types.INTERACTION_RAW))), axis=-1) > 1).astype(int)
-            interaction_weights = get_weights(inter_weighting_lambda, object_rollouts.weight_binary[:len(rollouts)].squeeze() + mask_binary.squeeze())
-            print("inline_iters", inline_iters)
+            inter_bin = (object_rollouts.weight_binary[:len(rollouts)].squeeze() + mask_binary.squeeze())
+            inter_bin[inter_bin> 1] = 1
+            interaction_weights = get_weights(inter_weighting_lambda, inter_bin)
+            print("inline_iters", inline_iters, inter_bin, object_rollouts.weight_binary)
+            # error
+            if i % (args.inter.active.active_log_interval * 10) == 0:
+                test_dict = test_full(full_model, test_rollout, test_object_rollout, args, None)
+                logger.log_testing(test_dict)
+            # print(object_rollouts.weight_binary[:100], mask_binary.squeeze()[:100], inter_weighting_lambda)
+            # print(interaction_weights[:100], interaction_weights[100:200],interaction_weights[200:300],interaction_weights[300:400],
+            #     interaction_weights[400:500],interaction_weights[500:600],interaction_weights[600:700],interaction_weights[700:800],
+            #     interaction_weights[800:900],interaction_weights[900:])
                 # print(trace[inter_idxes], active_weights[inter_idxes])
             # print(full_model.norm.reverse(rollouts.target[48780:48800]), full_model.norm.reverse(rollouts.next_target[48780:48800]))
             # print(interaction_schedule(i))

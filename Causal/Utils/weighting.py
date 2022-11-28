@@ -34,7 +34,7 @@ def proximity_binary(full_model, rollouts,object_rollouts=None, full=False):
 def separate_weights(weighting, full_model, rollouts, proximity, trace, object_rollouts=None):
     passive_error_cutoff, passive_error_upper, weighting_ratio, weighting_schedule = weighting
     if weighting_ratio >= 0:
-        passive_error =  - get_error(full_model, rollouts, object_rollouts, error_type = error_types.PASSIVE_LIKELIHOOD)
+        passive_error =  - get_error(full_model, rollouts, object_rollouts, error_type = error_types.PASSIVE_LIKELIHOOD).astype(int)
         done =  np.expand_dims(get_error(full_model, rollouts, object_rollouts, error_type = error_types.DONE).squeeze(), -1)
         # print(object_rollouts.target_diff.shape, done.shape, passive_error.shape)
         print(np.concatenate([passive_error, rollouts.target_diff if object_rollouts is None else object_rollouts.target_diff, done], axis=-1))
@@ -69,17 +69,22 @@ def get_weights(ratio_lambda, binaries):
 
     # determine error based binary weights
     weights = binaries.copy()
+    num_weighted = binaries.copy().astype(bool).astype(int)
 
     # passes through if we are using uniform weights
     if ratio_lambda < 0:
-        return (weights.astype(np.float64) / np.sum(weights).astype(np.float64))
+        weights = (weights.astype(np.float64) / np.sum(weights).astype(np.float64))
+        weights[weights < 0] = 0
+        return weights
 
     # generate a ratio based on the number of live versus dead
     total_live = np.sum(weights)
-    total_dead = np.sum((weights + 1)) - np.sum(weights) * 2
+    total_dead = np.sum((num_weighted + 1)) - np.sum(num_weighted) * 2
+    # print(weights)
 
     # for a ratio lambda of 1, will get 50-50 probability of sampling a "live" (high passive error) versus "dead" (low passive error)
-    live_factor = np.float128(np.round(total_dead / total_live * ratio_lambda))
+    live_factor = np.float64(np.round(total_dead / total_live * ratio_lambda))
+    # print("live factor", ratio_lambda, np.sum((weights + 1)), total_dead, total_live, live_factor)
     weights = (weights * live_factor) + 1
     weights = (weights.astype(np.float64) / np.sum(weights).astype(np.float64))
     return weights

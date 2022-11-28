@@ -9,6 +9,7 @@ from collections import Counter
 from Causal.Training.loggers.forward_logger import forward_logger
 from Causal.Training.loggers.interaction_logger import interaction_logger
 from Causal.Training.loggers.logging import print_errors
+from Causal.Training.test_full import test_full
 from Causal.Utils.weighting import get_weights
 from Causal.Utils.get_error import error_types, get_error
 from Network.network_utils import pytorch_model, run_optimizer
@@ -129,11 +130,13 @@ def train_combined(full_model, rollouts, test_rollout, args,
             active_weighting_lambda = active_weighting_schedule(i)
             print(active_weighting_lambda)
             active_weights = get_weights(active_weighting_lambda, rollouts.weight_binary[:len(rollouts)].squeeze())
-            print(active_weights)
             inter_weighting_lambda = interaction_weighting_schedule(i)
             error_binary = np.abs(get_error(full_model, rollouts, error_type = error_types.INTERACTION_BINARIES) - full_model.test(get_error(full_model, rollouts, error_type = error_types.INTERACTION_RAW)).astype(int))
-            interaction_weights = get_weights(inter_weighting_lambda, rollouts.weight_binary[:len(rollouts)].squeeze() + error_binary.squeeze())
+            interaction_weights = get_weights(inter_weighting_lambda, rollouts.weight_binary[:len(rollouts)].squeeze() + error_binary.squeeze() * args.inter.active.error_binary_upweight)
+
             print("inline_iters", inline_iters)
+            if i % (args.inter.active.active_log_interval * 10) == 0:
+                test_full(full_model, test_rollout, args, args.object_names, None)
                 # print(trace[inter_idxes], active_weights[inter_idxes])
             # print(full_model.norm.reverse(rollouts.target[48780:48800]), full_model.norm.reverse(rollouts.next_target[48780:48800]))
             # print(interaction_schedule(i))

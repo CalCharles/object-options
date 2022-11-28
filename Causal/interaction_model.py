@@ -193,6 +193,10 @@ class NeuralInteractionForwardModel(nn.Module):
             tar_state = pytorch_model.wrap(self.norm(self.target_select(state)), cuda=self.iscuda)
         return inp_state, tar_state
 
+    def apply_passive(self, state):
+        inp, tar = self._wrap_state(state)
+        return self.passive_model(tar)
+
     def predict_next_state(self, state, normalized=False, difference=False):
         # returns the interaction value and the predicted next state (if interaction is low there is more error risk)
         # state is either a single flattened state, or batch x state size, or factored_state with sufficient keys

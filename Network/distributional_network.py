@@ -71,8 +71,10 @@ class DiagGaussianForwardMaskNetwork(Network):
 
     def forward(self, x, m):
         x = pytorch_model.wrap(x, cuda=self.iscuda)
-        x = x * self.expand_mask(m)
-        return torch.tanh(self.mean(x)), torch.sigmoid(self.std(x)) + self.base_variance
+        if not self.hot: x = x * self.expand_mask(m)
+        mask, mean = self.mean(x)
+        _, var = self.std(x)
+        return torch.tanh(mean), torch.sigmoid(var) + self.base_variance, mask
 
 class DiagGaussianForwardPadMaskNetwork(Network):
     def __init__(self, args):
@@ -86,6 +88,8 @@ class DiagGaussianForwardPadMaskNetwork(Network):
         self.std = network_type[args.net_type](std_args)
         self.model = [self.mean, self.std]
         self.base_variance = .01 # hardcoded based on normalized values, base variance 1% of the average variance
+        self.hot = args.mask_attn.cluster
+        self.maskattn = args.net_type in ["maskattn"] # currently only one kind of mask attention net
 
         self.object_dim = args.object_dim
 
@@ -102,8 +106,10 @@ class DiagGaussianForwardPadMaskNetwork(Network):
 
     def forward(self, x, m):
         x = pytorch_model.wrap(x, cuda=self.iscuda)
-        m = self.expand_mask(m)
-        return torch.tanh(self.mean(x, m)), torch.sigmoid(self.std(x, m)) + self.base_variance
+        if not (self.hot or self.maskattn): m = self.expand_mask(m)
+        mask, mean = self.mean(x, m)
+        _, var = self.std(x, m)
+        return (torch.tanh(mean), torch.sigmoid(var) + self.base_variance), mask
 
 class InteractionMaskNetwork(Network):
     def __init__(self, args):

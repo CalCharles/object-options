@@ -3,7 +3,7 @@ from Network.network_utils import pytorch_model
 from Record.file_management import write_string
 import os
 
-def collect_test_trials(logger, option, test_collector, term_step, i, trials, random, demonstrate_option):
+def collect_test_trials(logger, option, test_collector, term_step, i, trials, random, demonstrate_option=False):
     '''
     collect trials with the test collector
     the environment is reset before starting these trials

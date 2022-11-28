@@ -1,9 +1,13 @@
 import logging
+import os
 from Network.network_utils import pytorch_model
 import numpy as np
 from Record.logging import Logger
+from Record.file_management import create_directory
 from Causal.Utils.instance_handling import compute_l1
 from Causal.FullInteraction.full_interaction_model import FullNeuralInteractionForwardModel
+from torch.utils.tensorboard import SummaryWriter
+from collections import deque
 
 class forward_logger(Logger):
 # Logging forward model:
@@ -13,11 +17,17 @@ class forward_logger(Logger):
 #     likelihood weighted with true values
 #     l1 average error per element
 
-    def __init__(self, net_type, log_interval, full_model, filename=""):
+    def __init__(self, net_type, log_interval, full_model, filename="", denorm=False):
         super().__init__(filename)
+        if len(filename) != 0:
+            full_logdir = create_directory(os.path.join(os.path.split(filename)[0], "graphs"))
+            self.tensorboard_logger = SummaryWriter(log_dir=full_logdir)
+        self.maxlen = 1000
         self.log_interval = log_interval
         self.type = net_type
+        self.denorm=denorm
         self.reset()
+        self.testing_log = dict()
 
     def reset(self):
         self.weight_rates = list()
@@ -30,6 +40,15 @@ class forward_logger(Logger):
         self.l1_average_error = list()
         self.l1_average_weighted_error = list()
         self.l1_average_true_error = list()
+
+    def log_testing(self, test_dict):
+        # losses may differ for values 
+        for k in test_dict.keys():
+            print(k, test_dict[k])
+            if len(test_dict[k].squeeze().shape) == 0:
+                if k not in self.testing_log:
+                    self.testing_log[k] = deque(maxlen=self.maxlen)
+                self.testing_log[k].append(test_dict[k])
 
     def log(self, i, loss, raw_likelihood, weighted_likelihood, 
                     raw_likelihood_expanded, trace, weight_rate, dones,
@@ -70,9 +89,24 @@ class forward_logger(Logger):
             if len(self.l1_average_weighted_error) > 0: logging_str += f'\nl1 weighted: {np.mean(self.l1_average_weighted_error, axis=0)}'
             if len(self.l1_average_true_error) > 0: logging_str += f'\nl1 true: {np.mean(self.l1_average_true_error, axis=0)}'
             if len(self.weight_rates) > 0: logging_str += f'\npercent (weight, trace): {np.mean(self.weight_rates)}, {np.mean(self.trace_rates)}'
-            logging_str += f"\ntarget: {full_model.norm.reverse(pytorch_model.unwrap(targets[0]), form='dyn' if full_model.predict_dynamics else 'target', name=name)}, {dones[0]}\n"
-            logging_str += f"mean: {full_model.norm.reverse(pytorch_model.unwrap(params[0][0]), form='dyn' if full_model.predict_dynamics else 'target', name=name)}\n"
-            logging_str += f"variance: {full_model.norm.reverse(pytorch_model.unwrap(params[1][0]), form='dyn' if full_model.predict_dynamics else 'diff', name=name)}"
+            target = full_model.norm.reverse(pytorch_model.unwrap(targets[0]), form='dyn' if full_model.predict_dynamics else 'target', name=name) if self.denorm else pytorch_model.unwrap(targets[0])
+            logging_str += f"\ntarget: {target}, {dones[0]}\n"
+            mean = full_model.norm.reverse(pytorch_model.unwrap(params[0][0]), form='dyn' if full_model.predict_dynamics else 'target', name=name) if self.denorm else pytorch_model.unwrap(params[0][0])
+            logging_str += f"mean: {mean}\n"
+            var = full_model.norm.reverse(pytorch_model.unwrap(params[1][0]), form='dyn' if full_model.predict_dynamics else 'diff', name=name) if self.denorm else pytorch_model.unwrap(params[1][0])
+            logging_str += f"variance: {var}"
             logging.info(logging_str)
             print(logging_str)
+
+            if len(self.filename) != 0:
+                # adds to the tensorboard logger for graphing
+                # self.tensorboard_logger.add_scalar("Return/"+self.name, np.sum(self.reward)/np.sum(self.current_episodes), i)
+                # self.tensorboard_logger.add_scalar("Success/"+self.name, np.sum(self.success)/np.sum(self.current_term), i)
+                # self.tensorboard_logger.add_scalar("Success/"+self.name + "_h/m", np.sum(self.success)/miss_hit, i)
+                # self.tensorboard_logger.add_scalar("Success/"+self.name + "_drop", np.sum(self.dropped)/np.sum(self.current_episodes), i)
+                # log the loss values
+                for k in self.testing_log.keys():
+                    print(k, np.mean(self.testing_log[k]))
+                    self.tensorboard_logger.add_scalar("Loss/" + k, np.mean(self.testing_log[k]), i)
+                self.tensorboard_logger.flush()
             self.reset()

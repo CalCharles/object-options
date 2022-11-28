@@ -5,6 +5,7 @@ from State.object_dict import ObjDict
 from Buffer.train_test_buffers import generate_buffers
 from Causal.FullInteraction.full_interaction_model import FullNeuralInteractionForwardModel, regenerate
 from Causal.FullInteraction.Training.full_train import train_full, run_train_passive
+from Causal.FullInteraction.Training.full_test import test_full
 # from Causal.Training.full_test import test_full, test_full_train
 
 from Environment.Environments.initialize_environment import initialize_environment
@@ -47,10 +48,9 @@ if __name__ == '__main__':
     if len(args.inter.save_intermediate) > 0: save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_inter_model.pkl"), full_models)
     for name in environment.object_names:
         if name not in ["Action"]:
-            full_models[name].regenerate(extractor, normalization)
+            full_models[name].regenerate(extractor, normalization, environment)
     for name in environment.object_names:
-        if name not in ["Action"]:
+        if name not in ["Action", "oqueofr"]:
             print("TRAINING", name)
             if args.train.train: train_full(full_models[name], train_full_buffer, train_object_buffers[name], test_full_buffer, test_object_buffers[name], args, environment)
-            test_full_train(full_model, train_buffer, args, args.object_names, environment)
-            test_full(full_model, test_buffer, args, args.object_names, environment)
+            test_full(full_models[name], test_full_buffer, test_object_buffers[name], args, environment)

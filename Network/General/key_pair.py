@@ -62,7 +62,9 @@ class KeyPairNetwork(Network):
         batch_size = x.shape[0]
         value = list()
         for i in range(int(self.first_obj_dim // self.single_object_dim)):
+            print(m.shape)
             xi = self.slice_mask_input(x, i, m)
+            error
             # print(i, x.shape, xi.shape)
             # print(self.pair_net.aggregate_final, self.pair_net.num_outputs, self.pair_net.first_obj_dim)
             value.append(self.pair_net(xi))
@@ -78,4 +80,4 @@ class KeyPairNetwork(Network):
         else:
             x = x.transpose(2,1)
             x = x.reshape(batch_size, -1)
-        return x
+        return m, x

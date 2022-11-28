@@ -3,7 +3,7 @@
     # record_rollouts: /hdd/datasets/calebc/object_data/asteroids/ship/
     record_recycle: -1
     log_filename: logs/temp/ship_test.log
-    load_dir: /hdd/datasets/object_data/asteroids/hyperparam/hyperparam/ship/gamma/ship_option_1_0_0
+    load_dir: /nfs/data/calebc/object_data/asteroids/testrun5/
   environment:
     env: Asteroids
     variant: default

@@ -35,7 +35,11 @@ CT asteroids: get ship policy
 
 Run Random conditionals
 python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random/ --num-frames 1000
-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random/ --num-frames 1000 --variant conditional
+python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional/ --num-frames 1000 --variant conditional
+python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional_passive/ --num-frames 1000 --variant conditional_passive
+python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_passive_only/ --num-frames 1000 --variant passive_only
+python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_passive_only_noise/ --num-frames 1000 --variant passive_only_noise
+
 
 Run Breakout Training:
 python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/breakout/random/
@@ -57,8 +61,12 @@ python generate_random.py --env Asteroids --record-rollouts /hdd/datasets/object
 Run Sokoban training:
 python generate_random.py --env Sokoban --record-rollouts /hdd/datasets/object_data/Sokoban/random/ --num-frames 10000
 
+python generate_random.py --env Sokoban --record-rollouts /hdd/datasets/object_data/Sokoban/random/ --variant few_obs --num-frames 10000
+
 python generate_random.py --env Asteroids --demonstrate --num-frames 5000
 
+Run Taxicar Training:
+python generate_random.py --env TaxiCar --record-rollouts /hdd/datasets/object_data/TaxiCar/random/ --num-frames 10000
 
 
 

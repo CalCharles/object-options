@@ -132,7 +132,8 @@ def test_full(full_model, test_buffer, args, object_names, environment):
 	FP_test = np.mean((test_trace < test_likepred).astype(np.float64), axis=0) / np.sum((test_trace == 0).astype(np.float64))
 
 	# proximity
-	test_prox = get_error(full_model, test_buffer, error_type=error_types.PROXIMITY)[test_valid]
+	print("getting error", test_buffer.parent_state[:10], test_buffer.target[:10])
+	test_prox = get_error(full_model, test_buffer, error_type=error_types.PROXIMITY, normalized=True)[test_valid]
 
 	log_string  = f'\n\ntest_results:'
 	log_string += f'\nl1_passive: {np.mean(test_l1_passive, axis=0)}'
@@ -155,7 +156,8 @@ def test_full(full_model, test_buffer, args, object_names, environment):
 	# inter_points = (test_prox == 1).squeeze() + (test_trace.squeeze() == 1) + (test_likepred == 1).squeeze() + (test_bin == 1).squeeze() # high passive error could be added
 	# inter_points = (test_trace.squeeze() == 1) + (test_likepred == 1).squeeze() + (test_bin == 1).squeeze() # high passive error could be added
 	# inter_points = (test_trace.squeeze() != test_likepred.squeeze()) + (test_likepred.squeeze() != test_bin.squeeze()).squeeze() + (test_bin.squeeze() != test_trace.squeeze()).squeeze() # high passive error could be added
-	inter_points = ((test_likepred.squeeze()) + (test_bin.squeeze())).astype(bool).squeeze() # high passive error could be added
+	# inter_points = ((test_likepred.squeeze()) + (test_bin.squeeze()) + (test_trace.squeeze())).astype(bool).squeeze() # high passive error could be added
+	inter_points = ((test_likepred.squeeze() != test_trace.squeeze()) + (test_bin.squeeze() != test_trace.squeeze())).astype(bool).squeeze() # high passive error could be added
 	target = test_buffer.target[:len(test_buffer)][test_valid]#[inter_points]
 	inter_state = test_buffer.inter_state[:len(test_buffer)][test_valid]#[inter_points]
 	next_target = test_buffer.next_target[:len(test_buffer)][test_valid]#[inter_points]
@@ -169,17 +171,18 @@ def test_full(full_model, test_buffer, args, object_names, environment):
 							test_bin, 
 							test_trace, 
 							test_prox,
-							np.expand_dims(np.sum(test_like, axis=-1), -1), 
+							# test_l1_passive,
+							np.expand_dims(np.sum(test_like, axis=-1), -1),
 							np.expand_dims(np.sum(test_like_passive, axis=-1), -1), 
 							np.expand_dims(np.sum(test_like_active, axis=-1), -1),
 							full_model.norm.reverse(inter_state, form = "inter"),
-							full_model.norm.reverse(next_target)], axis=-1)[inter_points]
+							full_model.norm.reverse(next_target)], axis=-1)[inter_points][:50]
 	log_string += '\n\nSampled computation: '
 	# log_string += f'\ntarget: {target[:128]}'
 	# log_string += f'\nnext: {next_target[:128]}'
 	# log_string += f'\ndiff: {target_diff[:128]}'
-	log_string += f'\npassive_pred_diff: {passive_samp[:128]}'
-	log_string += f'\nactive_pred_diff: {active_samp[:128]}'
-	log_string += f'\nlike, pred, bin, trace, prox, like, plike, alike: {bins[:128]}'
+	log_string += f'\npassive_pred_diff: {passive_samp}'
+	log_string += f'\nactive_pred_diff: {active_samp}'
+	log_string += f'\nlike, pred, bin, trace, prox, like, plike, alike: {bins}'
 	logging.info(log_string)
-	print(log_string)
+	print(log_string, np.sum(inter_points.astype(int)))

@@ -3,7 +3,7 @@ import sys, cv2
 import numpy as np
 import imageio as imio
 import os, copy
-from Environment.environment import Environment
+from Environment.environment import Environment, Reward, Done
 from Environment.Environments.Sokoban.sokoban_objects import *
 from Environment.Environments.Sokoban.sokoban_specs import *
 from Record.file_management import numpy_factored
@@ -44,14 +44,14 @@ class Sokoban(Environment):
 
         # factorized state properties
         ranges, dynamics, position_masks, instanced = generate_specs(self.num_rows, self.num_columns, self.num_obstacles, self.num_blocks, self.num_targets)
-        self.object_names = ["Action", "Pusher", "Obstacle", "Block", 'Bound', "Target" "Done", "Reward"]
-        self.object_sizes = {"Action": 1, "Pusher": 2, "Obstacle": 2, "Block": 2, 'Bound': 2, "Target": 3, "Reward": 1, "Done": 1}
+        self.object_names = ["Action", "Pusher", "Obstacle", "Block", "Target", "Done", "Reward"]
+        self.object_sizes = {"Action": 1, "Pusher": 2, "Obstacle": 2, "Block": 2, "Target": 3, "Reward": 1, "Done": 1}
         self.object_name_dict = dict() # initialized in reset
         self.object_range = ranges
         self.object_dynamics = dynamics
         self.object_instanced = instanced
         self.position_masks = position_masks
-        self.all_names = sum([([name + str(i) for i in instanced[name]] if instanced[name] > 1 else [name]) for name in self.object_names], start = [])
+        self.all_names = sum([([name + str(i) for i in range(instanced[name])] if instanced[name] > 1 else [name]) for name in self.object_names], start = [])
         self.instance_length = len(self.all_names)
 
         # reset counters
@@ -102,10 +102,10 @@ class Sokoban(Environment):
             if len(self.blocks) == 1: self.blocks[0].name = "Block"
             self.targets = [self.generate_fill(Target, i, max_adjacent=3) for i in range(self.num_targets)] if self.num_targets > 1 else [self.generate_fill(Target, -1, max_adjacent=3)]
             if len(self.targets) == 1: self.targets[0].name = "Target"
-            self.objects = [self.action] + [self.pusher] + self.obstacles + self.blocks + self.targets + [self.bound, self.reward, self.done]
+            self.objects = [self.action] + [self.pusher] + self.obstacles + self.blocks + self.targets + [self.reward, self.done]
             if np.any([o is None for o in self.objects]): self.reset() # we could not generate a functional occupancy
-        self.object_name_dict = {{"Action": self.action, "Bound": self.bound, "Pusher": self.pusher, "Reward": self.reward, "Done": self.done}, 
-                                **{o.name: o for o in self.obstacles}, {b.name: b for b in self.blocks}, {t.name: t for t in self.targets}}
+        self.object_name_dict = {**{"Action": self.action, "Bound": self.bound, "Pusher": self.pusher, "Reward": self.reward, "Done": self.done}, 
+                                **{o.name: o for o in self.obstacles}, **{b.name: b for b in self.blocks}, **{t.name: t for t in self.targets}}
         self.steps = 0
         return self.get_state()
 
@@ -230,8 +230,8 @@ class Sokoban(Environment):
         for target in self.targets:
             target.pos = np.array(factored_state[target.name][:2]).astype(int)
             target.attribute = factored_state[target.name][2]
-        self.reward.attribute = factored_state["Reward"]
-        self.done.attribute = factored_state["Done"]
+        self.reward.attribute = factored_state["Reward"].squeeze()
+        self.done.attribute = factored_state["Done"].squeeze()
         self.reset_occupancy()
         # self.render()
         # frame2 = cv2.resize(self.frame, (self.frame.shape[0] * 30, self.frame.shape[1] * 30), interpolation = cv2.INTER_NEAREST)

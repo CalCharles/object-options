@@ -86,6 +86,8 @@ def get_command_args():
                         help='interaction binary cutoff, require Active greater than, omit passive less than, require difference between P-A  (default: empty list)')
     parser.add_argument('--proximity-epsilon', type=float, default=-1,
                         help='the minimum distance for two objects to be considered "close"')
+    parser.add_argument('--error-binary-upweight', type=float, default=-1,
+                        help='weights values where the binary is not consistent with the interaction higher')
     parser.add_argument('--passive-iters', type=int, default=0,
                         help='number of passive iterations to run')
     parser.add_argument('--compare-trace', action ='store_true', default=False,
@@ -135,6 +137,19 @@ def get_command_args():
                         help='defines what function is used to reduce the pointnet points')
     parser.add_argument('--aggregate-final', action ='store_true', default=False,
                         help='combines all of the values at the end')
+    # mask_attn arguments
+    parser.add_argument('--model-dim', type=int, default=0,
+                        help='dimension of keys, queries and values')
+    parser.add_argument('--embed-dim', type=int, default=0,
+                        help='dimension of the key and query embeddings')
+    parser.add_argument('--num-heads', type=int, default=0,
+                        help='number of heads in multi-head attention, embed dim must be divisible')
+    parser.add_argument('--num-layers', type=int, default=0,
+                        help='number of layers in attention to re-embed the key')
+    parser.add_argument('--cluster', action ='store_true', default=False,
+                        help='uses a hot-style of masking selection')
+    parser.add_argument('--attention-dropout', type=float, default=0.0,
+                        help='dropout proportion for only the key-value networks')
     # optimizer arguments
     parser.add_argument('--lr', type=float, default=1e-4,
                         help='learning rate, not used if actor and critic learning rate used for algo (default: 1e-6)')
@@ -243,7 +258,18 @@ def get_command_args():
     # full interaction args
     parser.add_argument('--object-id', action='store_true', default=False,
                     help='adds the ids of the objects to the state')
-
+    parser.add_argument('--use-active-as-passive', action='store_true', default=False,
+                    help='uses the passive mask on the active model instead of a separate passive model')
+    parser.add_argument("--lasso-lambda", type=int, nargs='+', default=[0,0,0],
+                        help='sets the weights on the interaction component: final lasso weight, starting full-interaction weight, 1-mask schedule, lasso weight schedule')
+    parser.add_argument('--soft-distribution', default = "Identity",
+                        help='the distribution type for the soft interaction mask (identity uses the outputs directly) (options: Identity, RelaxedBernoulli)')
+    parser.add_argument('--mixed-distribution', default = "Hard",
+                        help='the distribution type for the mixing distribution between soft and hard used as output (options: Identity, Mixed, Hard)')
+    parser.add_argument("--dist-temperature", type=float, default=1.0,
+                        help='the distribution temperature for the bernoulli')
+    parser.add_argument('--proximal-weights', action='store_true', default=False,
+                    help='uses non-proximity when pretraining the passive model')
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda

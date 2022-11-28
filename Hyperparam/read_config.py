@@ -17,6 +17,15 @@ network_args = {
         "difference_first": False,
         "final_layers": [256]
     },
+    "mask_attn": {
+        "model_dim": 0,
+        "embed_dim": 0,
+        "cluster": False,
+        "num_clusters": 0,
+        "num_heads": 0,
+        "num_layers": 0,
+        "attention_dropout": 0.0,
+    },
     "optimizer": {
         "lr": 1e-4,
         "alt_lr": 1e-5,
@@ -79,11 +88,12 @@ expected_args = {
     },
     "full_inter": {
         "object_id": False,
-        "proximal_weights": False,
-        "lasso_lambda": 1,
+        "lasso_lambda": [1, 1, -1, -1],
         "soft_distribution": "Identity",
         "dist_temperature": 1,
-        "mixed_interaction": False,
+        "mixed_interaction": "weighting",
+        "use_active_as_passive": False,
+        "proximal_weights": False,
     },
     "inter": {
         "predict_dynamics": False,
@@ -93,6 +103,7 @@ expected_args = {
         "proximity_epsilon": -1,
         "compare_trace": False,
         "passive": {
+            "load_passive": "",
             "passive_iters": 0,
             "passive_log_interval": 1000,
             "pretrain_active": False
@@ -107,6 +118,7 @@ expected_args = {
             "inline_iters": [5, 1, 1000],
             "interaction_weighting": [0,0], # must be length 2
             "intrain_passive": False,
+            "error_binary_upweight": 1,
         },
     },
     "mask": {

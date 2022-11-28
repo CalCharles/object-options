@@ -34,20 +34,20 @@ class conditional_add_func():
         self.target = target
         self.target_size = target_size
         self.interaction_dynamics = rel_func(parents, target, parent_size, target_size, use_target_bias=False, num_sets=2, conditional=True) 
-        self.add_dynamics = add_func(parents, target, parent_size, target_size, use_target_bias=True, num_sets=5, conditional=False)
+        self.add_dynamics = add_func(parents, target, parent_size, target_size, use_target_bias=True, num_sets=5, conditional=False, scale=2)
         self.passive = passive
         self.params = self.interaction_dynamics.params + self.add_dynamics.params
 
     def __call__(self, ps, ts):
-        inter = self.interaction_dynamics(ps, ts)
-        print(self.target, inter)
+        inter, _ = self.interaction_dynamics(ps, ts)
+        print("target, inter", self.target, inter)
         if inter:
-            return self.add_dynamics(ps, ts)
+            return inter, self.add_dynamics(ps, ts)[1]
         else:
             if self.passive is None: # if we have a passive function, it replaces the interaction dynamics on non-interaction
-                return np.zeros(self.target_size)
+                return False, np.zeros(self.target_size)
             else:
-                return self.passive(ps, ts)
+                return False, self.passive(ps, ts)[1]
 
 class passive_func():
     def __init__(self, target, target_size, use_target_bias):
@@ -58,12 +58,13 @@ class passive_func():
         self.params = [self.target_bias, self.target_matrix]
 
     def __call__(self, ps, ts):
-        return (np.matmul(self.target_matrix, np.expand_dims(ts,-1))[...,0] + self.target_bias)[...,0]
+        return True, (np.matmul(self.target_matrix, np.expand_dims(ts,-1))[...,0] + self.target_bias)[...,0]
 
 class add_func():
-    def __init__(self, parents, target, parent_size, target_size, use_target_bias, num_sets=10, conditional=False):
+    def __init__(self, parents, target, parent_size, target_size, use_target_bias, num_sets=10, conditional=False, scale=1):
         self.parents = parents
         self.target = target
+        self.scale = scale
         self.parent_weight_sets = [2 * (np.random.rand(parent_size) - .5) * DYNAMICS_STEP / PARENT_REDUCE_FACTOR for k in range(num_sets)] # right now just creates 10 no matter what
         self.parent_bias = np.expand_dims(2 * (np.random.rand(parent_size) - .5) * DYNAMICS_STEP / PARENT_REDUCE_FACTOR, axis=-1)
         self.target_bias = np.expand_dims(2 * (np.random.rand(target_size) - .5) * DYNAMICS_STEP / TARGET_REDUCE_FACTOR, axis=-1)
@@ -83,11 +84,11 @@ class add_func():
         # print(np.matmul(self.parent_weight_matrix, ps - self.parent_bias).shape, ps - self.parent_bias, (self.target_weights * ts).shape, self.target_weights.shape)
         # print((np.matmul(self.parent_weight_matrix, ps - self.parent_bias), self.target_weights * ts, self.target_bias))
         # sum_val = np.matmul(self.parent_weight_matrix, ps - self.parent_bias).squeeze()
-        sum_val = (np.matmul(self.parent_weight_matrix, ps - self.parent_bias) + self.target_weights * ts + self.target_bias)[...,0]
+        sum_val = (np.matmul(self.parent_weight_matrix, ps - self.parent_bias) * self.scale + self.target_weights * ts + self.target_bias)[...,0]
         if self.conditional:
-            return np.sum(sum_val, axis=-1)
-        print(ts, "sumval", sum_val, "parent effect", np.matmul(self.parent_weight_matrix, ps - self.parent_bias), "taret_effect", self.target_weights * ts + self.target_bias)
-        return sum_val
+            return np.sum(sum_val, axis=-1), None
+        print(ts, "sumval", sum_val, "parent effect", np.matmul(self.parent_weight_matrix, ps - self.parent_bias) * self.scale, "taret_effect", self.target_weights * ts + self.target_bias)
+        return True, sum_val
 
 class rel_func():
     def __init__(self, parents, target, parent_size, target_size, use_target_bias, num_sets=10, conditional=False):
@@ -116,8 +117,8 @@ class rel_func():
         # print(ts, ps, np.matmul(self.target_weight_matrix, ts),self.parent_bias, np.matmul(self.parent_weight_matrix, ps - np.matmul(self.target_weight_matrix, ts) - self.parent_bias))
         rel_val = np.matmul(self.parent_weight_matrix, ps - np.matmul(self.target_weight_matrix, ts) - self.parent_bias)[...,0]
         if self.conditional:
-            return np.sum(rel_val, axis=-1) > 0
-        return rel_val
+            return np.sum(rel_val, axis=-1) > 0, None
+        return True, rel_val
 
 
 object_relational_functions = ["add", "func", "rel", "const", "rotation"]
@@ -212,8 +213,12 @@ class RandomDistribution(Environment):
             if self.allow_uncontrollable: parents = np.random.choice(onames, size=min(len(nonames) - 1, np.random.randint(1, 4)), replace = False).tolist()
             else:
                 ronames = copy.deepcopy(onames)
+                if i > 0: 
+                    if "Action" in controllable: controllable.remove("Action")
+                    if "Action" in ronames: ronames.remove("Action")
                 ctrl_choice = np.random.choice(controllable)
                 ronames.remove(ctrl_choice)
+                print("ctrl options", ctrl_choice, controllable, ronames)
                 parents = [ctrl_choice] + np.random.choice(ronames, size=min(len(nonames) - 1, np.random.randint(2)), replace = False).tolist()
             target = nonames[np.random.randint(len(nonames))]
             while target in parents or target in used:
@@ -241,7 +246,6 @@ class RandomDistribution(Environment):
                             conditional=False)
             print(orf.parents, orf.target, orf.params)
             self.object_relational_functions.append(orf)
-
         for target in unused:
             if self.require_passive:
                 self.object_relational_functions.append(self.passive_functions[target])
@@ -293,28 +297,35 @@ class RandomDistribution(Environment):
         # print([self.object_name_dict[n].get_state() for n in instanced_names])
         return np.concatenate([self.object_name_dict[n].get_state() for n in instanced_names], axis=-1)
 
+    def empty_interactions(self):
+        for obj in self.objects:
+            obj.interaction_trace = list()
 
     def step(self, action, render=False): 
+        self.empty_interactions()
         for i in range(self.frameskip):
             self.done.attribute = False
             self.action.attribute = action
             for target in self.object_names:
                 self.object_name_dict[target].next_state = self.object_name_dict[target].get_state()
             for i, orf in enumerate(self.object_relational_functions):
-                # print(orf.parents, orf.target)
+                # print("orf", orf.parents, orf.target)
                 ps = self.get_named_state(orf.parents) if len(orf.parents) > 0 else None
                 ts = self.get_named_state([orf.target])
-                nds = orf(ps, ts)
+                inter, nds = orf(ps, ts)
+                if inter:
+                    self.object_name_dict[orf.target].interaction_trace += orf.parents 
                 # print(orf.target, nds)
                 if self.relate_dynamics: 
-                    self.object_name_dict[orf.target].next_state += nds
+                    self.object_name_dict[orf.target].next_state += np.clip(nds, -DYNAMICS_STEP, DYNAMICS_STEP)
                 else:
                     self.object_name_dict[orf.target].next_state = nds
-                if i < 3: print(self.itr, self.done.attribute, orf.parents, orf.target, self.get_state()["factored_state"][orf.target])
+                # if i < 3: print(self.itr, self.done.attribute, orf.parents, orf.target, self.get_state()["factored_state"][orf.target])
             for obj in self.object_name_dict.values():
-                if self.noise_percentage > 0:
-                    if self.distribution == "Gaussian":
-                        obj.next_state = obj.next_state + np.random.normal(scale=self.noise_percentage)
+                # print("adding noise", obj.next_state)
+                # if self.noise_percentage > 0: # TODO: it appears taking random actions is correlated with the random noise
+                #     if self.distribution == "Gaussian":
+                #         obj.next_state = obj.next_state + np.random.normal(scale=self.noise_percentage, size=obj.next_state.shape)
                     # print(obj.name, obj.next_state)
                 if hasattr(obj, "step_state"): obj.step_state()
         self.itr += 1
@@ -324,3 +335,13 @@ class RandomDistribution(Environment):
             self.done.attribute = True
             return self.get_state(), self.reward.attribute, self.done.attribute, {'Timelimit.truncated': True}
         return self.get_state(), self.reward.attribute, self.done.attribute, {'Timelimit.truncated': False}
+
+    def set_from_factored_state(self, factored_state, seed_counter=-1, render=False):
+        '''
+        TODO: only sets the active elements, and not the score, reward and other features. This could be an issue in the future.
+        '''
+        if seed_counter > 0:
+            self.seed_counter = seed_counter
+        for n in factored_state.keys():
+            if n in self.object_name_dict:
+                self.object_name_dict[n].state = copy.deepcopy(factored_state[n])

@@ -144,10 +144,13 @@ class Environment():
         self.set_from_factored_state(factored_state)
         self.step(action)
         traces = dict()
+        all_inter_names = [n for n in self.all_names if n not in {"Reward", "Done"}]
         for target in self.all_names:
             # if self.can_interact[target]:
-            traces[target] = np.zeros(len(self.all_names)).tolist()
-            target_traces = np.array([int(self.object_name_dict[val].name in self.object_name_dict[target].interaction_trace) for val in self.all_names])
+            # traces[target] = np.zeros(len(all_inter_names)).tolist()
+            target_traces = np.array([int((val in self.object_name_dict[target].interaction_trace) # a different name is in the trace
+                                             or (val == target) # add self interactions
+                                             ) for val in all_inter_names])
             traces[target] = target_traces
         return traces
 
@@ -159,13 +162,13 @@ class Environment():
 
     def toString(self, extracted_state):
         '''
-        convers an extracted state into a string for printing. Note this might be overriden since self.objects is not a guaranteed attribute
+        converts an extracted state into a string for printing. Note this might be overriden since self.objects is not a guaranteed attribute
         '''
         estring = "ITR:" + str(self.itr) + "\t"
         for i, obj in enumerate(self.objects):
             estring += obj.name + ":" + " ".join(map(str, extracted_state[obj.name])) + "\t" # TODO: attributes are limited to single floats
-        estring += "Reward:" + str(float(extracted_state["Reward"])) + "\t"
-        estring += "Done:" + str(int(extracted_state["Done"])) + "\t"
+        # estring += "Reward:" + str(float(extracted_state["Reward"])) + "\t"
+        # estring += "Done:" + str(int(extracted_state["Done"])) + "\t"
         return estring
 
 class Done():

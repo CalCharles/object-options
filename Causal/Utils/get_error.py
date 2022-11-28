@@ -13,7 +13,7 @@ error_names = [# an enumerator for different error types
     "ACTIVE_VAR",# variance of active
     "PASSIVE_RAW",# mean of passive values,
     "ACTIVE_RAW",# mean of active values,
-    "LIKELIHOOD",# weighted likelihood, multiplying active output with the interaction
+    "LIKELIHOOD",# weighted likelihood, multiplying active output with the interaction, if is_full, this is the OPEN likelihood
     "PASSIVE_LIKELIHOOD", # likelihood under the passive model
     "ACTIVE_LIKELIHOOD", # likelihood of data under the active model
     "INTERACTION", #interaction values
@@ -44,6 +44,7 @@ def check_proximity(full_model, parent_state, target, normalized=False):
         else: return diff < full_model.proximity_epsilon if full_model.proximity_epsilon > 0 else np.ones((num_batch, target.shape[1])).astype(bool)
     else: target = target[...,target_pos]
     target = full_model.norm.reverse(target, idxes=target_pos) if normalized else target
+    # print(full_model.proximity_epsilon, np.concatenate([target, parent, np.expand_dims(np.linalg.norm(parent-target, ord=1, axis=-1), -1), np.expand_dims(np.linalg.norm(parent-target, ord=1, axis=-1) < full_model.proximity_epsilon, -1)], axis=-1))
     return np.expand_dims(np.linalg.norm(parent-target, ord=1, axis=-1) < full_model.proximity_epsilon, -1) if full_model.proximity_epsilon > 0 else np.ones((num_batch, 1)).astype(bool) # returns binarized differences
 
 
@@ -79,15 +80,13 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
 
     
     if error_type == error_types.PASSIVE or error_type == error_types.PASSIVE_RAW:
-        output = pytorch_model.unwrap(full_model.passive_model(pytorch_model.wrap(use_part.target, cuda=full_model.iscuda))[0])
+        output = pytorch_model.unwrap(full_model.passive_likelihoods(use_part)[0][0])
     elif error_type == error_types.ACTIVE or error_type == error_types.ACTIVE_RAW:
-        if not is_full: output = pytorch_model.unwrap(full_model.active_model(pytorch_model.wrap(use_part.inter_state, cuda=full_model.iscuda))[0])
-        else: output = pytorch_model.unwrap(full_model.active_model(pytorch_model.wrap(use_part.tarinter_state, cuda=full_model.iscuda), pytorch_model.wrap(use_part.inter, cuda=full_model.iscuda))[0])
+        output = pytorch_model.unwrap(full_model.active_likelihoods(use_part)[0][0])
     if error_type == error_types.PASSIVE_VAR:
-        output = pytorch_model.unwrap(full_model.passive_model(pytorch_model.wrap(use_part.target, cuda=full_model.iscuda))[1])
+        output = pytorch_model.unwrap(full_model.passive_likelihoods(use_part)[0][1])
     elif error_type == error_types.ACTIVE_VAR:
-        if not is_full: output = pytorch_model.unwrap(full_model.active_model(pytorch_model.wrap(use_part.inter_state, cuda=full_model.iscuda))[1])
-        else: output = pytorch_model.unwrap(full_model.active_model(pytorch_model.wrap(use_part.tarinter_state, cuda=full_model.iscuda), pytorch_model.wrap(use_part.inter, cuda=full_model.iscuda))[1])
+        output = pytorch_model.unwrap(full_model.active_likelihoods(use_part)[0][1])
     if error_type <= error_types.ACTIVE:
         if reduced:
             if not normalized: # this can only be the case for PASSIVE and ACTIVE
@@ -104,10 +103,10 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
 
     # likelihood type error computation
     if error_type == error_types.LIKELIHOOD:
-        output = pytorch_model.unwrap(full_model.weighted_likelihoods(use_part)[-1])
+        if is_full: output = pytorch_model.unwrap(full_model.active_open_likelihood(use_part)[-1])
+        else: output = pytorch_model.unwrap(full_model.weighted_likelihoods(use_part)[-1])
     elif error_type == error_types.PASSIVE_LIKELIHOOD:
         output = pytorch_model.unwrap(full_model.passive_likelihoods(use_part)[-1])
-        print(output, use_part.obs)
     elif error_type == error_types.ACTIVE_LIKELIHOOD:
         output = pytorch_model.unwrap(full_model.active_likelihoods(use_part)[-1])
     if error_type <= error_types.ACTIVE_LIKELIHOOD:
@@ -121,9 +120,7 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
     elif error_type == error_types.INTERACTION_RAW:
         return pytorch_model.unwrap(full_model.interaction(use_part))
     elif error_type == error_types.INTERACTION_BINARIES:
-        _, _, _, _, _, _, active_log_probs, passive_log_probs = full_model.likelihoods(part)
-        binaries = pytorch_model.unwrap(full_model.test.compute_binary(- active_log_probs.sum(dim=-1),
-                                                - passive_log_probs.sum(dim=-1)).unsqueeze(-1))
+        binaries = pytorch_model.unwrap(full_model.interaction(use_part, use_binary=True))
         return binaries        
 
     if error_type == error_types.PROXIMITY:

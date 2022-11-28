@@ -57,8 +57,10 @@ class interaction_logger(Logger):
             log_str = f'interaction at {i}, mean loss: {np.mean(self.loss)}, total_inter: {self.total_inter/self.total_seen},  total_bin: {self.total_bin/self.total_seen}'
             if self.total_true > 0: log_str += f'\ntotal true: {self.total_true/self.total_seen}, weight rate: {self.weight_count/self.total_seen}' # assumes that there would not be no true interactions unless unused
             log_str  += f'\nbinary FP: {self.binary_false_positive/max(1, self.binary_false_positive + self.total_seen - self.total_bin)}, binary FN: {self.binary_false_negative/max(1, self.binary_false_negative + self.total_bin)}'
-            if self.total_true > 0: log_str  += f'\nbinary true FP: {self.binary_true_false_positive/max(1, self.binary_true_false_positive + self.total_seen - self.total_true)}, binary FN: {self.binary_true_false_negative/max(1, self.binary_true_false_negative + self.total_true)}'
-            if self.total_true > 0: log_str += f'\ntrace FP: {self.trace_false_positive/max(1, self.trace_false_positive + self.total_seen - self.total_true)}, trace FN: {self.trace_false_negative/max(1, self.total_true + self.trace_false_negative)}'
+            # if self.total_true > 0: log_str  += f'\nbinary true FP: {self.binary_true_false_positive/max(1, self.binary_true_false_positive + self.total_seen - self.total_true)}, binary FN: {self.binary_true_false_negative/max(1, self.binary_true_false_negative + self.total_true)}'
+            if self.total_true > 0: log_str  += f'\nbinary true FP: {self.binary_true_false_positive/max(1, self.total_true)}, binary FN: {self.binary_true_false_negative/max(1, self.total_true)}'
+            # if self.total_true > 0: log_str += f'\ntrace FP: {self.trace_false_positive/max(1, self.trace_false_positive + self.total_seen - self.total_true)}, trace FN: {self.trace_false_negative/max(1, self.total_true + self.trace_false_negative)}'
+            if self.total_true > 0: log_str += f'\ntrace FP: {self.trace_false_positive/max(1, self.total_true)}, trace FN: {self.trace_false_negative/max(1, self.total_true)}'
             logging.info(log_str)
             print(log_str)
-            self.reset()
+            if i % (self.log_interval * 10) == 0: self.reset()

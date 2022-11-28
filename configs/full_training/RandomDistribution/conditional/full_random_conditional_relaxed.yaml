@@ -1,0 +1,58 @@
+---
+  record:
+    # record_rollouts: ""
+    record_recycle: -1
+    log_filename: /nfs/data/calebc/object_data/full/randomdist/conditional/relaxed/log/inter.log
+    # load_dir: /nfs/data/calebc/object_data/full/breakout/relaxed/testrun/
+    save_dir: /nfs/data/calebc/object_data/full/randomdist/conditional/relaxed/
+  environment:
+    env: RandomDistribution
+    variant: conditional
+    load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional/
+  torch:
+    gpu: 1
+    no_cuda: False
+  train:
+    train: True
+    num_frames: 100000
+    train_test_order: time
+    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional/
+    num_iters: 50000
+    batch_size: 256
+  inter:
+    predict_dynamics: True
+    interaction_testing: 0.9 -1 -10 -1
+    interaction_iters: 0
+    # load_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/relaxed/temp/
+    save_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/relaxed/temp/
+    compare_trace: True
+    proximity_epsilon: 7
+    passive:
+      passive_iters: 20000
+      # passive_iters: 100
+      passive_log_interval: 100
+      pretrain_active: True
+    active:
+      active_log_interval: 500
+      # inline_iters: 10 0 5000
+      inline_iters: 1 0 0
+      interaction_weighting: 100 -1
+      interaction_schedule: 10000
+      # weighting: 0 200000 100 100000
+  full_inter:
+    object_id: True
+    lasso_lambda: 1
+    mixed_interaction: relaxed
+    soft_distribution: RelaxedBernoulli
+  interaction_net:
+    hidden_sizes: 512 256 256 128 128
+    net_type: keypair
+    init_form: xnorm
+    optimizer:
+      lr: .0001
+      alt_lr: .0001
+      eps: .00001
+      alpha: 0.99
+      betas: 0.9 0.999
+      weight_decay: 0.00
+...

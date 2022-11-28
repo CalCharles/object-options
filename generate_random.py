@@ -49,6 +49,8 @@ if __name__ == "__main__":
     for i in range(args.num_frames):
         if args.angle and environment.ball.paddle: angle = angle = np.random.randint(4)
         action = environment.action_space.sample() if not args.demonstrate else environment.demonstrate()
+        # action = np.ones(environment.action_space._shape) * (-0.5 + i/args.num_frames) if not args.demonstrate else environment.demonstrate()
+        # action = np.random.rand(*environment.action_space._shape) * (environment.action_space.high - environment.action_space.low) + environment.action_space.low if not args.demonstrate else environment.demonstrate()
         action = action if not args.angle else policy.act(environment, angle=angle)
         full_state, reward, done, info = environment.step(action, render=args.render)
         if args.render and args.display_frame: 

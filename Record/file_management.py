@@ -56,7 +56,7 @@ def _dump_from_line(line, time_dict):
             try:
                 state = [float(i) for i in vals]
             except ValueError as e:
-                state = [bool(i) for i in vals]
+                state = [True if i == "True" else False for i in vals]
             time_dict[name] = np.array(state)
     return time_dict
 

@@ -23,7 +23,7 @@ class InlineTrainer():
         if len(args.interaction_config) > 0: 
             self.interaction_args = read_config(args.interaction_config)  
             self.interaction_args.train.num_iters = args.inpolicy_iters
-            self.interaction_args.inter.intrain_passive = args.policy_intrain_passive
+            # self.interaction_args.inter.intrain_passive = args.policy_intrain_passive
             self.interaction_args.inter.weighting = args.intrain_weighting
             self.interaction_args.inter.active.inline_iters = args.policy_inline_iters
         else: self.interaction_args = ObjDict()
@@ -62,7 +62,7 @@ class InlineTrainer():
             # print(f"bin calc create {tc_create - tc_done} error {tc_error - tc_create} bin {tc_bin -tc_error}")
         tc_binaries = time.time()
         # if np.any(done): 
-        print("inline", new_data.inter_state, self.interaction_model.interaction(new_data), binaries, proximity)
+        # print("inline", new_data.inter_state, self.interaction_model.interaction(new_data), binaries, proximity)
         # print(f"inline: prox: {tc_proximity - tc_start}, done: {tc_done - tc_proximity}, binaries: {tc_binaries - tc_done}, total: {tc_binaries -tc_start}")
         # print(data.full_state.factored_state.Paddle, data.full_state.factored_state.Ball,data.next_full_state.factored_state.Ball, proximity, binaries)
         return proximity, proximity_inst, binaries
@@ -79,6 +79,12 @@ class InlineTrainer():
             if self.reset_weights[2] == 1:
                 self.interaction_model.reset_network("passive")
                 self.passive_optimizer = initialize_optimizer(self.interaction_model.passive_model, self.interaction_args.interaction_net.optimizer, self.interaction_args.interaction_net.optimizer.lr)
+            
+            if self.train_passive:
+                proximal = rollouts.proximity
+                non_proximal = (proximal != True).astype(int)
+                non_proximal_weights = non_proximal.squeeze() / np.sum(non_proximal) if np.sum(non_proximal) != 0 else np.ones(non_proximal.shape) / len(non_proximal)
+                train_passive(self.interaction_model, rollouts, self.interaction_args, self.active_optimizer, self.passive_optimizer, weights=non_proximal_weights if full_model.proximity_epsilon > 0 else None)
             # change interaction model values
             cut_rols = rollouts[:len(rollouts)]
             # print(cut_rols.weight_binary[-200:], cut_rols.proximity[-200:])
