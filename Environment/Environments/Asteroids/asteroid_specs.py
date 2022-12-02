@@ -1,4 +1,46 @@
 import numpy as np
+MAX_SPEED = 5
+MAX_SIZE = 10
+
+def generate_specs_fixed(asteroid_speed, ship_speed, laser_speed, asteroid_size, asteroid_size_variance, num_asteroids):
+    ranges = {
+        "Action": [np.array([0]).astype(np.float64), np.array([5]).astype(np.float64)],
+        "Ship": [np.array([-1, -1, -MAX_SPEED, -MAX_SPEED, -1]).astype(np.float64), np.array([84, 84, MAX_SPEED, MAX_SPEED, 1]).astype(np.float64)],
+        "Laser": [np.array([-1, -1, -MAX_SPEED, -MAX_SPEED, -1]).astype(np.float64), np.array([84, 84, MAX_SPEED, MAX_SPEED, 1]).astype(np.float64)],
+        "Asteroid": [np.array([0, 0, -MAX_SPEED, -MAX_SPEED, 0, -1]).astype(np.float64), np.array([84, 84, MAX_SPEED, MAX_SPEED, MAX_SIZE, 1]).astype(np.float64)],
+        "Done": [np.array([0]).astype(np.float64), np.array([1]).astype(np.float64)],
+        "Reward": [np.array([-100]).astype(np.float64), np.array([100]).astype(np.float64)]
+    }
+
+    dynamics = {
+        "Action": [np.array([-5]).astype(np.float64), np.array([5]).astype(np.float64)],
+        "Ship": [np.array([-MAX_SPEED, -MAX_SPEED, -2, -2, -1]).astype(np.float64), np.array([MAX_SPEED, MAX_SPEED, 2, 2, 1]).astype(np.float64)],
+        "Laser": [np.array([-MAX_SPEED, -MAX_SPEED, -MAX_SPEED, -MAX_SPEED, -1]).astype(np.float64), np.array([MAX_SPEED, MAX_SPEED, MAX_SPEED, MAX_SPEED, 1]).astype(np.float64)],
+        "Asteroid": [np.array([-MAX_SPEED, -MAX_SPEED, -MAX_SPEED, -MAX_SPEED, 0, 0]).astype(np.float64), np.array([MAX_SPEED, MAX_SPEED, MAX_SPEED, MAX_SPEED, 0.01, 0.01]).astype(np.float64)],
+        "Done": [np.array([0]).astype(np.float64), np.array([1]).astype(np.float64)],
+        "Reward": [np.array([-100]).astype(np.float64), np.array([100]).astype(np.float64)]
+    }
+
+
+    position_masks = {
+        "Action": np.array([0]),
+        "Ship": np.array([1,1,0,0,0]),
+        "Laser": np.array([1,1,0,0,0]),
+        "Asteroid": np.array([1,1,0,0,0,0]),
+        "Done": np.array([0]),
+        "Reward": np.array([0]),
+    }
+
+    instanced = {
+        "Action": 1,
+        "Ship": 1,
+        "Laser": 1,
+        "Asteroid": num_asteroids,
+        "Done": 1,
+        "Reward": 1,
+    }
+    return ranges, dynamics, position_masks, instanced
+
 
 def generate_specs(asteroid_speed, ship_speed, laser_speed, asteroid_size, asteroid_size_variance, num_asteroids):
     ranges = {

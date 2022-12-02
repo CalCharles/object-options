@@ -14,11 +14,12 @@ from gym import spaces
 # target_mode (1)/edges(2)/center(3), scatter (4), num rows, num_columns, no_breakout (value for hit_reset), negative mode, bounce_count
 
 class Breakout(Environment):
-    def __init__(self, frameskip = 1, breakout_variant="default"):
+    def __init__(self, frameskip = 1, breakout_variant="default", fixed_limits=False):
         super(Breakout, self).__init__()
         # breakout specialized parameters are stored in the variant
         self.variant = breakout_variant
         self.self_reset = True
+        self.fixed_limits = True
 
         # environment properties
         self.num_actions = 4 # this must be defined, -1 for continuous. Only needed for primitive actions
@@ -50,8 +51,10 @@ class Breakout(Environment):
         self.object_names = ["Action", "Paddle", "Ball", "Block", 'Done', "Reward"]
         self.object_sizes = {"Action": 1, "Paddle": 5, "Ball": 5, "Block": 5, 'Done': 1, "Reward": 1}
         self.object_name_dict = dict() # initialized in reset
-        self.object_range = ranges
-        self.object_dynamics = dynamics
+        self.object_range_true = ranges
+        self.object_dynamics_true = dynamics
+        self.object_range = ranges_fixed if self.fixed_limits else ranges
+        self.object_dynamics = dynamics_fixed if self.fixed_limits else dynamics
 
         # asign variant values
         var_form, num_rows, num_columns, max_block_height, hit_reset, negative_mode, random_exist, bounce_cost, bounce_reset, completion_reward, timeout_penalty, drop_stopping = breakout_variants[breakout_variant]

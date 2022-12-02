@@ -1,6 +1,53 @@
 import numpy as np
 RNG = 30
 
+def generate_specs_fixed(num_vehicles, num_pedestrians, num_targets):
+    ranges = { # TODO: we might need to normalize by RNG rather the rows, columns if we want to be bound agnostic
+        "Action": [np.array([0]).astype(np.float64), np.array([4]).astype(np.float64)],
+        "Taxi": [np.array([0, 0, 0, 0, 0]).astype(np.float64), np.array([RNG, RNG, 1, RNG, RNG]).astype(np.float64)],
+        "Passenger": [np.array([0, 0, 0,0,0,0]).astype(np.float64), np.array([RNG, RNG, RNG, RNG, RNG, RNG]).astype(np.float64)],
+        "Vehicle": [np.array([0, 0,0,0,0,0]).astype(np.float64), np.array([RNG, RNG, 1,1,RNG, RNG]).astype(np.float64)],
+        "Pedestrian": [np.array([0, 0,0,0,0,0,0]).astype(np.float64), np.array([RNG, RNG,1,1,1,RNG, RNG]).astype(np.float64)],
+        "Target": [np.array([0, 0, 0]).astype(np.float64), np.array([RNG, RNG, 1]).astype(np.float64)],
+        "Done": [np.array([0]).astype(np.float64), np.array([1]).astype(np.float64)],
+        "Reward": [np.array([-100]).astype(np.float64), np.array([100]).astype(np.float64)]
+    }
+
+    dynamics = {
+        "Action": [np.array([-4]).astype(np.float64), np.array([4]).astype(np.float64)],
+        "Taxi": [np.array([-1, -1, -1, 0,0]).astype(np.float64), np.array([1, 1,1,0,0]).astype(np.float64)],
+        "Passenger": [np.array([-1, -1, -1, -1, 0,0]).astype(np.float64), np.array([1, 1,1, 1,0,0]).astype(np.float64)],
+        "Vehicle": [np.array([-1, -1, -1, -1,0,0]).astype(np.float64), np.array([1, 1,1, 1,0,0]).astype(np.float64)],
+        "Pedestrian": [np.array([-1, -1, -1, -1,-1,0,0]).astype(np.float64), np.array([1, 1,1, 1,1,0,0]).astype(np.float64)],
+        "Target": [np.array([0, 0,0]).astype(np.float64), np.array([0.01, 0.01,1]).astype(np.float64)],
+        "Done": [np.array([0]).astype(np.float64), np.array([1]).astype(np.float64)],
+        "Reward": [np.array([-100]).astype(np.float64), np.array([100]).astype(np.float64)]
+    }
+
+    position_masks = {
+        "Action": np.array([0]),
+        "Taxi": np.array([1,1,0,0,0]),
+        "Passenger": np.array([1,1,0,0,0,0]),
+        "Vehicle": np.array([1,1,0,0,0,0]),
+        "Pedestrian": np.array([1,1,0,0,0,0,0]),
+        "Target": np.array([1,1,0]),
+        "Done": np.array([0]),
+        "Reward": np.array([0]),
+    }
+
+    instanced = {
+        "Action": 1,
+        "Taxi": 1,
+        "Passenger": num_targets,
+        "Vehicle": num_vehicles,
+        "Pedestrian": num_pedestrians,
+        "Target": num_targets,
+        "Done": 1,
+        "Reward": 1,
+    }
+    return ranges, dynamics, position_masks, instanced
+
+
 def generate_specs(rows, columns, num_vehicles, num_pedestrians, num_targets):
     ranges = { # TODO: we might need to normalize by RNG rather the rows, columns if we want to be bound agnostic
     	"Action": [np.array([0]).astype(np.float64), np.array([4]).astype(np.float64)],

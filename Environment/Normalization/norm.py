@@ -31,9 +31,10 @@ def generate_relative_norm(norm1, norm2):
 	return relative_norm, relative_lim
 
 class NormalizationModule():
-	def __init__(self, lim_dict, dynamics_dict, object_names, object_counts, inter_names):
+	def __init__(self, lim_dict, true_lim_dict, dynamics_dict, object_names, object_counts, inter_names):
 		# @param inter_names is the ordering of the names for the interaction state
 		self.lim_dict = lim_dict # the bounds of positions for where an object can be
+		self.true_lim_dict = true_lim_dict
 		self.dynamics_dict = dynamics_dict # the bounds for the amount an object can change in a single timestep
 		# convert min and max in lim_dict to mean and range/2 in norm dict
 		self.norm_dict = {n: ((self.lim_dict[n][1] + self.lim_dict[n][0])/2, abs(self.lim_dict[n][1] - self.lim_dict[n][0])/2 + 1e-6) for n in lim_dict.keys()}

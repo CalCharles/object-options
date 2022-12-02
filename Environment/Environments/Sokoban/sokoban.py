@@ -10,11 +10,12 @@ from Record.file_management import numpy_factored
 from gym import spaces
 
 class Sokoban(Environment):
-    def __init__(self, frameskip = 1, variant=""):
+    def __init__(self, frameskip = 1, variant="", fixed_limits=False):
         super(Sokoban, self).__init__()
         # breakout specialized parameters are stored in the variant
         self.variant = variant
         self.self_reset = True
+        self.fixed_limits = fixed_limits
 
         # environment properties
         self.num_actions = 4 # this must be defined, -1 for continuous. Only needed for primitive actions
@@ -43,12 +44,15 @@ class Sokoban(Environment):
         self.total_score = 0
 
         # factorized state properties
+        ranges_fixed, dynamics_fixed, position_masks, instanced = generate_specs_fixed(self.num_obstacles, self.num_blocks, self.num_targets)
         ranges, dynamics, position_masks, instanced = generate_specs(self.num_rows, self.num_columns, self.num_obstacles, self.num_blocks, self.num_targets)
         self.object_names = ["Action", "Pusher", "Obstacle", "Block", "Target", "Done", "Reward"]
         self.object_sizes = {"Action": 1, "Pusher": 2, "Obstacle": 2, "Block": 2, "Target": 3, "Reward": 1, "Done": 1}
         self.object_name_dict = dict() # initialized in reset
-        self.object_range = ranges
-        self.object_dynamics = dynamics
+        self.object_range = ranges if not self.fixed_limits else ranges_fixed # the minimum and maximum values for a given feature of an object
+        self.object_dynamics = dynamics if not self.fixed_limits else dynamics_fixed
+        self.object_range_true = ranges
+        self.object_dynamics_true = dynamics
         self.object_instanced = instanced
         self.position_masks = position_masks
         self.all_names = sum([([name + str(i) for i in range(instanced[name])] if instanced[name] > 1 else [name]) for name in self.object_names], start = [])

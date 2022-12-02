@@ -7,8 +7,8 @@ class ActiveMasking():
         
         # uses the limit values of the norm to form a convex set of possible values
         self.tar_name, self.par_name = interaction_model.names.target, interaction_model.names.primary_parent
-        self.limits = interaction_model.norm.lim_dict[self.tar_name]
-        self.range = interaction_model.norm.lim_dict[self.tar_name][1] - interaction_model.norm.lim_dict[self.tar_name][0]
+        self.limits = interaction_model.norm.true_lim_dict[self.tar_name]
+        self.range = interaction_model.norm.true_lim_dict[self.tar_name][1] - interaction_model.norm.true_lim_dict[self.tar_name][0]
 
         parent_limits = interaction_model.norm.lim_dict[self.par_name]
 

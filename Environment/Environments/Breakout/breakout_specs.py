@@ -18,6 +18,25 @@ dynamics = {
     "Reward": [np.array([-100]).astype(np.float64), np.array([100]).astype(np.float64)]
 }
 
+ranges_fixed = {
+    "Action": [np.array([0]).astype(np.float64), np.array([3]).astype(np.float64)],
+    "Paddle": [np.array([0, 0, -2, -1, -1]).astype(np.float64), np.array([84, 84, 2, 1, 1]).astype(np.float64)],
+    "Ball": [np.array([0, 0, -2, -1, -1]).astype(np.float64), np.array([84, 84, 2, 1, 1]).astype(np.float64)],
+    "Block": [np.array([0, 0, -2, -1, -1]).astype(np.float64), np.array([84, 84, 2, 1, 1]).astype(np.float64)],
+    "Done": [np.array([0]).astype(np.float64), np.array([1]).astype(np.float64)],
+    "Reward": [np.array([-100]).astype(np.float64), np.array([100]).astype(np.float64)]
+}
+
+dynamics_fixed = {
+    "Action": [np.array([-3]).astype(np.float64), np.array([3]).astype(np.float64)],
+    "Paddle": [np.array([-2, -2, -4, -2, -1]).astype(np.float64), np.array([2, 2, 4, 2, 1]).astype(np.float64)],
+    "Ball": [np.array([-2, -2, -4, -2, -1]).astype(np.float64), np.array([2, 2, 4, 2, 1]).astype(np.float64)],
+    "Block": [np.array([-2, -2, -4, -2, -1]).astype(np.float64), np.array([2, 2, 4, 2, 1]).astype(np.float64)],
+    "Done": [np.array([0]).astype(np.float64), np.array([1]).astype(np.float64)],
+    "Reward": [np.array([-100]).astype(np.float64), np.array([100]).astype(np.float64)]
+}
+
+
 
 position_masks = {
     "Action": np.array([0]),

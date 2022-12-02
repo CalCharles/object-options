@@ -229,7 +229,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         if self.display_frame == 3: # display angles
             param.squeeze()[:2] = self.data.parent_state.squeeze()[:2]
             # print("param", param)
-        frame = display_param(frame, param, rescale=8, waitkey=50, transpose=True)
+        frame = display_param(frame, param, rescale=8, waitkey=50, transpose=self.environment.transpose)
         if len(self.save_display) > 0: imio.imsave(os.path.join(self.save_display, "state" + str(self.counter) + ".png"), frame)
 
 
@@ -335,6 +335,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             obs_next = self.state_extractor.get_obs(self.data.full_state[0], next_full_state, param[0], mask[0]) # one environment reliance
             target = self.state_extractor.get_target(self.data.full_state[0])
             next_target = self.state_extractor.get_target(next_full_state)
+            print(target, param)
             # print (act, action_remap, action_chain[-1], self.data.full_state[0].factored_state.Gripper, self.data.full_state[0].factored_state.Block, self.env_reset, np.any(true_done) or (np.any(term) and self.terminate_reset))
             inter_state = self.state_extractor.get_inter(self.data.full_state[0])
             parent_state = self.state_extractor.get_parent(self.data.full_state[0])

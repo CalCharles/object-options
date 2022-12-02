@@ -16,6 +16,8 @@ if __name__ == "__main__":
                         help='environment to run on')
     parser.add_argument('--render', action='store_true', default=False,
                         help='run the pushing gripper domain')
+    parser.add_argument('--fixed-limits', action='store_true', default=False,
+                        help='fixes the norm boundaries between objects')
     parser.add_argument('--display-frame', action='store_true', default=False,
                         help='shows the frame if renderering')
     parser.add_argument('--frameskip', type=int, default=1,

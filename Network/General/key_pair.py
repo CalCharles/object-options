@@ -24,6 +24,7 @@ class KeyPairNetwork(Network):
         self.expand_dim = args.pair.expand_dim
         self.total_instances = args.pair.total_instances
         self.total_targets = args.pair.total_targets
+        self.return_mask = args.mask_attn.return_mask
 
         pair_args = copy.deepcopy(args)
         pair_args.pair.first_obj_dim = self.single_object_dim
@@ -62,9 +63,7 @@ class KeyPairNetwork(Network):
         batch_size = x.shape[0]
         value = list()
         for i in range(int(self.first_obj_dim // self.single_object_dim)):
-            print(m.shape)
             xi = self.slice_mask_input(x, i, m)
-            error
             # print(i, x.shape, xi.shape)
             # print(self.pair_net.aggregate_final, self.pair_net.num_outputs, self.pair_net.first_obj_dim)
             value.append(self.pair_net(xi))
@@ -80,4 +79,5 @@ class KeyPairNetwork(Network):
         else:
             x = x.transpose(2,1)
             x = x.reshape(batch_size, -1)
-        return m, x
+        if self.return_mask: return m, x
+        return x

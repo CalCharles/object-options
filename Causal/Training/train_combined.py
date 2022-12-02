@@ -106,8 +106,8 @@ def train_combined(full_model, rollouts, test_rollout, args,
                     active_log_probs * done_flags, trace[idxes], weight_rate, batch.true_done,
                     (active_params[0] * done_flags, active_params[1] * done_flags), target * done_flags, interaction_likelihood, full_model)
 
-        # training the passive model with the weighted states, which is dangerous and not advisable
-        if args.inter.active.intrain_passive: run_optimizer(passive_optimizer, full_model.passive_model, passive_nlikelihood)
+        # training the passive model with the weighted states, only handles single training because data is NOT resampled for passive training
+        if args.inter.active.intrain_passive > 0: run_optimizer(passive_optimizer, full_model.passive_model, passive_nlikelihood)
 
         # run the interaction model training if the interaction model is not already trained
         if args.inter.interaction.interaction_pretrain <= 0:

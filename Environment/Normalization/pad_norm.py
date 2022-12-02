@@ -25,9 +25,10 @@ def create_dict(value_dict, pad_object_length, append_length):
 	return completed_dict, lim_dict
 
 class PadNormalizationModule(): # TODO: FULL REWRITE TO HANDLE INSTANCED-COUNTED STATE
-	def __init__(self, lim_dict, dynamics_dict, object_counts, object_names, pad_object_length, append_length):
+	def __init__(self, lim_dict, true_lim_dict, dynamics_dict, object_counts, object_names, pad_object_length, append_length):
 		# @param inter_names is the ordering of the names for the interaction state
 		self.lim_dict = lim_dict # the bounds of positions for where an object can be
+		self.true_lim_dict = true_lim_dict
 		self.dynamics_dict = dynamics_dict # the bounds for the amount an object can change in a single timestep
 		# convert min and max in lim_dict to mean and range/2 in norm dict
 		self.pad_size = pad_object_length

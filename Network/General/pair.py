@@ -56,7 +56,7 @@ class PairNetwork(Network):
         self.model = layers
         self.train()
         self.reset_network_parameters()
-        print(self, self.first_obj_dim, self.object_dim)
+        # print(self, self.first_obj_dim, self.object_dim)
 
     def slice_input(self, x):
         fx, px = None, None

@@ -1,7 +1,7 @@
 import numpy as np
 
 class Environment():
-    def __init__(self):
+    def __init__(self, frameskip = 1, variant="", fixed_limits=False):
         ''' required attributes:
             num actions: int or None
             action_space: gym.Spaces
@@ -16,9 +16,10 @@ class Environment():
         '''
         # environment properties
         self.num_actions = None # this must be defined, -1 for continuous. Only needed for primitive actions
-        self.name = "ABSTRACT_BASE" # required for an environment 
+        self.name = "ABSTRACT_BASE" # required for an environment
+        self.fixed_limits = False # uses normalization limits which are fixed across all objects
         self.discrete_actions = True
-        self.frameskip = 1 # no frameskip
+        self.frameskip = frameskip # no frameskip
         self.transpose = True # transposes the visual domain
 
         # spaces
@@ -43,6 +44,8 @@ class Environment():
         self.object_sizes = dict() # must be initialized, a dictionary of name to length of the state
         self.object_range = dict() # the minimum and maximum values for a given feature of an object
         self.object_dynamics = dict() # the most that an object can change in a single time step
+        self.object_range_true = dict() # if using a fixed range, this stores the true range (for sampling)
+        self.object_dynamics_true = dict() # if using a fixed dynamics range, this stores the true range (for sampling)
         self.object_instanced = dict() # name of object to max number of objects of that type
         self.object_proximal = dict() # name of object to whether that object has valid proximity
         self.object_name_dict = dict() # the string names to object classes

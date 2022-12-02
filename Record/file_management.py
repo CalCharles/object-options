@@ -194,7 +194,7 @@ def display_param(frame, param, waitkey=10, rescale=-1, dot=True, transpose = Tr
         if transpose: loc[0], loc[1] = loc[1], loc[0]
         angle = None
         if len(param.squeeze()) >= 4:
-            # if transpose: param[...,2], param[...,3] =  param[...,3], param[...,2]
+            if not transpose: param[...,2], param[...,3] =  param[...,3], param[...,2]
             angle = param.squeeze()[2:4]
             angle[1] = - angle[1]
         color = (0,128,0)

@@ -18,11 +18,11 @@
     train_test_order: time
     train_edge: Paddle Ball
     load_rollouts: /nfs/data/calebc/object_data/breakout/testrun/ball3/
-    num_iters: 100000
+    num_iters: 200000
     batch_size: 512
   inter:
     predict_dynamics: True
-    interaction_testing: 0.9 -1 -10 -1
+    interaction_testing: 0.9 -10 -10 -1
     interaction_iters: 0
     # load_intermediate: /hdd/datasets/object_data/breakout/temp_ball/
     save_intermediate: /hdd/datasets/object_data/breakout/temp_ball/
@@ -33,19 +33,20 @@
       passive_log_interval: 100
     active:
       active_log_interval: 100
-      inline_iters: 10 1 10000
+      inline_iters: 15 1 10000
       interaction_weighting: 100 -1
-      interaction_schedule: 10000
+      interaction_schedule: 20000
       weighting: 0 200000 100 100000
-      error_binary_upweight: 5
+      # error_binary_upweight: 5
+      # intrain_passive: 1
   interaction_net:
-    hidden_sizes: 128 128 128 128 128 128 128 128
+    hidden_sizes: 512 512 512 512 512
     net_type: mlp
     optimizer:
-      lr: .0001
+      lr: .00005
       alt_lr: .0001
       eps: .00001
       alpha: 0.99
       betas: 0.9 0.999
-      weight_decay: 0.00
+      weight_decay: 0.001
 ...

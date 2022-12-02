@@ -32,7 +32,7 @@ def load_intermediate(args, full_model, environment):
     active_model = load_model(os.path.join(args.inter.load_intermediate, environment.name + "_" + full_model.name + "_active_model.pt")) if args.inter.passive.pretrain_active else full_model.active_model
 
     active_optimizer = initialize_optimizer(active_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
-    passive_optimizer = initialize_optimizer(passive_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
+    passive_optimizer = initialize_optimizer(passive_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr * 0.1)
     interaction_optimizer = initialize_optimizer(interaction_model, args.interaction_net.optimizer, args.interaction_net.optimizer.alt_lr)
     return passive_model, active_model, interaction_model, active_optimizer, passive_optimizer, interaction_optimizer
 
@@ -60,6 +60,9 @@ def train_full(full_model, rollouts, test_rollout, args, object_names, environme
     test_proximal_inst = get_error(full_model, test_rollout, error_type=error_types.PROXIMITY, reduced=False, normalized=True).astype(int) # the same as above if not multiinstanced
 
     train_passive(full_model, rollouts, args, active_optimizer, passive_optimizer, weights=non_proximal_weights if full_model.proximity_epsilon > 0 else None)
+
+    del passive_optimizer
+    passive_optimizer = initialize_optimizer(full_model.passive_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr * 0.05)
 
     # saving the intermediate model in the case of crashing during subsequent phases
     if len(args.inter.save_intermediate) > 0 and args.inter.passive.passive_iters > 0:

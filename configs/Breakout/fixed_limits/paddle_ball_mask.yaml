@@ -1,0 +1,23 @@
+---
+  record:
+    load_dir: /nfs/data/calebc/object_data/breakout/fixed_limits/testrun/
+    save_dir: /nfs/data/calebc/object_data/breakout/fixed_limits/testrun/
+  environment:
+    env: Breakout
+    variant: default
+    fixed_limits: True
+  torch:
+    gpu: 0
+    no_cuda: False
+  train:
+    train_edge: Paddle Ball
+    load_rollouts: /hdd/datasets/object_data/breakout/fixed_limits/paddle/
+    num_frames: 100000
+  mask:
+    min_sample_difference: 0.1
+    var_cutoff: 0.4 #0.05
+    num_samples: 30
+  inter:
+    save_intermediate: True
+    # load_intermediate: True
+...

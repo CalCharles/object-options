@@ -2,9 +2,9 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /nfs/data/calebc/object_data/full/randomdist/default/weighted/log/inter.log
+    log_filename: /nfs/data/calebc/object_data/full/randomdist/attn/default/weighted/log/inter.log
     # load_dir: /nfs/data/calebc/object_data/full/breakout/small/testrun/
-    save_dir: /nfs/data/calebc/object_data/full/randomdist/default/weighted
+    save_dir: /nfs/data/calebc/object_data/full/randomdist/attn/default/weighted
   environment:
     env: RandomDistribution
     load_environment: /hdd/datasets/object_data/RandomDistribution/random/
@@ -22,12 +22,12 @@
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    # load_intermediate: /hdd/datasets/object_data/full/randomdist/temp/
-    save_intermediate: /hdd/datasets/object_data/full/randomdist/temp/
+    # load_intermediate: /hdd/datasets/object_data/full/randomdist/attn/temp/
+    save_intermediate: /hdd/datasets/object_data/full/randomdist/attn/temp/
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 300
+      passive_iters: 100
       # passive_iters: 1000
       passive_log_interval: 100
       pretrain_active: True
@@ -40,7 +40,7 @@
       # weighting: 0 200000 100 100000
   full_inter:
     object_id: True
-    lasso_lambda: 1 0.25 100
+    lasso_lambda: 1 0.25 100 1000
     # use_active_as_passive: True
   interaction_net:
     hidden_sizes: 512 256

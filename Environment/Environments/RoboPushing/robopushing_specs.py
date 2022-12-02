@@ -10,6 +10,27 @@ variants = {
     "planar": (2, 300, 15, -0.1, 10, -3, -3, 3),
 }
 
+ranges_fixed = {
+    "Action": [np.array([-1,-1,-1]).astype(np.float64), np.array([1,1,1]).astype(np.float64)],
+    "Gripper": [np.array([-0.3, -0.31, .80]).astype(np.float64), np.array([0.2, 0.21, 1]).astype(np.float64)],
+    "Block": [np.array([-0.3, -0.31, .80]).astype(np.float64), np.array([0.2, 0.21, 1]).astype(np.float64)],
+    "Obstacle": [np.array([-0.3, -0.31, .80]).astype(np.float64), np.array([0.2, 0.21, 1]).astype(np.float64)],
+    "Target": [np.array([-0.3, -0.31, .80]).astype(np.float64), np.array([0.5, 0.21, 1]).astype(np.float64)],
+    "Done": [np.array([0]).astype(np.float64), np.array([1]).astype(np.float64)],
+    "Reward": [np.array([-100]).astype(np.float64), np.array([100]).astype(np.float64)]
+}
+
+dynamics_fixed = {
+    "Action": [np.array([-2,-2,-2]).astype(np.float64), np.array([2,2,2]).astype(np.float64)],
+    "Gripper": [np.array([-0.05, -0.05, -0.05]).astype(np.float64), np.array([0.05, 0.05, 0.05]).astype(np.float64)],
+    "Block": [np.array([-0.05, -0.05, -.05]).astype(np.float64), np.array([0.05, 0.05, 0.05]).astype(np.float64)],
+    "Obstacle": [np.array([-0.05, -0.05, -.05]).astype(np.float64), np.array([0.05, 0.05, 0.05]).astype(np.float64)],
+    "Target": [np.array([-0.05, -0.05, -.05]).astype(np.float64), np.array([0.05, 0.05, 0.05]).astype(np.float64)],
+    "Done": [np.array([0]).astype(np.float64), np.array([1]).astype(np.float64)],
+    "Reward": [np.array([-100]).astype(np.float64), np.array([100]).astype(np.float64)]
+}
+
+
 ranges = {
     "Action": [np.array([-1,-1,-1]).astype(np.float64), np.array([1,1,1]).astype(np.float64)],
     "Gripper": [np.array([-0.3, -0.2, .831]).astype(np.float64), np.array([0.1, 0.2, 1]).astype(np.float64)],

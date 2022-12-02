@@ -24,7 +24,7 @@ def run_train_passive(full_model, rollouts, object_rollout, test_rollout, test_o
     passive_optimizer = None if args.full_inter.use_active_as_passive else initialize_optimizer(full_model.passive_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
     interaction_optimizer = initialize_optimizer(full_model.interaction_model, args.interaction_net.optimizer, args.interaction_net.optimizer.alt_lr)
 
-    train_passive(full_model, args, rollouts, object_rollout, active_optimizer, passive_optimizer)
+    outputs, passive_weights = train_passive(full_model, args, rollouts, object_rollout, active_optimizer, passive_optimizer)
 
     # saving the intermediate model in the case of crashing during subsequent phases
     if len(args.inter.save_intermediate) > 0 and args.inter.passive.passive_iters > 0:
@@ -35,8 +35,9 @@ def run_train_passive(full_model, rollouts, object_rollout, test_rollout, test_o
     del active_optimizer
     del passive_optimizer
     del interaction_optimizer
+    return outputs, passive_weights
 
-def train_full(full_model, rollouts, object_rollout, test_rollout, test_object_rollout, args, environment):
+def train_full(full_model, rollouts, object_rollout, test_rollout, test_object_rollout, passive_weights, args, environment):
     '''
     Train the passive model, interaction model and active model
     @param control is the name of the object that we have control over
@@ -59,6 +60,6 @@ def train_full(full_model, rollouts, object_rollout, test_rollout, test_object_r
     # error
     interaction_weights = get_weights(args.inter.active.weighting[2], object_rollout.weight_binary)
     train_combined(full_model, rollouts, object_rollout, test_rollout, test_object_rollout, args,
-                        active_weights, interaction_weights, proximal, active_optimizer,
+                        passive_weights, active_weights, interaction_weights, proximal, active_optimizer,
                          passive_optimizer, interaction_optimizer)
     if len(args.record.save_dir) > 0: full_model.save(args.record.save_dir)

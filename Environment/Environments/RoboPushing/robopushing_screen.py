@@ -24,9 +24,10 @@ HARD_MODE = 2
 PLANAR_MODE = 3
 
 class RoboPushing(Environment):
-    def __init__(self, variant="default", horizon=30, renderable=False):
+    def __init__(self, variant="default", horizon=30, renderable=False, fixed_limits=False):
         super().__init__()
         self.self_reset = True
+        self.fixed_limits = fixed_limits
         self.variant=variant
         control_freq, var_horizon, num_obstacles, standard_reward, goal_reward, obstacle_reward, out_of_bounds_reward, mode  = variants[variant]
         horizon = var_horizon if horizon < 0 else horizon
@@ -83,8 +84,10 @@ class RoboPushing(Environment):
         # factorized state properties
         self.object_names = ["Action", "Gripper", "Block", 'Obstacle',"Target", 'Done', "Reward"] # must be initialized, a list of names that controls the ordering of things
         self.object_sizes = {"Action": limit, "Gripper": 3, "Block": 3, "Obstacle": 3,"Target": 3, "Done": 1, "Reward": 1} # must be initialized, a dictionary of name to length of the state
-        self.object_range = ranges # the minimum and maximum values for a given feature of an object
-        self.object_dynamics = dynamics
+        self.object_range = ranges if not self.fixed_limits else ranges_fixed # the minimum and maximum values for a given feature of an object
+        self.object_dynamics = dynamics if not self.fixed_limits else dynamics_fixed
+        self.object_range_true = ranges
+        self.object_dynamics_true = dynamics
 
         # obstacles and objects
         self.num_obstacles = num_obstacles

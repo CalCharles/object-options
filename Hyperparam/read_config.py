@@ -26,6 +26,10 @@ network_args = {
         "num_layers": 0,
         "attention_dropout": 0.0,
     },
+    "input_expand": {
+        "include_relative": False,
+        "pre_embed": [],
+    },
     "optimizer": {
         "lr": 1e-4,
         "alt_lr": 1e-5,
@@ -66,6 +70,7 @@ expected_args = {
         "seed": -1,
         "demonstrate": False,
         "load_environment": "",
+        "fixed_limits": False,
     },
     "torch": {
         "gpu": 1,
@@ -117,7 +122,7 @@ expected_args = {
             "interaction_schedule": -1,
             "inline_iters": [5, 1, 1000],
             "interaction_weighting": [0,0], # must be length 2
-            "intrain_passive": False,
+            "intrain_passive": 0,
             "error_binary_upweight": 1,
         },
     },

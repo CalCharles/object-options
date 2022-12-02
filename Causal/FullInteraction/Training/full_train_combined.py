@@ -61,8 +61,21 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, onem
     run_optimizer(interaction_optimizer, full_model.interaction_model, interaction_loss)
     return idxes, interaction_loss, interaction_likelihood, hard_interaction_mask, weight_count, done_flags
 
+def _train_passive(i, full_model, args, rollouts, object_rollouts, passive_optimizer,active_optimizer, passive_weights, normalize=False):
+    full_batch, idxes = rollouts.sample(args.train.batch_size, weights=passive_weights)
+    batch = object_rollouts[idxes]
+    batch.tarinter_state = np.concatenate([batch.obs, full_batch.obs], axis=-1)
+    batch.inter_state = full_batch.obs
+    target, passive_params, dist, log_probs = full_model.passive_likelihoods(batch)
+    done_flags = pytorch_model.wrap(1-full_batch.done, cuda = full_model.iscuda).squeeze().unsqueeze(-1)
+    passive_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - log_probs, done_flags=done_flags, is_full=True)
+    run_optimizer(active_optimizer, full_model.active_model, passive_nlikelihood) if args.full_inter.use_active_as_passive else run_optimizer(passive_optimizer, full_model.passive_model, passive_nlikelihood)
+    return idxes, target, passive_params, log_probs, passive_nlikelihood, done_flags
+
+
+
 def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_object_rollout,
-    args, active_weights, interaction_weights, proximal,
+    args, passive_weights, active_weights, interaction_weights, proximal,
     active_optimizer, passive_optimizer, interaction_optimizer,
     normalize=False):    
 
@@ -109,7 +122,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
         active_hard_params, active_soft_params, active_full, passive_params, \
             interaction_likelihood, soft_interaction_mask, hard_interaction_mask,\
             target, active_hard_dist, active_soft_dist, active_full_dist, passive_dist, \
-            active_hard_log_probs, active_soft_log_probs, active_full_log_probs, passive_log_probs = full_model.likelihoods(batch, normalize=normalize, mixed=args.full_inter.mixed_interaction)
+            active_hard_log_probs, active_soft_log_probs, active_full_log_probs, passive_log_probs_act = full_model.likelihoods(batch, normalize=normalize, mixed=args.full_inter.mixed_interaction)
 
         # assign done flags
         done_flags = pytorch_model.wrap(1-full_batch.done, cuda = full_model.iscuda).squeeze().unsqueeze(-1)
@@ -117,7 +130,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
         # combine likelihoods to get a single likelihood for losses TODO: a per-element binary?
         active_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - active_soft_log_probs, done_flags=done_flags, is_full=True) if args.full_inter.mixed_interaction == "weighting" else compute_likelihood(full_model, args.train.batch_size, - active_hard_log_probs, done_flags=done_flags, is_full=True)
         active_full_nlikelihood = compute_likelihood(full_model, args.train.batch_size, -active_full_log_probs, done_flags=done_flags, is_full=True)
-        passive_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - passive_log_probs, done_flags=done_flags, is_full=True)
+        passive_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - passive_log_probs_act, done_flags=done_flags, is_full=True)
 
         loss = (active_nlikelihood * (1-interaction_schedule(i)) + active_full_nlikelihood * interaction_schedule(i))
         run_optimizer(active_optimizer, full_model.active_model, loss)
@@ -132,9 +145,15 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
                     (active_hard_params[0] * done_flags, active_hard_params[1] * done_flags), target * done_flags, np.expand_dims(np.sum(pytorch_model.unwrap(interaction_likelihood) - 1, axis=-1), axis=-1), full_model)
 
         # training the passive model with the weighted states, which is dangerous and not advisable
-        if args.inter.active.intrain_passive: 
+        if args.inter.active.intrain_passive > 0:
             print("training passive")
-            run_optimizer(active_optimizer, full_model.active_model, passive_nlikelihood) if args.full_inter.use_active_as_passive else run_optimizer(passive_optimizers, full_model.passive_model, passive_nlikelihood)
+            for ii in range(args.inter.active.intrain_passive):
+                idxes, passive_target, passive_params, passive_log_probs, passive_nlikelihood, passive_done_flags = _train_passive(i, full_model, args, rollouts, object_rollouts, passive_optimizer, active_optimizer, passive_weights, normalize=normalize)
+                passive_weight_rate = np.sum(passive_weights[idxes]) / len(idxes)
+                log_interval = logger.log(i, passive_nlikelihood, passive_nlikelihood, passive_nlikelihood, 
+                    passive_log_probs * passive_done_flags, None, passive_weight_rate, 1-passive_done_flags,
+                    (passive_params[0] * done_flags, passive_params[1] * done_flags), passive_target * passive_done_flags, None, full_model)
+
 
         # run the interaction model training if the interaction model is not already trained
         # print("interaction pretrain", args.inter.interaction.interaction_pretrain)
@@ -151,10 +170,10 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
                 # reweight only when logging TODO: probably should not link  these two
                 inter_logger.log(i, interaction_loss, interaction_calc_likelihood, interaction_binaries, pytorch_model.unwrap(inter_done_flags), weight_count,
                     trace=None if single_trace is None else single_trace, no_print=ii != 0)
+        
         print(i, lasso_lambda, lasso_oneloss_lambda, uw(loss.mean()), uw(interaction_loss.mean()), full_model.name,interaction_schedule(i),args.full_inter.mixed_interaction, 
-            uw(active_nlikelihood.mean()), uw(active_full_nlikelihood.mean()), uw(passive_nlikelihood.mean()), 
-            uw(soft_interaction_mask[0]), uw(soft_interaction_mask[2]), uw(soft_interaction_mask[3]), uw(soft_interaction_mask[4]), 
-            batch.trace[0], batch.trace[1], batch.trace[2], batch.trace[3], np.sum(np.abs(batch.trace - uw(hard_interaction_mask))) / args.train.batch_size / batch.trace.shape[-1])
+            uw(active_nlikelihood.mean()), uw(active_full_nlikelihood.mean()), uw(passive_nlikelihood.mean()), np.sum(np.abs(batch.trace - uw(hard_interaction_mask))) / args.train.batch_size / batch.trace.shape[-1])
+        print("combined_vals",np.concatenate([uw(passive_log_probs_act.sum(dim=-1).unsqueeze(-1)), uw(active_hard_log_probs.sum(dim=-1).unsqueeze(-1)), uw(active_full_log_probs.sum(dim=-1).unsqueeze(-1)), uw(soft_interaction_mask), batch.trace], axis=-1)[:4])
         
         if i % args.inter.active.active_log_interval == 0:
             print(i, "speed", (args.inter.active.active_log_interval * i) / (time.time() - start))

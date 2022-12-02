@@ -17,6 +17,8 @@ def get_command_args():
                         help='environment to run on')
     parser.add_argument('--render', action='store_true', default=False,
                         help='run the pushing gripper domain')
+    parser.add_argument('--fixed-limits', action='store_true', default=False,
+                        help='fixes the limits (for normalization) between the objects')
     parser.add_argument('--frameskip', type=int, default=1,
                         help='amount of frameskip, 1=no frameskip')
     parser.add_argument('--variant', default="default",
@@ -111,8 +113,8 @@ def get_command_args():
                         help='3-tuple of max number, starting number, doubling n for interaction training iterations per active model step')
     parser.add_argument('--interaction-weighting', type=float, nargs='+', default=list(),
                         help='2-tuple of starting interaction weighting (for passive error) lambda, schedule to double')
-    parser.add_argument('--intrain-passive', action ='store_true', default=False,
-                        help='trains the passive model during the active model training')
+    parser.add_argument('--intrain-passive', type=int, default=0,
+                        help='number of inline iters for training the passive model during the active model training')
     # network arguments 
     parser.add_argument('--net-type', default = "mean",
                         help='determines the architecture of the network')
@@ -150,6 +152,11 @@ def get_command_args():
                         help='uses a hot-style of masking selection')
     parser.add_argument('--attention-dropout', type=float, default=0.0,
                         help='dropout proportion for only the key-value networks')
+    # input expand arguments
+    parser.add_argument('--pre-embed', type=int, nargs='+', default=list(),
+                        help='the sizes of intermediate layers for the pre-embedding networks (default: empty')
+    parser.add_argument('--include-relative', action ='store_true', default=False,
+                        help='includes the relative components for the input expansion')
     # optimizer arguments
     parser.add_argument('--lr', type=float, default=1e-4,
                         help='learning rate, not used if actor and critic learning rate used for algo (default: 1e-6)')
@@ -246,7 +253,7 @@ def get_command_args():
     parser.add_argument("--inpolicy-times", type=int, default=-1,
                         help='number of times  to do inpolicy training (saves time, -1 not used)')
     parser.add_argument("--policy-intrain-passive", action='store_true', default=False,
-                        help='trains the passive model along with the interaction one')
+                        help='trains the passive model along with the interaction one in policy learning')
     parser.add_argument("--intrain-weighting", type=float, nargs='+', default=[-13, 1, 1, -1],
                         help='weighting values for binary cutoffs for passive error weighting')
     parser.add_argument("--save-inline", type=float, default=False,

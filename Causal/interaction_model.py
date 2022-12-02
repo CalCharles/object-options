@@ -39,6 +39,14 @@ def load_interaction(pth, name, device=-1):
 
 def get_params(model, full_args, is_pair, multi_instanced, total_inter_size, total_target_size):
     full_args.interaction_net.object_names = model.names
+    # initialize pair parameters even if unused
+    pair = full_args.interaction_net.pair
+    pair.object_dim = model.obj_dim
+    pair.first_obj_dim = model.first_obj_dim
+    pair.parent_dim = model.parent_dim
+    pair.target_dim = model.target_dim
+    pair.single_obj_dim = model.single_obj_dim
+
     active_model_args = copy.deepcopy(full_args.interaction_net)
     active_model_args.num_inputs = total_inter_size
     active_model_args.num_outputs = total_target_size
@@ -50,12 +58,12 @@ def get_params(model, full_args, is_pair, multi_instanced, total_inter_size, tot
     interaction_model_args = copy.deepcopy(full_args.interaction_net)
     interaction_model_args.num_inputs = total_inter_size
     interaction_model_args.num_outputs = 1
+
+    if interaction_model_args.net_type in ["inexp"]:
+        passive_model_args.include_relative = False
     
     if is_pair:
         pair = copy.deepcopy(full_args.interaction_net.pair)
-        pair.object_dim = model.obj_dim
-        pair.first_obj_dim = model.first_obj_dim
-        pair.single_obj_dim = model.single_obj_dim
         pair.post_dim = -1
         # parameters specific to key-pair/transformer networks 
         pair.total_obj_dim = np.sum(model.extractor.complete_object_sizes)
@@ -100,7 +108,7 @@ class NeuralInteractionForwardModel(nn.Module):
         self.predict_dynamics = args.inter.predict_dynamics
         
         # construct the active model
-        self.padi_first_obj_dim, self.first_obj_dim, self.target_dim, self.obj_dim, self.padi_obj_dim = self.extractor._get_dims(environment)
+        self.padi_first_obj_dim, self.first_obj_dim, self.target_dim, self.parent_dim, self.obj_dim, self.padi_obj_dim = self.extractor._get_dims(environment)
         self.single_obj_dim = self.obj_dim
         self.multi_instanced = environment.object_instanced[self.names.target] > 1 # TODO: might need multi-instanced for parents also, but defined differently
         self.multi_parents = environment.object_instanced[self.names.primary_parent] > 1
@@ -140,7 +148,7 @@ class NeuralInteractionForwardModel(nn.Module):
         self.extractor = CausalExtractor(self.names, environment)
         self.target_select, self.full_parent_select, self.additional_select, self.additional_selectors, \
             self.padi_selector, self.parent_select, self.inter_select = self.extractor.get_selectors()
-        self.norm = NormalizationModule(environment.object_range, environment.object_dynamics, self.names, environment.object_instanced, self.extractor.active)
+        self.norm = NormalizationModule(environment.object_range, environment.object_range_true, environment.object_dynamics, self.names, environment.object_instanced, self.extractor.active)
         if hasattr(self, "mask") and self.mask is not None: self.mask.regenerate_norm(self.norm)
         return self.norm, self.extractor
 

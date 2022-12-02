@@ -124,12 +124,17 @@ def test_full(full_model, test_buffer, args, object_names, environment):
 	test_likepred = full_model.test(test_likev)
 
 	# false positives and negatives compared to binaries
-	BN_test = np.mean((test_bin > test_likepred).astype(np.float64), axis=0) / np.sum(test_bin.astype(np.float64))
-	BP_test = np.mean((test_bin < test_likepred).astype(np.float64), axis=0) / np.sum((test_bin == 0).astype(np.float64))
+	BN_test = np.sum((test_bin > test_likepred).astype(np.float64), axis=0) / np.sum(test_bin.astype(np.float64))
+	BP_test = np.sum((test_bin < test_likepred).astype(np.float64), axis=0) / np.sum((test_bin).astype(np.float64))
 
 	# false positives and negatives compared to trace
-	FN_test = np.mean((test_trace > test_likepred).astype(np.float64), axis=0) / np.sum(test_trace.astype(np.float64))
-	FP_test = np.mean((test_trace < test_likepred).astype(np.float64), axis=0) / np.sum((test_trace == 0).astype(np.float64))
+	FN_test = np.sum((test_trace > test_likepred).astype(np.float64), axis=0) / np.sum(test_trace.astype(np.float64))
+	FP_test = np.sum((test_trace < test_likepred).astype(np.float64), axis=0) / np.sum((test_trace).astype(np.float64))
+
+	# false positives and negatives compared to trace
+	FBN_test = np.sum((test_trace > test_bin).astype(np.float64), axis=0) / np.sum(test_trace.astype(np.float64))
+	FBP_test = np.sum((test_trace < test_bin).astype(np.float64), axis=0) / np.sum((test_trace).astype(np.float64))
+
 
 	# proximity
 	print("getting error", test_buffer.parent_state[:10], test_buffer.target[:10])
@@ -150,8 +155,13 @@ def test_full(full_model, test_buffer, args, object_names, environment):
 	log_string += f'\nlike_mean: {test_like_mean}'
 	log_string += f'\nBP: {BP_test.squeeze()}'
 	log_string += f'\nBN: {BN_test.squeeze()}'
+	log_string += f'\nFBP: {FBP_test.squeeze()}'
+	log_string += f'\nFBN: {FBN_test.squeeze()}'
 	log_string += f'\nFP: {FP_test.squeeze()}'
 	log_string += f'\nFN: {FN_test.squeeze()}'
+	log_string += f'\nTotal trace: {np.sum(test_trace.astype(np.float64))}'
+	log_string += f'\nTotal pred false: {np.sum((test_trace != test_likepred).astype(np.float64))}'
+	log_string += f'\nTotal bin false: {np.sum((test_trace != test_bin).astype(np.float64))}'
 
 	# inter_points = (test_prox == 1).squeeze() + (test_trace.squeeze() == 1) + (test_likepred == 1).squeeze() + (test_bin == 1).squeeze() # high passive error could be added
 	# inter_points = (test_trace.squeeze() == 1) + (test_likepred == 1).squeeze() + (test_bin == 1).squeeze() # high passive error could be added
@@ -176,13 +186,14 @@ def test_full(full_model, test_buffer, args, object_names, environment):
 							np.expand_dims(np.sum(test_like_passive, axis=-1), -1), 
 							np.expand_dims(np.sum(test_like_active, axis=-1), -1),
 							full_model.norm.reverse(inter_state, form = "inter"),
-							full_model.norm.reverse(next_target)], axis=-1)[inter_points][:50]
+							full_model.norm.reverse(next_target)], axis=-1)[inter_points]
 	log_string += '\n\nSampled computation: '
 	# log_string += f'\ntarget: {target[:128]}'
 	# log_string += f'\nnext: {next_target[:128]}'
 	# log_string += f'\ndiff: {target_diff[:128]}'
 	log_string += f'\npassive_pred_diff: {passive_samp}'
 	log_string += f'\nactive_pred_diff: {active_samp}'
-	log_string += f'\nlike, pred, bin, trace, prox, like, plike, alike: {bins}'
+	for i in range(min(4, int(len(bins) // 50))):
+		log_string += f'\nlike, pred, bin, trace, prox, like, plike, alike: {bins[i*50:(i+1) * 50]}'
 	logging.info(log_string)
 	print(log_string, np.sum(inter_points.astype(int)))

@@ -77,7 +77,7 @@ class CausalExtractor():
 
 		# padi stands for passive_additonal
 		self.padi_first_obj_dim, self.first_obj_dim, \
-			self.target_dim, self.object_dims, self.padi_object_dims = self._get_dims(environment)
+			self.target_dim, self.parent_dim, self.object_dims, self.padi_object_dims = self._get_dims(environment)
 		self.total_object_sizes = [int(environment.object_instanced[n] * environment.object_sizes[n]) for n in environment.object_names]
 		self.complete_object_sizes = [int(environment.object_instanced[n] * environment.object_sizes[n]) for n in environment.object_names]
 		self.parent_size = environment.object_sizes[self.names.parents[0]]
@@ -87,12 +87,13 @@ class CausalExtractor():
 		first_obj_dim = self.single_selector.output_size()
 		padi_first_obj_dim = self.padi_single
 		target_dim = environment.object_sizes[self.names.target]
+		parent_dim = environment.object_sizes[self.names.primary_parent]
 		object_dims = [environment.object_sizes[n] for n in self.names.parents if n in self.multi_instanced] 
 		padi_object_dims = [environment.object_sizes[n] for n in self.names.parents[1:] if n in self.multi_instanced]
 
 		if len(object_dims) > 0: assert np.all([od == object_dims[0] for od in object_dims]) # all multi-instanced object sizes should be the same for pointnets to work
 		# returns padi first, first, target, object_dim, padi_object_dim
-		return padi_first_obj_dim, first_obj_dim, target_dim, object_dims[0] if len(object_dims) > 0 else 0, padi_object_dims[0] if len(padi_object_dims) > 0 else 0
+		return padi_first_obj_dim, first_obj_dim, target_dim, parent_dim, object_dims[0] if len(object_dims) > 0 else 0, padi_object_dims[0] if len(padi_object_dims) > 0 else 0
 
 	def get_selectors(self):
 		return self.target_selector, self.full_parent_selector, self.additional_selector, self.additional_selectors, self.padi_selector, self.parent_selector, self.inter_selector

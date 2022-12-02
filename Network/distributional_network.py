@@ -104,6 +104,11 @@ class DiagGaussianForwardPadMaskNetwork(Network):
             comb.append(m[...,i].unsqueeze(-1) * pytorch_model.wrap(torch.ones(self.object_dim), cuda=self.iscuda))
         return torch.cat(comb, dim=-1)
 
+    def reset_passive_mask(self, passive_mask):
+        if hasattr(self.mean, "reset_passive_mask"):
+            self.mean.reset_passive_mask(passive_mask)
+            self.std.reset_passive_mask(passive_mask)
+
     def forward(self, x, m):
         x = pytorch_model.wrap(x, cuda=self.iscuda)
         if not (self.hot or self.maskattn): m = self.expand_mask(m)

@@ -1,0 +1,30 @@
+---
+  record:
+    # record_rollouts: /nfs/data/calebc/object_data/breakout/testrun/paddle/
+    # record_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle
+    record_recycle: -1
+    log_filename: logs/temp/ball_test.log
+    load_dir: /hdd/datasets/object_data/breakout/testrun2/
+  environment:
+    env: Breakout
+    variant: drop_stopping
+  torch:
+    gpu: 0
+    no_cuda: False
+  train:
+    train_edge: Paddle Ball
+    num_iters: 600
+  collect:
+    buffer_len : 100
+    test_episode: True
+    max_steps: 1000
+    display_frame: 1
+  policy:
+    logging:
+      log_interval: 10
+      test_log_maxlen: 50
+      test_trials: 100
+      max_terminate_step: 1 300
+  sample:
+    param_recycle: .75
+...

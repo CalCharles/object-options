@@ -18,10 +18,11 @@ def rand_sample(variance, zero=False):
     return np.array([np.random.rand() * variance[i] for i in range(2)])
 
 class Asteroids(Environment):
-    def __init__(self, frameskip = 1, variant=""):
+    def __init__(self, frameskip = 1, variant="", fixed_limits=False):
         super(Asteroids, self).__init__()
         # Asteroids specialized parameters are stored in the variant
         self.variant = variant
+        self.fixed_limits = fixed_limits
         self.self_reset = True
         self.transpose = False
 
@@ -61,10 +62,14 @@ class Asteroids(Environment):
         self.object_name_dict = dict() # initialized in reset
 
         # spec ranges
+        self.fixed_limits = fixed_limits
+        ranges, dynamics, position_masks, instanced = generate_specs_fixed(self.asteroid_size, self.asteroid_size_variance, self.num_asteroids)
         ranges, dynamics, position_masks, instanced = generate_specs(self.asteroid_speed, self.ship_speed[0], self.laser_speed, self.asteroid_size, self.asteroid_size_variance, self.num_asteroids)
         self.position_masks = position_masks
-        self.object_range = ranges
-        self.object_dynamics = dynamics
+        self.object_range_true = ranges
+        self.object_dynamics_true = dynamics
+        self.object_range = ranges if not self.fixed_limits else ranges_fixed # the minimum and maximum values for a given feature of an object
+        self.object_dynamics = dynamics if not self.fixed_limits else dynamics_fixed
         self.object_instanced = instanced
         # reset counters
         self.hit_counter = 0

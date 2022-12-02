@@ -13,19 +13,23 @@ class Network(nn.Module):
         self.use_layer_norm = args.use_layer_norm
         self.hs = [int(h) for h in args.hidden_sizes]
         self.init_form = args.init_form
-        self.layers = []
+        self.model = []
         self.acti = get_acti(args.activation)
         self.activation_final = get_acti(args.activation_final)
         self.iscuda = False
 
-    def cuda(self):
+    def cuda(self, gpu=None):
         super().cuda()
         self.iscuda = True
+        for m in self.model:
+            if issubclass(type(m), Network): m.cuda(gpu=gpu)
         return self
 
     def cpu(self):
         super().cpu()
         self.iscuda = False
+        for m in self.model:
+            if issubclass(type(m), Network): m.cpu()
         return self
 
     def reset_network_parameters(self, n_layers=-1):
@@ -80,4 +84,5 @@ from Network.General.mlp import MLPNetwork
 from Network.General.pair import PairNetwork
 from Network.General.key_pair import KeyPairNetwork
 from Network.General.mask_attention import MaskedAttentionNetwork
-network_type = {"mlp": MLPNetwork, "pair": PairNetwork, "keypair": KeyPairNetwork, "maskattn": MaskedAttentionNetwork}
+from Network.General.input_expand import InputExpandNetwork
+network_type = {"mlp": MLPNetwork, "pair": PairNetwork, "keypair": KeyPairNetwork, "maskattn": MaskedAttentionNetwork, "inexp": InputExpandNetwork}

@@ -9,16 +9,17 @@ import torch.optim as optim
 from collections import Counter
 from Causal.Training.loggers.forward_logger import forward_logger
 from Causal.Utils.instance_handling import compute_likelihood
+from Causal.Utils.weighting import proximity_binary, get_weights
 from Network.network_utils import pytorch_model, run_optimizer
 
 def train_passive(full_model, args, rollouts, object_rollout, active_optimizer, passive_optimizers):
     logger = forward_logger("passive", args.inter.passive.passive_log_interval, full_model, filename=args.record.log_filename)
     active_logger = forward_logger("active", args.inter.passive.passive_log_interval, full_model)
     if args.full_inter.proximal_weights:
-        binaries = proximity_binary(full_model, object_rollout, full=True) 
+        binaries, proximal = proximity_binary(full_model, object_rollout, full=True)
     else:
         binaries = np.ones(len(object_rollout))
-    weights = binaries / np.sum(binaries)
+    weights = get_weights(-1, binaries)
 
     outputs = list()
     for i in range(args.inter.passive.passive_iters):
@@ -74,4 +75,4 @@ def train_passive(full_model, args, rollouts, object_rollout, active_optimizer, 
                                 active_prediction_params, target, None, full_model)
         if i % args.inter.passive.passive_log_interval == 0:
             print(full_model.name,batch.tarinter_state[0]  ,  full_model.norm.reverse(full_batch.obs[0], form="inter", name=full_model.name), target[0], full_model.norm.reverse(target[0], name=full_model.name, form="dyn" if full_model.predict_dynamics else "target"))
-    return outputs
+    return outputs, weights
