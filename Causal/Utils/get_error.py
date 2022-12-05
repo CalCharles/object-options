@@ -103,6 +103,7 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
 
     # likelihood type error computation
     if error_type == error_types.LIKELIHOOD:
+        print(is_full)
         if is_full: output = pytorch_model.unwrap(full_model.active_open_likelihood(use_part)[-1])
         else: output = pytorch_model.unwrap(full_model.weighted_likelihoods(use_part)[-1])
     elif error_type == error_types.PASSIVE_LIKELIHOOD:

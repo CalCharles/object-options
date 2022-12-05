@@ -393,36 +393,49 @@ class FullNeuralInteractionForwardModel(nn.Module):
     def reduced_likelihoods(self, batch, normalize=False, masking=""):
         if normalize: batch = self.normalize_batch(batch)
         inter = self.interaction_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda))
-        if masking == "flat": inter_mask = self.apply_mask(inter, soft=False, flat = True)
-        elif masking == "full": inter_mask = pytorch_model.wrap(torch.ones(len(self.all_names) * self.target_num), cuda = self.iscuda)
-        elif masking == "soft": inter_mask = self.apply_mask(inter, soft=True, flat = False)
-        elif masking == "hard": inter_mask = self.apply_mask(inter, soft=False, flat = False)
-        else: raise ValueError("Invalid Masking: " + masking) 
-        active_params, m = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), inter_mask)
+        if self.cluster_mode:
+            active_params, m = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), inter, masking=masking) # always uses soft for the gumbel softmax
+            inter_mask = m
+        else:
+            if masking == "flat": inter_mask = self.apply_mask(inter, soft=False, flat = True)
+            elif masking == "full": inter_mask = pytorch_model.wrap(torch.ones(len(self.all_names) * self.target_num), cuda = self.iscuda) 
+            elif masking == "soft": inter_mask = self.apply_mask(inter, soft=True, flat = False)
+            elif masking == "hard": inter_mask = self.apply_mask(inter, soft=False, flat = False)
+            else: raise ValueError("Invalid Masking: " + masking) 
+            active_params, m = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), inter_mask)
+        inter = m if self.cluster_mode else inter
         passive_params = self.apply_passive((pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), pytorch_model.wrap(batch.obs, cuda=self.iscuda)))
         target, active_dist, active_log_probs = self._target_dists(batch, active_params)
         target, passive_dist, passive_log_probs = self._target_dists(batch, passive_params)
-        return active_params, passive_params, inter, target, active_dist, passive_dist, active_log_probs, passive_log_probs
+        return active_params, passive_params, inter, inter_mask, target, active_dist, passive_dist, active_log_probs, passive_log_probs
 
     # likelihood functions (below) get the gaussian distributions output by the active and passive models for all mask forms
     def likelihoods(self, batch, normalize=False, mixed=""):
         if normalize: batch = self.normalize_batch(batch)
         inter = self.interaction_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda))
-        soft_inter_mask = self.apply_mask(inter, soft=True)
-        hard_inter_mask = self.apply_mask(inter, soft=False)
-        full_mask = pytorch_model.wrap(torch.ones(len(self.all_names) * self.target_num), cuda = self.iscuda)
-        active_hard_params, m = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), hard_inter_mask)
-        mixed_mask = self.combine_mask(soft_inter_mask, hard_inter_mask, mixed=mixed)
-        active_soft_params, m = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), mixed_mask)
-        active_full_params, m = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), full_mask)
-        passive_params = self.apply_passive((pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), pytorch_model.wrap(batch.obs, cuda=self.iscuda)))
-        # print(np.concatenate([batch.inter_state, batch.target_diff, pytorch_model.unwrap(active_params[0])], axis=-1))
-        # print(np.concatenate([self.norm.reverse(batch.inter_state, form="inter"), self.norm.reverse(batch.target_diff, form="dyn"), self.norm.reverse(pytorch_model.unwrap(active_params[0]), form = 'dyn')], axis=-1))
-        target, active_hard_dist, active_hard_log_probs = self._target_dists(batch, active_hard_params)
-        target, active_soft_dist, active_soft_log_probs = self._target_dists(batch, active_soft_params)
-        target, active_full_dist, active_full_log_probs = self._target_dists(batch, active_full_params)
-        # print("full params", active_full_params[0], active_full_params[1], target,batch.tarinter_state, active_full_log_probs[0])
-        target, passive_dist, passive_log_probs = self._target_dists(batch, passive_params)
+        if self.cluster_mode:
+            inter = (torch.stack(self.active_model.get_masks(), dim=0).unsqueeze(0) * inter.unsuqeeze(-1)).mean(-1)
+            # these masks are not, in a sense, the actual masks used
+            soft_inter_mask = self.apply_mask(inter, soft=True)
+            hard_inter_mask = self.apply_mask(inter, soft=False)
+            full_mask = pytorch_model.wrap(torch.ones(len(self.all_names) * self.target_num), cuda = self.iscuda)
+
+        else:
+            soft_inter_mask = self.apply_mask(inter, soft=True)
+            hard_inter_mask = self.apply_mask(inter, soft=False)
+            full_mask = pytorch_model.wrap(torch.ones(len(self.all_names) * self.target_num), cuda = self.iscuda)
+            active_hard_params, m = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), hard_inter_mask)
+            mixed_mask = self.combine_mask(soft_inter_mask, hard_inter_mask, mixed=mixed)
+            active_soft_params, m = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), mixed_mask)
+            active_full_params, m = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), full_mask)
+            passive_params = self.apply_passive((pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), pytorch_model.wrap(batch.obs, cuda=self.iscuda)))
+            # print(np.concatenate([batch.inter_state, batch.target_diff, pytorch_model.unwrap(active_params[0])], axis=-1))
+            # print(np.concatenate([self.norm.reverse(batch.inter_state, form="inter"), self.norm.reverse(batch.target_diff, form="dyn"), self.norm.reverse(pytorch_model.unwrap(active_params[0]), form = 'dyn')], axis=-1))
+            target, active_hard_dist, active_hard_log_probs = self._target_dists(batch, active_hard_params)
+            target, active_soft_dist, active_soft_log_probs = self._target_dists(batch, active_soft_params)
+            target, active_full_dist, active_full_log_probs = self._target_dists(batch, active_full_params)
+            # print("full params", active_full_params[0], active_full_params[1], target,batch.tarinter_state, active_full_log_probs[0])
+            target, passive_dist, passive_log_probs = self._target_dists(batch, passive_params)
         return active_hard_params, active_soft_params, active_full_params, passive_params,\
                  inter, soft_inter_mask, hard_inter_mask, \
                  target, \

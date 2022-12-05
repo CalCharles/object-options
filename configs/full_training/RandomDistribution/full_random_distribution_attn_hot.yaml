@@ -1,0 +1,66 @@
+---
+  record:
+    # record_rollouts: ""
+    record_recycle: -1
+    log_filename: /nfs/data/calebc/object_data/full/randomdist/attn_hot/default/weighted/log/inter.log
+    # load_dir: /nfs/data/calebc/object_data/full/breakout/small/testrun/
+    save_dir: /nfs/data/calebc/object_data/full/randomdist/attn_hot/default/weighted
+  environment:
+    env: RandomDistribution
+    load_environment: /hdd/datasets/object_data/RandomDistribution/random/
+  torch:
+    gpu: 0
+    no_cuda: False
+  train:
+    train: True
+    num_frames: 100
+    train_test_order: time
+    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random/
+    num_iters: 1000
+    batch_size: 32
+  inter:
+    predict_dynamics: True
+    interaction_testing: 0.9 -1 -10 -1
+    interaction_iters: 0
+    # load_intermediate: /hdd/datasets/object_data/full/randomdist/attn_hot/temp/
+    save_intermediate: /hdd/datasets/object_data/full/randomdist/attn_hot/temp/
+    compare_trace: True
+    proximity_epsilon: 7
+    passive:
+      passive_iters: 100
+      # passive_iters: 1000
+      passive_log_interval: 100
+      pretrain_active: True
+    active:
+      active_log_interval: 100
+      # inline_iters: 10 0 5000
+      inline_iters: 1 0 0
+      interaction_weighting: 100 -1
+      interaction_schedule: 10000
+      # weighting: 0 200000 100 100000
+  full_inter:
+    object_id: True
+    lasso_lambda: 1 0.25 100 1000
+    # use_active_as_passive: True
+  interaction_net:
+    hidden_sizes: 512 256
+    net_type: maskattn
+    init_form: xnorm
+    pair:
+      final_layers: 256 256
+    mask_attn:
+      model_dim: 256
+      embed_dim: 512
+      num_heads: 8
+      num_layers: 3
+      cluster: True
+      num_clusters: 3
+      attention_dropout: 0.0
+    optimizer:
+      lr: .0001
+      alt_lr: .0001
+      eps: .00001
+      alpha: 0.99
+      betas: 0.9 0.999
+      weight_decay: 0.01
+...

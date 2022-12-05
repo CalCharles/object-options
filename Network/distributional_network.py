@@ -88,13 +88,21 @@ class DiagGaussianForwardPadMaskNetwork(Network):
         self.std = network_type[args.net_type](std_args)
         self.model = [self.mean, self.std]
         self.base_variance = .01 # hardcoded based on normalized values, base variance 1% of the average variance
-        self.hot = args.mask_attn.cluster
+        self.cluster_mode = args.mask_attn.cluster
+        self.num_clusters = args.mask_attn.num_clusters
         self.maskattn = args.net_type in ["maskattn"] # currently only one kind of mask attention net
+        self.mask_dim = args.pair.total_instances # does not handle arbitary number of instances
 
         self.object_dim = args.object_dim
 
         self.train()
         self.reset_network_parameters()
+
+    def get_masks(self):
+        if self.maskattn:
+            return 
+        else:
+            return self
 
     def expand_mask(self, m):
         # m = batch x num_objects
@@ -111,7 +119,7 @@ class DiagGaussianForwardPadMaskNetwork(Network):
 
     def forward(self, x, m):
         x = pytorch_model.wrap(x, cuda=self.iscuda)
-        if not (self.hot or self.maskattn): m = self.expand_mask(m)
+        if not (self.cluster_mode or self.maskattn): m = self.expand_mask(m)
         mask, mean = self.mean(x, m)
         _, var = self.std(x, m)
         return (torch.tanh(mean), torch.sigmoid(var) + self.base_variance), mask

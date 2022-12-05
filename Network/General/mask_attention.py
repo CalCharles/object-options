@@ -156,7 +156,7 @@ class MultiHeadAttentionParallelLayer(Network):
 class MultiHeadAttentionCluster(Network):
     def __init__(self, args, mask=None):
         if mask is not None:
-            self.inter_mask = mask.detach() # make sure this mask cannot change
+            self.inter_mask = mask # make sure this mask cannot change
         else:
             self.inter_mask = torch.Parameter(torch.zeros(args.mask_attn.mask_dim))
         self.num_layers = args.mask_attn.num_layers
@@ -177,8 +177,9 @@ class MultiHeadAttentionHot(Network):
         self.mask_dim = args.mask_attn.mask_dim
         self.key_embed_dim = args.mask_attn.embed_dim
         # TODO: make the cluster function into a single operation instead of a loop
-        first_layer = [MultiHeadAttentionCluster(args, mask=pytorch_model.wrap(args.mask_attn.passive_mask))]
-        layers = first_layer + [MultiHeadAttentionCluster(args) for i in range(args.mask_attn.num_clusters - 1)]
+        first_cluster = [MultiHeadAttentionCluster(args, mask=pytorch_model.wrap(args.mask_attn.passive_mask))] # the first cluster is the passive model
+        second_cluster = [MultiHeadAttentionCluster(args, mask=pytorch_model.wrap(torch.ones(self.mask_dim)))] # the second cluster is the full model
+        layers = first_cluster + second_cluster + [MultiHeadAttentionCluster(args) for i in range(args.mask_attn.num_clusters - 2)]
         self.multi_head_attention_clusters = nn.ModuleList(layers)
 
         final_args = copy.deepcopy(args)
@@ -221,9 +222,6 @@ class MultiHeadAttentionBase(Network):
 
         self.model = layers + [self.final_layer]
 
-    def reset_passive_mask(self, passive_mask):
-        return
-
     def forward(self, key, queries, m):
         batch_size = key.shape[0]
         for i in range(self.num_layers):
@@ -250,7 +248,9 @@ class MaskedAttentionNetwork(Network):
         self.expand_dim = args.pair.expand_dim
         self.total_instances = args.pair.total_instances
         self.total_targets = args.pair.total_targets
+        self.cluster_model = args.mask_attn.cluster
 
+        if args.mask.
         args.include_last = True
         key_args = copy.deepcopy(args)
         key_args.object_dim = args.pair.single_obj_dim
@@ -267,6 +267,7 @@ class MaskedAttentionNetwork(Network):
         query_args.use_layer_norm = False
         query_args.pair.aggregate_final = False
         self.query_encoding = ConvNetwork(query_args)
+        layers = [self.key_encoding, self.query_encoding]
 
 
         if args.pair.aggregate_final:
@@ -276,21 +277,18 @@ class MaskedAttentionNetwork(Network):
             final_args.num_outputs = self.num_outputs
             final_args.hidden_sizes = final_args.pair.final_layers # TODO: hardcoded final hidden sizes for now
             self.final_layer = MLPNetwork(final_args)
-            layers = [] 
+            layers += self.final_layer 
             attention_args = args
         else:
             attention_args = copy.deepcopy(args)
             attention_args.output_dim = args.pair.single_obj_dim
-            layers = list()    
-        self.multi_head_attention = MultiHeadAttentionCluster(args) if args.mask_attn.cluster else MultiHeadAttentionBase(args)
+        self.multi_head_attention = MultiHeadAttentionBase(args)
+        
         layers = [self.multi_head_attention] + layers
 
         self.model = layers
         self.train()
         self.reset_network_parameters()
-
-    def reset_passive_mask(self, passive_mask):
-        self.multi_head_attention.reset_passive_mask(passive_mask)
 
     def set_instancing(self, total_instances, total_obj_dim, total_targets):
         assert self.expand_dim * total_instances == total_obj_dim

@@ -27,6 +27,19 @@ def evaluate_active_interaction(full_model, args, onemask_lambda, lasso_lambda, 
     # print(pytorch_model.unwrap(full_loss.mean()), pytorch_model.unwrap(mask_loss.mean()))
     return full_loss
 
+def evaluate_active_interaction_hot(full_model, args, onemask_lambda, lasso_lambda, active_params, interaction_likelihood, interaction_mask, active_log_probs, done_flags, proximity):
+    active_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - active_log_probs, done_flags=done_flags, reduced=False, is_full = True)
+    # passive_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - passive_log_probs, done_flags=done_flags, reduced=False, is_full = True)
+    mask_loss = (interaction_likelihood - full_model.check_passive_mask(interaction_likelihood)).abs().sum(-1).mean() # penalize for deviating from the passive mask
+    zero_mask_loss = (interaction_likelihood).abs().sum(-1).mean() # penalize for deviating from the passive mask
+    one_mask_loss = (1-interaction_likelihood).abs().sum(-1).mean()
+    full_loss = active_nlikelihood + (mask_loss * (1-onemask_lambda) + one_mask_loss * (onemask_lambda)) * lasso_lambda
+    # print(mask_loss, one_mask_loss, lasso_lambda)
+    # print(mask_loss.mean()  * args.full_inter.lasso_lambda, active_log_probs[0], full_loss, full_loss.mean())
+    # print(pytorch_model.unwrap(full_loss.mean()), pytorch_model.unwrap(mask_loss.mean()))
+    return full_loss
+
+
 # def evaluate_active_forward(full_model, args, active_params, interaction_mask, active_log_probs, done_flags, proximity)
 
 def _train_combined_interaction(full_model, args, rollouts, object_rollout, onemask_lambda, lasso_lambda, weights, inter_loss, interaction_optimizer, normalize=False):
@@ -79,9 +92,9 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
     active_optimizer, passive_optimizer, interaction_optimizer,
     normalize=False):    
 
-    passive_logger = forward_logger("passive", args.inter.active.active_log_interval, full_model)
-    logger = forward_logger("active", args.inter.active.active_log_interval, full_model)
-    inter_logger = interaction_logger("interaction", args.inter.active.active_log_interval, full_model)
+    passive_logger = forward_logger("passive_" + full_model.name, args.inter.active.active_log_interval, full_model, filename=args.record.log_filename)
+    logger = forward_logger("active_" + full_model.name, args.inter.active.active_log_interval, full_model, filename=args.record.log_filename)
+    inter_logger = interaction_logger("interaction_" + full_model.name, args.inter.active.active_log_interval, full_model, filename=args.record.log_filename)
     # initialize loss function
     inter_loss = nn.BCELoss()
 
@@ -194,8 +207,8 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             inter_bin[inter_bin> 1] = 1
             interaction_weights = get_weights(inter_weighting_lambda, inter_bin)
             print("inline_iters", inline_iters, inter_bin, object_rollouts.weight_binary)
-            # error
             if i % (args.inter.active.active_log_interval * 10) == 0:
+                print("log testing")
                 test_dict = test_full(full_model, test_rollout, test_object_rollout, args, None)
                 logger.log_testing(test_dict)
             # print(object_rollouts.weight_binary[:100], mask_binary.squeeze()[:100], inter_weighting_lambda)

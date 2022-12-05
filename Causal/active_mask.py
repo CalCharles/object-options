@@ -23,8 +23,8 @@ class ActiveMasking():
         print("filtered active set", self.filtered_active_set)
 
     def regenerate_norm(self, norm):
-        self.limits = norm.lim_dict[self.tar_name]
-        self.range = norm.lim_dict[self.tar_name][1] - norm.lim_dict[self.tar_name][0]
+        self.limits = norm.true_lim_dict[self.tar_name]
+        self.range = norm.true_lim_dict[self.tar_name][1] - norm.true_lim_dict[self.tar_name][0]
 
     def compute_var_cutoffs(self, rollouts):
         # not used, a possible alternative to hardcoded variance cutoffs

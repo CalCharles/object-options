@@ -42,13 +42,13 @@ class forward_logger(Logger):
         self.l1_average_true_error = list()
 
     def log_testing(self, test_dict):
-        # losses may differ for values 
+        # losses may differ for values
         for k in test_dict.keys():
-            print(k, test_dict[k])
             if len(test_dict[k].squeeze().shape) == 0:
                 if k not in self.testing_log:
                     self.testing_log[k] = deque(maxlen=self.maxlen)
                 self.testing_log[k].append(test_dict[k])
+        print(self.testing_log)
 
     def log(self, i, loss, raw_likelihood, weighted_likelihood, 
                     raw_likelihood_expanded, trace, weight_rate, dones,
@@ -97,16 +97,17 @@ class forward_logger(Logger):
             logging_str += f"variance: {var}"
             logging.info(logging_str)
             print(logging_str)
-
             if len(self.filename) != 0:
                 # adds to the tensorboard logger for graphing
                 # self.tensorboard_logger.add_scalar("Return/"+self.name, np.sum(self.reward)/np.sum(self.current_episodes), i)
                 # self.tensorboard_logger.add_scalar("Success/"+self.name, np.sum(self.success)/np.sum(self.current_term), i)
                 # self.tensorboard_logger.add_scalar("Success/"+self.name + "_h/m", np.sum(self.success)/miss_hit, i)
-                # self.tensorboard_logger.add_scalar("Success/"+self.name + "_drop", np.sum(self.dropped)/np.sum(self.current_episodes), i)
+                self.tensorboard_logger.add_scalar("Weighted_likelihood/"+self.type, np.mean(self.true_weighted_likelihood), i)
                 # log the loss values
+                print(self.testing_log)
+
                 for k in self.testing_log.keys():
                     print(k, np.mean(self.testing_log[k]))
-                    self.tensorboard_logger.add_scalar("Loss/" + k, np.mean(self.testing_log[k]), i)
+                    self.tensorboard_logger.add_scalar("Loss/" +self.type+"/" + k, np.mean(self.testing_log[k]), i)
                 self.tensorboard_logger.flush()
             self.reset()

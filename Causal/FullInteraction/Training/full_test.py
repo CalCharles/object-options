@@ -86,6 +86,7 @@ def test_full(full_model, test_full_buffer, test_object_buffer, args, environmen
 	# print("getting error", test_full_buffer.parent_state[:10], test_full_buffer.target[:10])
 	test_prox = get_error(full_model, test_full_buffer, object_rollout=test_object_buffer, error_type=error_types.PROXIMITY_FULL, normalized=True)[test_valid]
 
+	inter_points = (flat_miss >= 1) + (likev_miss >= 1)
 	log_values = {
 		'l1_passive': test_l1_passive_mean,
 		'l1_active': test_l1_active_mean,
@@ -105,6 +106,7 @@ def test_full(full_model, test_full_buffer, test_object_buffer, args, environmen
 		'likev_average_miss': likev_average_miss,
 		'bin_diff': bin_diff,
 		'flat_passive_diff': flat_passive_diff,
+		"inter_points": np.sum(inter_points.astype(int))
 	}
 
 	log_string  = f'\n\ntest_results:'
@@ -112,7 +114,6 @@ def test_full(full_model, test_full_buffer, test_object_buffer, args, environmen
 		log_string += '\n' + key + f': {log_values[key]}'
 
 
-	inter_points = (flat_miss >= 1) + (likev_miss >= 1)
 	target = test_object_buffer.obs[:len(test_object_buffer)][test_valid]#[inter_points]
 	inter_state = test_full_buffer.obs[:len(test_full_buffer)][test_valid]#[inter_points]
 	next_target = test_object_buffer.obs_next[:len(test_object_buffer)][test_valid]#[inter_points]

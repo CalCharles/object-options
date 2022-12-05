@@ -23,12 +23,12 @@
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    # load_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/temp/
-    save_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/temp/
+    load_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/temp/
+    # save_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/temp/
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 10000
+      # passive_iters: 10000
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
