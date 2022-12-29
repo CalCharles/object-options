@@ -21,7 +21,12 @@ from Causal.Training.inline_trainer import InlineTrainer
 
 def init_policy(args, models):
     args.actor_net.pair.first_obj_dim, args.actor_net.pair.object_dim, args.actor_net.pair.aggregate_final = models.state_extractor.first_obj_dim, models.state_extractor.obj_dim, True
-    args.critic_net.pair.first_obj_dim, args.critic_net.pair.object_dim, args.critic_net.pair.aggregate_final = models.state_extractor.first_obj_dim, models.state_extractor.obj_dim, True
+    append_actions = 0 if models.action_map.discrete_actions else int(models.action_map.action_space.shape[0])
+    args.critic_net.pair.first_obj_dim, args.critic_net.pair.object_dim, args.critic_net.pair.aggregate_final = models.state_extractor.first_obj_dim + append_actions, models.state_extractor.obj_dim, True
+    args.actor_net.pair.target_dim, args.actor_net.pair.parent_dim, args.actor_net.pair.single_obj_dim = models.state_extractor.target_size, models.state_extractor.parent_size, models.state_extractor.obj_dim
+    args.critic_net.pair.target_dim, args.critic_net.pair.parent_dim, args.critic_net.pair.single_obj_dim= models.state_extractor.target_size, models.state_extractor.parent_size, models.state_extractor.obj_dim
+    args.actor_net.input_expand.param_mode, args.actor_net.input_expand.param_mode = True, True
+    args.critic_net.input_expand.first_include, args.critic_net.input_expand.first_include = 0, append_actions
     args.actor_net.pair.post_dim = -1 if args.actor_net.pair.post_dim == -1 else models.state_extractor.post_dim
     args.critic_net.pair.post_dim = -1 if args.critic_net.pair.post_dim == -1 else models.state_extractor.post_dim
     policy = Policy(models.action_map.discrete_actions, models.state_extractor.total_size, models.action_map.policy_action_space, args)

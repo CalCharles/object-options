@@ -41,7 +41,7 @@
       intrain_passive: True
   full_inter:
     object_id: True
-    lasso_lambda: 1 0.25 100
+    lasso_lambda: 1 0.25 0 100 1000
     mixed_interaction: mixed
     soft_distribution: Identity
   interaction_net:

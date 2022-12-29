@@ -15,20 +15,24 @@ network_args = {
         "reduce_function": "max",
         "post_dim": -1,
         "difference_first": False,
-        "final_layers": [256]
+        "final_layers": [256],
+        "num_pair_layers": 0,
     },
     "mask_attn": {
         "model_dim": 0,
         "embed_dim": 0,
         "cluster": False,
         "num_clusters": 0,
+        "cluster_inter_hidden": [128],
         "num_heads": 0,
         "num_layers": 0,
         "attention_dropout": 0.0,
+        "needs_encoding": True, # should be set in init, default value here
     },
     "input_expand": {
         "include_relative": False,
         "pre_embed": [],
+        "first_include": 0, # set in init, this is default initialization
     },
     "optimizer": {
         "lr": 1e-4,
@@ -93,12 +97,14 @@ expected_args = {
     },
     "full_inter": {
         "object_id": False,
-        "lasso_lambda": [1, 1, -1, -1],
+        "lasso_lambda": [1, 0, 0, -1, -1],
+        "lasso_order": 1,
         "soft_distribution": "Identity",
         "dist_temperature": 1,
         "mixed_interaction": "weighting",
         "use_active_as_passive": False,
         "proximal_weights": False,
+        "log_gradients": False,
     },
     "inter": {
         "predict_dynamics": False,
@@ -111,14 +117,16 @@ expected_args = {
             "load_passive": "",
             "passive_iters": 0,
             "passive_log_interval": 1000,
-            "pretrain_active": False
+            "pretrain_active": False,
         },
         "interaction": {
             "interaction_pretrain": 0,
         },
         "active": {
+            "no_interaction": 0,
             "weighting": [0,0,-1,0], # must be length 4
             "active_log_interval": 100,
+            "log_gradients": False,
             "interaction_schedule": -1,
             "inline_iters": [5, 1, 1000],
             "interaction_weighting": [0,0], # must be length 2

@@ -16,35 +16,39 @@
     num_frames: 100000
     train_test_order: time
     train_edge: Paddle Ball
-    load_rollouts: /hdd/datasets/object_data/breakout/fixed_limits/paddle/
-    num_iters: 30000
-    batch_size: 256
+    load_rollouts: /hdd/datasets/object_data/breakout/fixed_limits/paddle_test/
+    num_iters: 200000 # 20000
+    batch_size: 512
   inter:
-    predict_dynamics: False
-    interaction_testing: 0.9 -1 -10 -1
+    predict_dynamics: True
+    interaction_testing: 0.9 -5 -10 -1
     interaction_iters: 0
-    # load_intermediate: /hdd/datasets/object_data/breakout/temp_ball/
+    # load_intermediate: /hdd/datasets/object_data/breakout/fixed_limits/temp/
     save_intermediate: /hdd/datasets/object_data/breakout/fixed_limits/temp/
     compare_trace: True
-    proximity_epsilon: 7
+    proximity_epsilon: 8
     passive:
-      passive_iters: 30000
+      passive_iters: 20000 # 5000
       passive_log_interval: 100
     active:
-      active_log_interval: 500
-      inline_iters: 10 0 5000
+      # no_interaction: 1
+      active_log_interval: 100
+      inline_iters: 10 1 100000 # 10000
       interaction_weighting: 100 -1
-      interaction_schedule: 50000
+      interaction_schedule: 50000 # 5000
       weighting: 0 200000 100 100000
+      # error_binary_upweight: 1
   interaction_net:
-    hidden_sizes: 512 256 256 128 128
+    hidden_sizes: 512 512 512 512 512
     net_type: mlp
     init_form: xnorm
     optimizer:
-      lr: .0001
+      lr: .00005
       alt_lr: .0001
       eps: .00001
       alpha: 0.99
       betas: 0.9 0.999
-      weight_decay: 0.00
+      weight_decay: 0.0001
+    input_expand:
+      include_relative: True
 ...

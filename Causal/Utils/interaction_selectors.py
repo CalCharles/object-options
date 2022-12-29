@@ -84,7 +84,7 @@ class CausalExtractor():
 		self.additional_sizes = [environment.object_sizes[n] for n in self.additional]
 
 	def _get_dims(self, environment):
-		first_obj_dim = self.single_selector.output_size()
+		first_obj_dim = self.single_selector.output_size() if len(self.multi_selectors) > 0 else self.single_selector.output_size() - self.parent_selector.output_size()
 		padi_first_obj_dim = self.padi_single
 		target_dim = environment.object_sizes[self.names.target]
 		parent_dim = environment.object_sizes[self.names.primary_parent]

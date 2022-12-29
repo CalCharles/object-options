@@ -29,9 +29,11 @@ critic_net:
 actor_net:
 network:
   hidden_sizes: 128 128
-  net_type: basic
+  net_type: inexp
   activation_final: tanh
   scale_logits: 30
+  input_expand:
+    include_relative: False
   optimizer:
     lr: .0007
     alt_lr: .0001
@@ -46,7 +48,7 @@ sample:
   param_recycle: 3
 extract:
   single_obs_setting: 1 0 0 1 0 0
-  relative_obs_setting: 0 0 0 0 1
+  relative_obs_setting: 0 0 0 0 0
 option:
   term_form: combined
   term_as_done: True

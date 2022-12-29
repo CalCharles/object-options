@@ -3,10 +3,11 @@
     record_rollouts: ""
     record_recycle: -1
     # load_dir: /nfs/data/calebc/object_data/asteroids/testrun/
-    save_dir: /nfs/data/calebc/object_data/sokoban/few_obs/testrun/
+    save_dir: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun/
   environment:
     env: Sokoban
     variant: few_obs
+    fixed_limits: True
   torch:
     gpu: 0
     no_cuda: False
@@ -14,7 +15,7 @@
     train: True
     num_frames: 10000
     train_edge: Action Obstacle Pusher
-    load_rollouts: /hdd/datasets/object_data/sokoban/few_obs/random/
+    load_rollouts: /hdd/datasets/object_data/sokoban/fixed/few_obs/random/
     num_iters: 7500
     batch_size: 64
   inter:

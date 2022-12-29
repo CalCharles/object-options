@@ -13,21 +13,23 @@
     no_cuda: False
   train:
     train: True
-    num_frames: 100
+    # num_frames: 100
+    num_frames: 10000
     train_test_order: time
     load_rollouts: /hdd/datasets/object_data/RandomDistribution/random/
     num_iters: 1000
-    batch_size: 32
+    # batch_size: 2
+    batch_size: 64
   inter:
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    # load_intermediate: /hdd/datasets/object_data/full/randomdist/attn_hot/temp/
-    save_intermediate: /hdd/datasets/object_data/full/randomdist/attn_hot/temp/
+    load_intermediate: /hdd/datasets/object_data/full/randomdist/attn_hot/temp/
+    # save_intermediate: /hdd/datasets/object_data/full/randomdist/attn_hot/temp/
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 100
+      # passive_iters: 3000
       # passive_iters: 1000
       passive_log_interval: 100
       pretrain_active: True
@@ -49,10 +51,14 @@
     pair:
       final_layers: 256 256
     mask_attn:
-      model_dim: 256
-      embed_dim: 512
+      # model_dim: 4 # 256
+      # embed_dim: 4 # 512
+      # num_heads: 2 # 8
+      # num_layers: 1 # 2
+      model_dim: 128
+      embed_dim: 256
       num_heads: 8
-      num_layers: 3
+      num_layers: 2
       cluster: True
       num_clusters: 3
       attention_dropout: 0.0
@@ -62,5 +68,5 @@
       eps: .00001
       alpha: 0.99
       betas: 0.9 0.999
-      weight_decay: 0.01
+      weight_decay: 0.00001
 ...

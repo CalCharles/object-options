@@ -17,6 +17,7 @@ def trainRL(args, train_collector, test_collector, option, graph,  loggers, keep
     Run the RL train loop
     '''
     train_logger, test_logger, initial_logger = loggers
+    print("network", option.policy)
     initial_logger.logout("observation: " + str([COMPONENT_NAMES[i] for i in range(len(option.state_extractor.obs_setting)) if option.state_extractor.obs_setting[i] == 1]))
     start = time.time()
     # collect initial random actions

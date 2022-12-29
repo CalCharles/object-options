@@ -25,6 +25,7 @@ class KeyPairNetwork(Network):
         self.total_instances = args.pair.total_instances
         self.total_targets = args.pair.total_targets
         self.return_mask = args.mask_attn.return_mask
+        self.num_layers = args.pair.num_pair_layers
 
         pair_args = copy.deepcopy(args)
         pair_args.pair.first_obj_dim = self.single_object_dim

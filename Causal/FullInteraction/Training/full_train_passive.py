@@ -34,30 +34,38 @@ def train_passive(full_model, args, rollouts, object_rollout, active_optimizer, 
         # the values to be predicted, values in the buffer are pre-normalized
         target = batch.target_diff if args.inter.predict_dynamics else batch.obs_next
         target = pytorch_model.wrap(target, cuda=full_model.iscuda)
+        done_flags = np.expand_dims(1-full_batch.done.squeeze(), -1)
         # print(target.shape, target[0])
 
         # compute network values
         # passive_prediction_params = full_model.passive_model(pytorch_model.wrap(batch.obs, cuda=full_model.iscuda)) # batch.target != target
-        passive_prediction_params = full_model.apply_passive((pytorch_model.wrap(batch.tarinter_state, cuda=full_model.iscuda), pytorch_model.wrap(batch.obs, cuda=full_model.iscuda))) # batch.target != target
-        # Train the passive model
-        done_flags = np.expand_dims(1-full_batch.done.squeeze(), -1)
-        # print(full_model.passive_model.mean.aggregate_final, batch.obs.shape, target.shape, full_model.name)
-        passive_likelihood_full = - full_model.dist(*passive_prediction_params).log_prob(target)
-        passive_loss = compute_likelihood(full_model, args.train.batch_size, passive_likelihood_full, done_flags=done_flags, is_full = True)
+        target, passive_prediction_params, passive_dist, passive_log_probs = full_model.passive_likelihoods(batch)
+        passive_log_probs = - passive_log_probs
+
+
+        # passive_prediction_params = full_model.apply_passive((pytorch_model.wrap(batch.tarinter_state, cuda=full_model.iscuda), pytorch_model.wrap(batch.obs, cuda=full_model.iscuda))) # batch.target != target
+        # # Train the passive model
+        # # print(full_model.passive_model.mean.aggregate_final, batch.obs.shape, target.shape, full_model.name)
+        # passive_log_probs = - full_model.dist(*passive_prediction_params).log_prob(target)
         # print(passive_prediction_params[1][0], passive_prediction_params[0][0])
-        run_optimizer(active_optimizer, full_model.active_model, passive_loss) if args.full_inter.use_active_as_passive else run_optimizer(passive_optimizers, full_model.passive_model, passive_loss)
+        passive_loss = compute_likelihood(full_model, args.train.batch_size, passive_log_probs, done_flags=done_flags, is_full = True)
+        run_optimizer(active_optimizer, full_model.active_model, passive_loss) if args.full_inter.use_active_as_passive or full_model.cluster_mode else run_optimizer(passive_optimizers, full_model.passive_model, passive_loss)
 
         # logging the passive model outputs
-        logger.log(i, passive_loss, None, None, passive_likelihood_full  * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, weight_rate, batch.done,
+        logger.log(i, passive_loss, None, None, passive_log_probs  * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, weight_rate, batch.done,
                     passive_prediction_params, target  * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, full_model)
 
         # If pretraining the active model, trains with a fully permissible interaction model
         if args.inter.passive.pretrain_active:
             # print(full_model.target_num, len(full_model.all_names))
-            full_mask = torch.ones(args.train.batch_size, len(full_model.all_names) * full_model.target_num)
-            active_prediction_params, mask = full_model.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=full_model.iscuda), pytorch_model.wrap(full_mask, cuda = full_model.iscuda)) # THE ONLY DIFFERENT LINE FROM train_passive.py
-            # print(active_prediction_params[0].shape, batch.tarinter_state.shape, full_model.active_model.mean.object_dim, full_model.active_model.mean.single_object_dim, full_model.active_model.mean.first_obj_dim)
-            active_likelihood_full = - full_model.dist(*active_prediction_params).log_prob(target)
+            # full_mask = torch.ones(args.train.batch_size, len(full_model.all_names) * full_model.target_num)
+            # active_prediction_params, mask = full_model.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=full_model.iscuda), pytorch_model.wrap(full_mask, cuda = full_model.iscuda)) # THE ONLY DIFFERENT LINE FROM train_passive.py
+            # # print(active_prediction_params[0].shape, batch.tarinter_state.shape, full_model.active_model.mean.object_dim, full_model.active_model.mean.single_object_dim, full_model.active_model.mean.first_obj_dim)
+            # active_likelihood_full = - full_model.dist(*active_prediction_params).log_prob(target)
+
+            # print("active")
+            active_prediction_params, active_dist, active_log_probs = full_model.active_open_likelihood(batch)
+            active_likelihood_full = - active_log_probs
             
             # active_hard_params, active_soft_params, active_full, passive_params, \
             #     interaction_likelihood, soft_interaction_mask, hard_interaction_mask,\
@@ -71,8 +79,10 @@ def train_passive(full_model, args, rollouts, object_rollout, active_optimizer, 
             # print("likelihood", active_likelihood_full[0], full_model.active_open_likelihood(batch)[-1][0], full_model.likelihoods(batch)[-2][0])
             run_optimizer(active_optimizer, full_model.active_model, active_loss)
             # logging the active model outputs
+            # error
             active_logger.log(i, active_loss, None, None, active_likelihood_full * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, weight_rate, batch.done,
                                 active_prediction_params, target, None, full_model)
         if i % args.inter.passive.passive_log_interval == 0:
+            print(np.mean(batch.trace, axis=0))
             print(full_model.name,batch.tarinter_state[0]  ,  full_model.norm.reverse(full_batch.obs[0], form="inter", name=full_model.name), target[0], full_model.norm.reverse(target[0], name=full_model.name, form="dyn" if full_model.predict_dynamics else "target"))
     return outputs, weights

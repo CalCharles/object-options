@@ -62,5 +62,5 @@ if __name__ == "__main__":
         elif args.render and args.display_frame: display_frame(full_state['raw_state'], rescale=10, waitkey=30)
         if record is not None: record.save(full_state['factored_state'], full_state["raw_state"], environment.toString)
         if i % 1000 == 0: print(i, "fps", i / (time.time() - start))
-    save_to_pickle(os.path.join(args.record_rollouts, "environment.pkl"), environment)
+    if args.env not in ["RoboPushing", "RoboStick", "AirHockey"]: save_to_pickle(os.path.join(args.record_rollouts, "environment.pkl"), environment)
     print("fps", args.num_frames / (time.time() - start))

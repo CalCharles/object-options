@@ -1,7 +1,7 @@
 ---
   record:
-    record_rollouts: /nfs/data/calebc/object_data/breakout/fixed_limits/ball/
-    # record_rollouts: /hdd/datasets/object_data/breakout/testrun/ball
+    # record_rollouts: /nfs/data/calebc/object_data/breakout/fixed_limits/ball/
+    record_rollouts: /hdd/datasets/object_data/breakout/fixed_limits/ball
     record_recycle: -1
     log_filename: logs/temp/ball_train3.log
     load_dir: /nfs/data/calebc/object_data/breakout/fixed_limits/testrun
@@ -31,7 +31,9 @@
     activation_final: tanh
     scale_logits: 10
     hidden_sizes: 128 128 128 128 128 128
-    net_type: basic
+    net_type: inexp
+    input_expand:
+      include_relative: True
     optimizer:
       lr: .0001
       alt_lr: .0001
@@ -44,7 +46,7 @@
     param_recycle: 0.0
   extract:
     single_obs_setting: 1 1 0 1 0 0
-    relative_obs_setting: 1 0 0 0 0
+    relative_obs_setting: 0 0 0 0 0
   option:
     term_form: combined
     term_as_done: True
@@ -53,6 +55,7 @@
     constant_lambda: -0.1
     param_lambda: 200
     inter_lambda: 1
+    use_binary: True
     negative_true: True
     temporal_extend: 3
     time_cutoff: 300
@@ -94,9 +97,9 @@
     relative_action_ratio: 0.15
     round_values: True
   inline:
-    interaction_config: configs/Breakout/angle_hyperparam/paddle_ball_interaction_inline.yaml
+    interaction_config: configs/Breakout/fixed_limits/paddle_ball_interaction.yaml
     inpolicy_iters: 10000
-    inpolicy_schedule: 500
+    inpolicy_schedule: 300
     inpolicy_times: 4
     policy_intrain_passive: False
     intrain_weighting: 0 200000 100 -1

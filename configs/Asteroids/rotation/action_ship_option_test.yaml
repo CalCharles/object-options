@@ -1,12 +1,13 @@
 ---
   record:
     # record_rollouts: /hdd/datasets/calebc/object_data/asteroids/ship/
-    record_recycle: -1
+    # record_recycle: -1
     log_filename: logs/temp/ship_test.log
-    load_dir: /nfs/data/calebc/object_data/asteroids/testrun5/
+    load_dir: /nfs/data/calebc/object_data/asteroids/testrun6/
   environment:
     env: Asteroids
     variant: default
+    fixed_limits: True
   torch:
     gpu: 1
     no_cuda: False
@@ -18,6 +19,7 @@
     test_episode: True
     max_steps: 1000
     display_frame: 1
+    stream_print_file: logs/temp/asteroids/rotation/ship_test.txt
   policy:
     logging:
       log_interval: 10
@@ -25,5 +27,5 @@
       test_trials: 10
       max_terminate_step: 1 30
   sample:
-    param_recycle: .5
+    param_recycle: .01
 ...

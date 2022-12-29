@@ -90,6 +90,9 @@ class ObservationExtractor():
                     + additional_relative * int(not self.target_multi) * np.sum((self.max_additional_objects == 1).astype(int) * self.target_size)
                     + parent_param * int(not self.parent_multi) * self.target_size # parent_size == target size for this to work
                     + param_relative * int(not self.target_multi) * self.target_size)
+        if not (self.parent_multi or self.target_multi or self.additional_multi): # not multi instanced
+            # don't include the target, used in inexp networks
+            first_obj_dim = first_obj_dim - target * self.target_size - parent_relative * self.target_size - param_relative * self.target_size
 
         parent_obj_dim = int(parent * int(self.parent_multi) * self.parent_size
                     + parent_param * int(self.parent_multi) * self.parent_size)

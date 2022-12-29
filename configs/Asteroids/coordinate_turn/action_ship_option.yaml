@@ -11,24 +11,25 @@
   environment:
     env: Asteroids
     variant: coordinate_turn
+    fixed_limits: True
   torch:
     gpu: 0
     no_cuda: False
   train:
     train: True
     num_steps: 100
-    pretrain_frames: 10000
+    pretrain_frames: 50000
     load_rollouts: /hdd/datasets/object_data/asteroids/coordinate_turn/random
     train_edge: Action Ship
     num_iters: 7000
-    batch_size: 64
+    batch_size: 128
   critic_net:
   actor_net:
   network:
-    hidden_sizes: 128 128 128 512 512
-    net_type: basic
+    hidden_sizes: 512 512 512 512 512
+    net_type: mlp
     activation_final: tanh
-    scale_logits: 50
+    scale_logits: 10
     optimizer:
       lr: .0003
       alt_lr: .0001
@@ -36,14 +37,16 @@
       alpha: 0.99
       betas: 0.9 0.999
       weight_decay: 0.00
+    input_expand:
+      include_relative: True
   sample:
     sample_type: angle
-    sample_distance: 0.2
+    sample_distance: 0.15
     sample_schedule: 400
     param_recycle: 0.1
   extract:
     single_obs_setting: 1 0 0 1 0 0
-    relative_obs_setting: 0 0 0 1
+    relative_obs_setting: 0 0 0 0 1
   option:
     term_form: param
     term_as_done: True
@@ -64,7 +67,10 @@
     use_her: True
     early_stopping: 3
   policy:
-    epsilon_random: 0.1
+    epsilon_random: 0.05
+    learning_type: rainbow
+    max_min_critic: -50 0
+    tau: 3000
     logging:
       log_interval: 100
       train_log_maxlen: 5
@@ -73,6 +79,7 @@
       test_trials: 10
       max_terminate_step: 1 30
     learn:
+      post_random_iters: 250
       grad_epoch: 200
       sample_form: merged
 ...

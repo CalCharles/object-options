@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
 from Network.network_utils import pytorch_model
+from Network.network import Network, network_type
 from Network.General.mlp import MLPNetwork
 from Network.General.point import PointNetwork
 from Network.General.pair import PairNetwork
@@ -42,18 +43,9 @@ class BasicNetwork(TSNet):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         kwargs = ObjDict(kwargs)
+        kwargs.pair.aggregate_final = True
         kwargs["num_outputs"] = self.output_dim
-        self.model = MLPNetwork(kwargs)
-        if self.iscuda:
-            self.cuda()
-
-class PairPolicyNetwork(TSNet):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        kwargs = ObjDict(kwargs)
-        kwargs["aggregate_final"] = True
-        kwargs["num_outputs"] = self.output_dim
-        self.model = PairNetwork(kwargs)
+        self.model = network_type[kwargs.net_type](kwargs)
         if self.iscuda:
             self.cuda()
 
@@ -67,15 +59,10 @@ class RainbowNetwork(TSNet):
         super().__init__(**kwargs)
         kwargs = ObjDict(kwargs)
         last_size = kwargs['hidden_sizes'][-1]
-        if kwargs['net_type'] == "pair":
-            kwargs["aggregate_final"] = True
-            kwargs['hidden_sizes'] = kwargs['hidden_sizes'][:-1]
-            kwargs["num_outputs"] = last_size
-            self.model = PairNetwork(kwargs)
-        if kwargs['net_type'] == "basic":
-            kwargs['hidden_sizes'] = kwargs['hidden_sizes'][:-1]
-            kwargs["num_outputs"] = last_size
-            self.model = MLPNetwork(kwargs)
+        kwargs['pair']["aggregate_final"] = True
+        kwargs['hidden_sizes'] = kwargs['hidden_sizes'][:-1]
+        kwargs["num_outputs"] = last_size
+        self.model = network_type[kwargs.net_type](kwargs)
         kwargs["num_inputs"] = last_size
         self.num_atoms = kwargs['num_atoms']
         kwargs['hidden_sizes'] = [256]
@@ -108,4 +95,4 @@ class RainbowNetwork(TSNet):
         probs = logits.softmax(dim=2) # not certain how compatible this is
         return probs, state
 
-networks = {'basic': BasicNetwork, 'pair': PairPolicyNetwork, 'rainbow': RainbowNetwork}
+networks = {'basic': BasicNetwork, 'rainbow': RainbowNetwork}

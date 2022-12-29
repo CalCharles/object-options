@@ -24,6 +24,8 @@ from tianshou.env import BaseVectorEnv, DummyVectorEnv
 from tianshou.data import Collector, Batch, ReplayBuffer, to_torch_as, to_numpy
 from typing import Any, Dict, Tuple, Union, Optional, Callable
 
+FULL_ENVS = ["Breakout", "Asteroids", "RoboPushing", "AirHockey"]
+
 def print_shape(batch, prefix=""):
     print(prefix, {n: batch[n].shape for n in batch.keys() if type(batch[n]) == np.ndarray})
 
@@ -81,7 +83,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         self.state_extractor = self.option.state_extractor
         self.sampler = self.option.sampler # sampler manages either recalling the param, or getting a new one
         self.exploration_noise = exploration_noise
-        self.temporal_aggregator = TemporalAggregator(sum_reward=args.collect.aggregator.sum_rewards, only_termination=args.collect.aggregator.only_termination)
+        self.temporal_aggregator = TemporalAggregator(name=option.name,sum_reward=args.collect.aggregator.sum_rewards, only_termination=args.collect.aggregator.only_termination)
         self.ext_reset = self.option.temporal_extension_manager.reset
         self._aggregate = self.temporal_aggregator.aggregate
         self.hindsight = hindsight
@@ -111,6 +113,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
                 stream_str = str(self.counter) + " ".join(map(str, [self.data.param[0], self.data.next_target, self.data.action_chain,self.data.act, self.data.inter[0],self.data.rew[0], self.data.terminate[0],self.data.done[0], self.state_extractor.reverse_obs_norm(self.data.obs, self.data.mask.squeeze()), pytorch_model.unwrap(self.option.policy.compute_Q(self.data, False))]))
                 if np.any(self.data.terminate[0]): "new_param" + str(self.data.param[0]) + "\n" + stream_str
                 self.stream_str_record.append(stream_str)
+                print(stream_str)
                 option_dumps = open(self.stream_print_file, 'w')
                 option_dumps.write("\n".join(self.stream_str_record))
                 option_dumps.close()
@@ -229,7 +232,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         if self.display_frame == 3: # display angles
             param.squeeze()[:2] = self.data.parent_state.squeeze()[:2]
             # print("param", param)
-        frame = display_param(frame, param, rescale=8, waitkey=50, transpose=self.environment.transpose)
+        frame = display_param(frame, param, rescale=8 if self.env_name in FULL_ENVS else 64, waitkey=200, transpose=self.environment.transpose)
         if len(self.save_display) > 0: imio.imsave(os.path.join(self.save_display, "state" + str(self.counter) + ".png"), frame)
 
 
@@ -335,7 +338,6 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             obs_next = self.state_extractor.get_obs(self.data.full_state[0], next_full_state, param[0], mask[0]) # one environment reliance
             target = self.state_extractor.get_target(self.data.full_state[0])
             next_target = self.state_extractor.get_target(next_full_state)
-            print(target, param)
             # print (act, action_remap, action_chain[-1], self.data.full_state[0].factored_state.Gripper, self.data.full_state[0].factored_state.Block, self.env_reset, np.any(true_done) or (np.any(term) and self.terminate_reset))
             inter_state = self.state_extractor.get_inter(self.data.full_state[0])
             parent_state = self.state_extractor.get_parent(self.data.full_state[0])
@@ -350,6 +352,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             info[0]["TimeLimit.truncated"] = bool(cutoff + info[0]["TimeLimit.truncated"]) if "TimeLimit.truncated" in info[0] else cutoff # environment might send truncated itself
             info[0]["TimeLimit.truncated"] = bool(self.trunc_true * true_done + info[0]["TimeLimit.truncated"]) # if we want to treat environment resets as truncations
             self.option.update(act, action_chain, terminations, masks, update_policy=not self.test)
+            # print(parent_state, target, param, act)
             # print(inter_state, self.option.interaction_model.predict_next_state(self.data.full_state))
             tc_term = time.time()
             # update inline training values
@@ -393,6 +396,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             #     self.data.done, self.data.true_done, true_done, self.data.terminate, cutoff, self.environment.steps)
             # self.last_rec = copy.deepcopy(self.data.full_state)
             if self.record is not None:
+                print("recording", self.record.save_path)
                 # print(self.data[0].full_state['factored_state']["Done"], self.data[0].full_state['factored_state']["Ball"], self.data[0].next_full_state['factored_state']["Ball"])
                 self.record.save(self.data[0].full_state['factored_state'], self.data[0].full_state["raw_state"], self.environment.toString)
             tc_record = time.time()

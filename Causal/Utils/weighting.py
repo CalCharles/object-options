@@ -51,12 +51,15 @@ def separate_weights(weighting, full_model, rollouts, proximity, trace, object_r
             print("NO PASSIVE FOUND")
             passive_error, weights, binaries = uni_weights(rollouts)
         print("assive error", np.sum(binaries), passive_error[passive_error > 0], binaries, weights)
+        # error
     elif trace is not None:
         passive_error = trace.copy()
         binaries = torch.max(trace, dim=1)[0].squeeze() if full_model.multi_instanced else trace
         weights = get_weights(weighting_ratio, binaries)
     else: # no special weighting on the samples
         passive_error, weights, binaries = uni_weights(rollouts)
+    if len(binaries.shape) == 1 and ((object_rollouts is not None and len(object_rollouts.weight_binary.shape) == 2) or
+                                 (weight_binary in rollouts and len(rollouts.weight_binary.shape) == 2)): binaries = np.expand_dims(binaries, -1)
     if object_rollouts is None: rollouts.weight_binary[:len(rollouts)] = binaries
     else: object_rollouts.weight_binary[:len(rollouts)] = (np.sum(binaries, axis=-1) > 0).astype(int) if len(binaries.shape) > 1 else binaries
     return passive_error, weights, binaries

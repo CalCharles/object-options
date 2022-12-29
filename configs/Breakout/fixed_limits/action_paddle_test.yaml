@@ -1,23 +1,25 @@
 ---
   record:
     # record_rollouts: /nfs/data/calebc/object_data/breakout/testrun/paddle/
-    # record_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle
+    record_rollouts: /hdd/datasets/object_data/breakout/fixed_limits/paddle_test
     record_recycle: -1
-    log_filename: logs/temp/paddle_test.log
-    load_dir: /nfs/data/calebc/object_data/breakout/testrun/
+    log_filename: logs/temp/fixed/paddle_test.log
+    load_dir: /nfs/data/calebc/object_data/breakout/fixed_limits/testrun
   environment:
     env: Breakout
     variant: drop_stopping
+    fixed_limits: True
   torch:
     gpu: 0
     no_cuda: False
   train:
     train_edge: Action Paddle
-    num_iters: 100
+    num_iters: 2500
   collect:
     buffer_len : 100
     test_episode: True
     max_steps: 1000
+    stream_print_file: logs/breakout/fixed_limits/ap_test_stream.txt
   policy:
     logging:
       log_interval: 10

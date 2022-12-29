@@ -21,6 +21,7 @@ class PairNetwork(Network):
         self.drop_first = args.drop_first if 'drop_first' in args else False
         self.reduce_fn = args.pair.reduce_function
         self.difference_first = args.pair.difference_first
+        self.num_layers = args.pair.num_pair_layers
         no_nets = args.pair.no_nets if 'no_nets' in args.pair else False
         
         conv_args = copy.deepcopy(args)
@@ -32,9 +33,28 @@ class PairNetwork(Network):
         self.conv_args = conv_args
 
         layers = list()
-        if not no_nets: 
+        self.layer_conv_dim = self.hs[-1]
+        if not no_nets:
+            self.conv_layers = list()
+            if self.num_layers > 1:
+                conv_args.output_dim = self.hs[-1]
+                conv_args.include_last = False
             self.conv = ConvNetwork(conv_args)
+            if self.num_layers > 1:
+                layer_conv_args = copy.deepcopy(args)
+                layer_conv_args.include_last = not args.pair.aggregate_final
+                layer_conv_args.object_dim = self.layer_conv_dim
+                layer_conv_args.include_last = False
+                self.conv_layers = list()
+                for i in range(self.num_layers - 1):
+                    if i == self.num_layers - 2: 
+                        layer_conv_args.include_last=not args.pair.aggregate_final # the last network should have a different final
+                        layer_conv_args.output_dim = self.conv_dim
+                    self.conv_layers.append(ConvNetwork(layer_conv_args))
+
             layers.append(self.conv)
+            layers += self.conv_layers
+            if self.num_layers > 1: self.conv_layers = nn.ModuleList(self.conv_layers)
 
         post_mlp_args = copy.deepcopy(args) 
         if args.pair.post_dim > 0:
@@ -92,6 +112,8 @@ class PairNetwork(Network):
 
     def run_networks(self, x, px, batch_size):
         x = self.conv(x)
+        for c_layer in self.conv_layers:
+            x = c_layer(x)
         if self.aggregate_final:
             # combine the conv outputs using the reduce function, and append any post channels
             x = reduce_function(self.reduce_fn, x)

@@ -52,7 +52,7 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
     # @param part is the segment of rollout data
     # @param normalized asked for normalized outputs and comparisons
     # @param reduced reduces along the final output, combining the features of object state
-    # @param prenormalize normalizes the inputs TODO: might not be implemented yet
+    # @param prenormalize normalizes the inputs 
     # computes the value for 
     rv = lambda x: full_model.norm.reverse(x, form="dyn" if full_model.predict_dynamics else "target", name=full_model.name) # self.output_normalization_function.reverse
     rv_var = lambda x: full_model.norm.reverse(x, form="dyn" if full_model.predict_dynamics else "diff", name=full_model.name) # self.output_normalization_function.reverse
@@ -103,7 +103,6 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
 
     # likelihood type error computation
     if error_type == error_types.LIKELIHOOD:
-        print(is_full)
         if is_full: output = pytorch_model.unwrap(full_model.active_open_likelihood(use_part)[-1])
         else: output = pytorch_model.unwrap(full_model.weighted_likelihoods(use_part)[-1])
     elif error_type == error_types.PASSIVE_LIKELIHOOD:

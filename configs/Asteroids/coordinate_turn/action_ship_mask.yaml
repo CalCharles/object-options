@@ -5,7 +5,8 @@
     refresh: True
   environment:
     env: Asteroids
-    variant: default
+    variant: coordinate_turn
+    fixed_limits: True
   torch:
     gpu: 0
     no_cuda: False
@@ -15,5 +16,5 @@
     num_frames: 1000
   mask:
     min_sample_difference: 0.1
-    var_cutoff: 0.04
+    var_cutoff: 0.03
 ...

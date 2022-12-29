@@ -40,7 +40,7 @@
       # weighting: 0 200000 100 100000
   full_inter:
     object_id: True
-    lasso_lambda: 1 0.5 100
+    lasso_lambda: 1 0.25 0 100 1000
     mixed_interaction: hard
     soft_distribution: Identity
   interaction_net:

@@ -9,7 +9,7 @@ from collections import Counter
 from Causal.Training.loggers.forward_logger import forward_logger
 from Causal.Training.loggers.interaction_logger import interaction_logger
 from Causal.Training.loggers.logging import print_errors
-from Causal.Training.test_full import test_full
+from Causal.Training.test_full import test_full, test_full_train
 from Causal.Utils.weighting import get_weights
 from Causal.Utils.get_error import error_types, get_error
 from Network.network_utils import pytorch_model, run_optimizer
@@ -69,6 +69,7 @@ def train_combined(full_model, rollouts, test_rollout, args,
     active_weighting_schedule = (lambda i: awl * np.power(0.5, (i/aws))) if aws > 0 else (lambda i: awl)
     interaction_weighting_schedule = (lambda i: iwl * np.power(0.5, (i/iws))) if iws > 0 else (lambda i: iwl)
 
+    print("num_values", len(rollouts), len(test_rollout))
     print_errors(full_model, rollouts, error_types=[error_types.ACTIVE_RAW, error_types.ACTIVE, error_types.TRACE, error_types.DONE], prenormalize=normalize)
 
     for i in range(args.train.num_iters):
@@ -90,7 +91,11 @@ def train_combined(full_model, rollouts, test_rollout, args,
 
         # weighted values against actual likelihood TODO: 0 is used to ignore values, does it?...
         detached_interaction_likelihood = interaction_likelihood.clone().detach()
-        inter_weighted_nlikelihood = active_nlikelihood * detached_interaction_likelihood
+        if args.inter.active.no_interaction:
+            interaction_binaries = full_model.test.compute_binary(active_nlikelihood, passive_nlikelihood)
+            inter_weighted_nlikelihood = active_nlikelihood * interaction_binaries
+        else:
+            inter_weighted_nlikelihood = active_nlikelihood * detached_interaction_likelihood
 
         # reduce with mean to a single value for the batch
         # active_mean_nlikelihood, passive_mean_nlikelihood, inter_mean_nlikelihood = active_nlikelihood.mean(dim=0).squeeze(), passive_nlikelihood.mean(dim=0).squeeze(), inter_weighted_nlikelihood.squeeze() / (detached_interaction_likelihood.sum() + 1e-6)
@@ -98,7 +103,10 @@ def train_combined(full_model, rollouts, test_rollout, args,
         # print(active_nlikelihood[:10], passive_nlikelihood[:10], active_weights[idxes][:10].squeeze())
         # train a combined loss to minimize the (negative) active likelihood without interaction weighting, and the interaction regulairized values (ignoring dones)
         # TODO: we used a combined interaction of binaries, proximal high error and interaction before, but with resampling it isn't clear this is necessary
-        loss = (active_nlikelihood * interaction_schedule(i) + inter_weighted_nlikelihood * (1-interaction_schedule(i)))
+        if args.inter.active.no_interaction == 1:        
+            loss = active_nlikelihood
+        else: # if no_interaction == 2 do the schedule but with the binaries
+            loss = (active_nlikelihood * interaction_schedule(i) + inter_weighted_nlikelihood * (1-interaction_schedule(i)))
         run_optimizer(active_optimizer, full_model.active_model, loss)
 
         # print(torch.cat([pytorch_model.wrap(full_model.norm.reverse(batch.inter_state, form="inter"), cuda=full_model.iscuda),active_params[0], target, active_nlikelihood * done_flags, done_flags], axis=-1)[:20])
@@ -128,15 +136,15 @@ def train_combined(full_model, rollouts, test_rollout, args,
             #     print_errors(full_model, rollouts[inter_idxes[90:]], error_types=[error_types.ACTIVE_RAW, error_types.ACTIVE, error_types.PASSIVE_LIKELIHOOD, error_types.ACTIVE_LIKELIHOOD, error_types.TRACE, error_types.INTERACTION, error_types.INTERACTION_BINARIES, error_types.PROXIMITY, error_types.DONE], prenormalize=normalize)
             inline_iters = inline_iter_schedule(i)
             active_weighting_lambda = active_weighting_schedule(i)
-            print(active_weighting_lambda)
             active_weights = get_weights(active_weighting_lambda, rollouts.weight_binary[:len(rollouts)].squeeze())
             inter_weighting_lambda = interaction_weighting_schedule(i)
-            error_binary = np.abs(get_error(full_model, rollouts, error_type = error_types.INTERACTION_BINARIES) - full_model.test(get_error(full_model, rollouts, error_type = error_types.INTERACTION_RAW)).astype(int))
+            error_binary = np.abs(get_error(full_model, rollouts, error_type = error_types.INTERACTION_BINARIES, prenormalize=normalize) - full_model.test(get_error(full_model, rollouts, error_type = error_types.INTERACTION_RAW, prenormalize=normalize)).astype(int))
             interaction_weights = get_weights(inter_weighting_lambda, rollouts.weight_binary[:len(rollouts)].squeeze() + error_binary.squeeze() * args.inter.active.error_binary_upweight)
 
-            print("inline_iters", inline_iters)
+            print("ii, aws, is", inline_iters, active_weighting_lambda, interaction_schedule(i))
             if i % (args.inter.active.active_log_interval * 10) == 0:
-                test_full(full_model, test_rollout, args, args.object_names, None)
+                test_full_train(full_model, rollouts, args, full_model.names, None)
+                test_full(full_model, test_rollout if test_rollout is not None else rollouts, args, full_model.names, None)
                 # print(trace[inter_idxes], active_weights[inter_idxes])
             # print(full_model.norm.reverse(rollouts.target[48780:48800]), full_model.norm.reverse(rollouts.next_target[48780:48800]))
             # print(interaction_schedule(i))

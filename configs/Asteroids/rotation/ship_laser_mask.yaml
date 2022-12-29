@@ -5,6 +5,7 @@
   environment:
     env: Asteroids
     variant: default
+    fixed_limits: True
   torch:
     gpu: 1
     no_cuda: False

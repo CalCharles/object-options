@@ -4,7 +4,7 @@
     # record_recycle: -1
     log_filename: logs/temp/ship_train.log
     load_dir: /nfs/data/calebc/object_data/asteroids/testrun/
-    save_dir: /nfs/data/calebc/object_data/asteroids/testrun5/
+    save_dir: /nfs/data/calebc/object_data/asteroids/testrun6/
     # checkpoint_dir: /nfs/data/calebc/object_data/breakout/testrun/action_paddle_checkpoint
     # load_checkpoint: /nfs/data/calebc/object_data/breakout/testrun_inline/action_paddle_checkpoint
     presave_graph: True
@@ -12,6 +12,7 @@
   environment:
     env: Asteroids
     variant: default
+    fixed_limits: True
   torch:
     gpu: 1
     no_cuda: False
@@ -21,13 +22,13 @@
     pretrain_frames: 50000
     load_rollouts: /hdd/datasets/object_data/asteroids/random
     train_edge: Action Ship
-    num_iters: 10000
+    num_iters: 3000
     batch_size: 128
   critic_net:
   actor_net:
   network:
-    hidden_sizes: 128 128 128 512 512
-    net_type: basic
+    hidden_sizes: 512 512 512 512 512
+    net_type: mlp
     activation_final: tanh
     scale_logits: 10
     optimizer:
@@ -37,11 +38,13 @@
       alpha: 0.99
       betas: 0.9 0.999
       weight_decay: 0.00
+    input_expand:
+      include_relative: True
   sample:
     sample_type: angle
-    sample_distance: 0.2
+    sample_distance: 0.15
     sample_schedule: 400
-    param_recycle: 0.1
+    param_recycle: 0.05
   extract:
     single_obs_setting: 1 0 0 1 0 0
     relative_obs_setting: 0 0 0 0 1
@@ -60,12 +63,12 @@
     buffer_len : 100000
     test_episode: True
     max_steps: 1000
-    stream_print_file: logs/asteroids/hyperparam/ship_option_stream5.txt
+    stream_print_file: logs/asteroids/hyperparam/ship_option_stream.txt
   hindsight:
     use_her: True
     early_stopping: 2
   policy:
-    epsilon_random: 0.2
+    epsilon_random: 0.05
     learning_type: rainbow
     max_min_critic: -50 0
     tau: 3000

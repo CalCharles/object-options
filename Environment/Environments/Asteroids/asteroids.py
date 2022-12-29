@@ -63,7 +63,7 @@ class Asteroids(Environment):
 
         # spec ranges
         self.fixed_limits = fixed_limits
-        ranges, dynamics, position_masks, instanced = generate_specs_fixed(self.asteroid_size, self.asteroid_size_variance, self.num_asteroids)
+        ranges_fixed, dynamics_fixed, position_masks, instanced = generate_specs_fixed(self.asteroid_size, self.asteroid_size_variance, self.num_asteroids)
         ranges, dynamics, position_masks, instanced = generate_specs(self.asteroid_speed, self.ship_speed[0], self.laser_speed, self.asteroid_size, self.asteroid_size_variance, self.num_asteroids)
         self.position_masks = position_masks
         self.object_range_true = ranges

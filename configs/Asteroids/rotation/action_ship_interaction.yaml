@@ -6,6 +6,7 @@
     save_dir: /nfs/data/calebc/object_data/asteroids/testrun/
   environment:
     env: Asteroids
+    fixed_limits: True
   torch:
     gpu: 0
     no_cuda: False
@@ -36,7 +37,7 @@
       weighting: -13 1 1 -1
   interaction_net:
     hidden_sizes: 128 128 128 128 512
-    net_type: mlp
+    net_type: inexp
     activation_final: tanh
     optimizer:
       lr: .0001

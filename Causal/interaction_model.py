@@ -46,6 +46,8 @@ def get_params(model, full_args, is_pair, multi_instanced, total_inter_size, tot
     pair.parent_dim = model.parent_dim
     pair.target_dim = model.target_dim
     pair.single_obj_dim = model.single_obj_dim
+    full_args.interaction_net.input_expand.param_mode = False
+    full_args.interaction_net.input_expand.first_include = 0
 
     active_model_args = copy.deepcopy(full_args.interaction_net)
     active_model_args.num_inputs = total_inter_size
@@ -60,8 +62,7 @@ def get_params(model, full_args, is_pair, multi_instanced, total_inter_size, tot
     interaction_model_args.num_outputs = 1
 
     if interaction_model_args.net_type in ["inexp"]:
-        passive_model_args.include_relative = False
-    
+        passive_model_args.input_expand.include_relative = False
     if is_pair:
         pair = copy.deepcopy(full_args.interaction_net.pair)
         pair.post_dim = -1
@@ -270,10 +271,11 @@ class NeuralInteractionForwardModel(nn.Module):
             _, _, inter, _, _, _, active_log_probs, passive_log_probs = self.likelihoods(bat)
             binary = self.test.compute_binary(- active_log_probs.sum(dim=-1),
                                                 - passive_log_probs.sum(dim=-1)).unsqueeze(-1)
+            # print(pytorch_model.unwrap(active_log_probs.sum()), pytorch_model.unwrap(passive_log_probs.sum()), binary, pytorch_model.unwrap(self.interaction_model(pytorch_model.wrap(bat.inter_state, cuda=self.iscuda))))
             return binary
         else:
             val = bat.inter_state
-            # print(bat.inter_state)
+            # print(bat.inter_state, self.interaction_model(pytorch_model.wrap(val, cuda=self.iscuda)))
             return self.interaction_model(pytorch_model.wrap(val, cuda=self.iscuda))
 
     def _target_dists(self, batch, params):
@@ -300,7 +302,6 @@ class NeuralInteractionForwardModel(nn.Module):
         inter = self.interaction_model(pytorch_model.wrap(batch.inter_state, cuda=self.iscuda))
         target, active_dist, active_log_probs = self._target_dists(batch, active_params)
         target, passive_dist, passive_log_probs = self._target_dists(batch, passive_params)
-        # error
         return active_params, passive_params, inter, target, active_dist, passive_dist, active_log_probs, passive_log_probs        
 
     def weighted_likelihoods(self, batch):
@@ -311,6 +312,7 @@ class NeuralInteractionForwardModel(nn.Module):
     
     def passive_likelihoods(self, batch):
         passive_params = self.passive_model(pytorch_model.wrap(batch.target, cuda=self.iscuda))
+        # print(np.concatenate([pytorch_model.unwrap(passive_params[0]), batch.target_diff],axis=-1)[:100])
         target, dist, log_probs = self._target_dists(batch, passive_params)
         return passive_params, dist, log_probs
 

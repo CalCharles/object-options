@@ -8,32 +8,37 @@ import imageio, tqdm
 import copy
 import cv2
 from Environment.environment import Environment
-from Environment.Environments.AirHockey.airhockey_specs import *
+from Environment.Environments.AirHockey.air_hockey_specs import *
 from Record.file_management import numpy_factored, display_frame
 from collections import deque
 import robosuite.utils.macros as macros
 macros.SIMULATION_TIMESTEP = 0.02
 
-# control_freq, num_obstacles, standard_reward, goal_reward, obstacle_reward, out_of_bounds_reward, 
+# control_freq, num_obstacles, standard_reward, target_reward, obstacle_reward, out_of_bounds_reward, 
 # joint_mode, hard_obstacles, planar_mode
-
+view = "robot0_robotview" # "agentview" # "frontview"
 
 DEFAULT = 0
 JOINT_MODE = 1
 HARD_MODE = 2
 PLANAR_MODE = 3
 
-class AirHockey(Environment):
-    def __init__(self, variant="default", horizon=30, renderable=False, fixed_limits=False):
+gripper_forms = {"push": "PushingGripper",
+                "hockey": "HockeyGripper",
+                "two": "PandaGripper"}
+
+class RobosuiteAirHockey(Environment):
+    def __init__(self, variant="default", horizon=300, renderable=False, fixed_limits=False):
         super().__init__()
         self.self_reset = True
         self.fixed_limits = fixed_limits
         self.variant=variant
-        control_freq, var_horizon, num_obstacles, standard_reward, goal_reward, obstacle_reward, out_of_bounds_reward, mode  = variants[variant]
+        control_freq, var_horizon, num_obstacles, standard_reward, target_reward, obstacle_reward, out_of_bounds_reward, mode, gripper_type  = variants[variant]
         horizon = var_horizon if horizon < 0 else horizon
         self.mode = mode
-        self.goal_reward = goal_reward
+        self.target_reward = target_reward
         controller = "JOINT_POSITION" if self.mode==JOINT_MODE else "OSC_POSE" # TODO: handles only two action spaces at the moment
+        self.gripper_type = gripper_type
         self.env = robosuite.make(
                 "AirHockey",
                 robots=["Panda"], # TODO: replace with paddle-arm
@@ -41,8 +46,9 @@ class AirHockey(Environment):
                 has_renderer=False,
                 has_offscreen_renderer=renderable,
                 render_visual_mesh=renderable,
+                gripper_types=gripper_forms[self.gripper_type],
                 render_collision_mesh=False,
-                camera_names=["frontview"] if renderable else None,
+                camera_names=[view] if renderable else None,
                 control_freq=control_freq,
                 horizon=horizon,
                 use_object_obs=True,
@@ -50,11 +56,11 @@ class AirHockey(Environment):
                 hard_reset = False,
                 num_obstacles=num_obstacles,
                 standard_reward=float(standard_reward), 
-                goal_reward=float(goal_reward), 
+                target_reward=float(target_reward), 
                 obstacle_reward=float(obstacle_reward), 
                 out_of_bounds_reward=float(out_of_bounds_reward),
                 hard_obstacles=mode == HARD_MODE,
-                keep_gripper_in_cube_plane=mode == PLANAR_MODE
+                keep_gripper_in_puck_plane=mode == PLANAR_MODE
             )
         # environment properties
         self.num_actions = -1 # this must be defined, -1 for continuous. Only needed for primitive actions
@@ -71,6 +77,7 @@ class AirHockey(Environment):
         self.action_space = spaces.Box(low=low[:limit], high=high[:limit])
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=[9])
         self.renderable = renderable
+        self.open_close_toggle = -1
 
         # running values
         self.timer = 0
@@ -121,7 +128,10 @@ class AirHockey(Environment):
         elif self.mode == PLANAR_MODE:
             use_act = np.concatenate([action[:2], [0,0,0,0]])
         else:
-            use_act = np.concatenate([action, [0, 0, 0]])
+            use_act = np.concatenate([action[:3], [0, 0, 0]])
+        if self.gripper_type == "two":
+            use_act = np.array(use_act.tolist() + [action[-1]])
+        print(use_act)
         return use_act
 
     def step(self, action, render=False): # render will NOT change renderable, so it will still render or not render
@@ -129,16 +139,17 @@ class AirHockey(Environment):
         self.action = action
         use_act = self.set_action(action)
         next_obs, self.reward, self.done, info = self.env.step(use_act)
+        print(next_obs["puck_pos"])
         info["TimeLimit.truncated"] = False
         if self.done:
             info["TimeLimit.truncated"] = True
-        if self.reward == self.goal_reward: # don't wait at the goal, just terminate
+        if self.reward == self.target_reward: # don't wait at the goal, just terminate
             print("hit goal", next_obs["puck_pos"], next_obs["target_pos"])
             self.done = True
             info["TimeLimit.truncated"] = False
         # set state
         self.set_named_state(next_obs) # mutates next_obs
-        img = next_obs["frontview_image"][::-1] if self.renderable else None
+        img = next_obs[view + "_image"][::-1] if self.renderable else None
         obs = self.construct_full_state(next_obs, img)
         # print(np.array([obs['factored_state']["Obstacle" + str(i)] for i in range(15)]))
         self.frame = self.full_state['raw_state']
@@ -168,7 +179,7 @@ class AirHockey(Environment):
     def reset(self):
         obs = self.env.reset()
         self.set_named_state(obs)
-        self.frame = obs["frontview_image"][::-1] if self.renderable else None
+        self.frame = obs[view + "_image"][::-1] if self.renderable else None
         return self.construct_full_state(obs, self.frame)
 
     def render(self):
@@ -192,11 +203,20 @@ class AirHockey(Environment):
         if key == ord('q'):
             action = -1
         elif key == ord('a'):
-            action = np.array([-0.5,0,0])
+            action = np.array([0,-0.8,0,self.open_close_toggle])
         elif key == ord('w'):
-            action = np.array([0,0.5,0])
+            action = np.array([-0.8,0,0,self.open_close_toggle])
         elif key == ord('s'):
-            action = np.array([0,-0.5,0])
+            action = np.array([0.8,0,0,self.open_close_toggle])
         elif key == ord('d'):
-            action = np.array([0.5,0,0])
+            action = np.array([0,0.8,0,self.open_close_toggle])
+        elif key == ord('e'):
+            self.open_close_toggle = self.open_close_toggle* -1
+            action = np.array([0,0,0,self.open_close_toggle])
+        elif key == ord('r'):
+            action = np.array([0,0,0.8,self.open_close_toggle])
+        elif key == ord('f'):
+            action = np.array([0,0,-0.8,self.open_close_toggle])
+        else:
+            action = np.array([0,0,0,self.open_close_toggle])
         return action

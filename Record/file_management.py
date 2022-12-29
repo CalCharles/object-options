@@ -84,6 +84,7 @@ def read_obj_dumps(pth, i= 0, rng=-1, filename='object_dumps.txt'):
     current_len = 0
     for line in open(os.path.join(pth, filename), 'r'):
         current_len += 1
+        # print(current_len)
         if current_len < i:
             continue
         if rng != -1 and current_len > i + rng:
@@ -209,7 +210,10 @@ def display_param(frame, param, waitkey=10, rescale=-1, dot=True, transpose = Tr
             cv2.line(frame, loc.astype(int), (loc + 2 * angle).astype(int), color,1)
         else:
             if dot:
-                frame[np.round(loc).astype(int)[0], np.round(loc).astype(int)[1]] += np.array(color).astype(np.int8)
+                color = np.array(color)
+                color[color > 0] = 1
+                frame[np.round(loc).astype(int)[0], np.round(loc).astype(int)[1]] += np.array(color).astype(float)
+                print(np.round(loc).astype(int)[0], np.round(loc).astype(int)[1], frame[np.round(loc).astype(int)[0], np.round(loc).astype(int)[1]])
             else:
                 loc[0], loc[1] = loc[1], loc[0]
                 cv2.circle(frame, loc.astype(int), 3, color, 1)

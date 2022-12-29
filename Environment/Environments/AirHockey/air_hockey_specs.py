@@ -1,8 +1,10 @@
 import numpy as np
 
 variants = {
-    "default": (2, 30, 0, -0.1, 10, -3, -3, 0), # default has no obstacles
+    "default": (2, 300, 0, -0.1, 10, -3, -3, 0, "push"), # default has no obstacles
+    "two": (2, 300, 0, -0.1, 10, -3, -3, 0, "two"), # default has no obstacles
 }
+# control_freq, var_horizon, num_obstacles, standard_reward, target_reward, obstacle_reward, out_of_bounds_reward, mode
 
     # TARGET_HALFSIZE = 0.05  # half of side length of block
     # PUCK_RADIUS = 0.025  # radius of goal circle

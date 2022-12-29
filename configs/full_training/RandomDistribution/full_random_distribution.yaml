@@ -52,5 +52,5 @@
       eps: .00001
       alpha: 0.99
       betas: 0.9 0.999
-      weight_decay: 0.01
+      weight_decay: 0.0001
 ...

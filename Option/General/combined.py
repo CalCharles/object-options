@@ -21,7 +21,6 @@ class BinaryInteractionParameterizedOptionControl(RTD):
         self.true_lambda = 0
         inside = check_close(self.epsilon_close, self.norm_p, next_target, param, mask)
         interv = pytorch_model.unwrap(self.interaction_model.interaction(inter_state, target, next_target, target_diff, prenormalize = True, use_binary=self.use_binary if hasattr(self, "use_binary") else False))
-        # print("interv", interv, inter_state)
         inter = self.interaction_model.test(interv).squeeze()
         term = inside * inter + inter * self.inter_term
 

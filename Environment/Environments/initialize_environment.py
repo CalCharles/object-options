@@ -39,6 +39,12 @@ def initialize_environment(args, record_args):
         args.continuous = True
         environment = RoboPushing(variant=args.variant, horizon=args.horizon, renderable=args.render, fixed_limits=args.fixed_limits)
         environment.seed(args.seed)
+    elif args.env.find("AirHockey") != -1:
+        from Environment.Environments.AirHockey.air_hockey import RobosuiteAirHockey
+
+        args.continuous = True
+        environment = RobosuiteAirHockey(variant=args.variant, horizon=args.horizon, renderable=args.render, fixed_limits=args.fixed_limits)
+        environment.seed(args.seed)
     elif args.env.find("RoboStick") != -1:
         from Environment.Environments.RoboPushing.robostick_screen import RoboStick
 

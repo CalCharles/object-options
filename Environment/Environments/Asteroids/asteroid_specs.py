@@ -2,7 +2,7 @@ import numpy as np
 MAX_SPEED = 5
 MAX_SIZE = 10
 
-def generate_specs_fixed(asteroid_speed, ship_speed, laser_speed, asteroid_size, asteroid_size_variance, num_asteroids):
+def generate_specs_fixed(asteroid_size, asteroid_size_variance, num_asteroids):
     ranges = {
         "Action": [np.array([0]).astype(np.float64), np.array([5]).astype(np.float64)],
         "Ship": [np.array([-1, -1, -MAX_SPEED, -MAX_SPEED, -1]).astype(np.float64), np.array([84, 84, MAX_SPEED, MAX_SPEED, 1]).astype(np.float64)],

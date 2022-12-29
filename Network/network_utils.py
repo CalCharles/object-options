@@ -4,12 +4,37 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 import tianshou as ts
+import copy
 
-def run_optimizer(optimizer, model, loss):
+def run_optimizer(optimizer, model, loss, grad_variables=[]):
     optimizer.zero_grad()
     (loss.mean()).backward()
     torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
+    grad_variables = [copy.deepcopy(gv.grad) for gv in grad_variables]  # stores the gradient of variables
     optimizer.step()
+    return grad_variables
+
+def set_grad(var):
+    def hook(grad):
+        var.grad = grad
+    return hook
+
+def get_gradient(model, loss, grad_variables=[]):
+    # gradients = list()
+    # for gv in grad_variables:
+    #     gv.register_hook(set_grad(gv))
+    #     print(gv)
+    #     gradients.append(torch.autograd.grad(loss.mean(), gv, retain_graph= True))
+    # return gradients
+    for gv in grad_variables:
+        print(gv.requires_grad)
+        gv.retain_grad()
+    (loss.mean()).backward(retain_graph=True)
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
+    grad_variables = [copy.deepcopy(gv.grad) for gv in grad_variables]  # stores the gradient of variables
+    print(grad_variables[0].shape)
+    return grad_variables
+
 
 def cuda_string(device):
     if device < 0: device = "cpu"
@@ -26,9 +51,11 @@ class pytorch_model():
     def wrap(data, dtype=torch.float, cuda=True, device = None):
         if type(data) == torch.Tensor:
             if cuda: # TODO: dtype not handeled 
-                return data.clone().detach().cuda(device=device)
+                # return data.clone().detach().cuda(device=device)
+                return data.cuda(device=device)
             else:
-                return data.clone().detach()
+                # return data.clone().detach()
+                return data
         else:
             if cuda:
                 return torch.tensor(data, dtype=dtype).cuda(device=device)
@@ -149,16 +176,23 @@ def reset_parameters(network, init_form, n_layers=-1):
         elif type(layer) == ts.utils.net.common.MLP:
             reset_parameters(layer, init_form)
         elif type(layer) == nn.Parameter:
-            nn.init.uniform_(layer.data, 0.0, 0.2/np.prod(layer.data.shape))
-        else: 
+            nn.init.uniform_(layer.data, 0.0, 1.0)
+        else: # layer is a list or basic layer linear or conv1d
             if type(layer) == nn.Linear or type(layer) == nn.Conv1d:
                 fulllayer = [layer]
             elif type(layer) == nn.ModuleList:
                 fulllayer = layer
             else:
-                continue 
-            for layer in fulllayer:
-                reset_linconv(layer, init_form)
+                continue
+            ml_layer_at = layer_at
+            for layer in fulllayer[::-1]:
+                if type(layer) == nn.Linear or type(layer) == nn.Conv1d:
+                    reset_linconv(layer, init_form)
+                else: # it is something to be handled recursively, n_layers not handled in this case
+                    size_next = count_layers(layer)
+                    use_layers = n_layers - (total_layers - ml_layer_at - size_next) if n_layers > 0 else n_layers
+                    reset_parameters(layer, init_form, n_layers=use_layers) # assumes modulelists are sequential
+                    ml_layer_at -= size_next
         layer_at = layer_next
 
 def compare_nets(networka, networkb, n_layers=-1, diff_list = []):
@@ -197,6 +231,10 @@ def compare_nets(networka, networkb, n_layers=-1, diff_list = []):
             use_layers = n_layers - (total_layers - layer_at - size_next) if n_layers > 0 else n_layers
             diff_val, diff_list = compare_nets(layera, layerb, n_layers=use_layers, diff_list=diff_list)
             diff = diff+diff_val
+        elif type(layera) == nn.ModuleList:
+            for la, lb in zip(layera, layerb):
+                diff_val, diff_list = compare_nets(la, lb, n_layers=use_layers, diff_list=diff_list)
+                diff = diff + diff_val
         layer_at = layer_next
     return diff, diff_list
 
@@ -211,8 +249,9 @@ def count_layers(network):
             total_layers += count_layers(layer)
         elif type(layer) == nn.Parameter or type(layer) == nn.Linear or type(layer) == nn.Conv1d or type(layer) == nn.Conv2d:
             total_layers += 1
-        elif type(layer) == nn.ModuleList:
-            total_layers += self.count_layers(layers=layer)
+        elif type(layer) == nn.ModuleList: # for modulelists, assume that all layers are at the same level
+            # total_layers = max([count_layers(l)for l in layer])
+            total_layers = sum([count_layers(l)for l in layer])
         else:
             pass
 

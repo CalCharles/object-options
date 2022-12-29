@@ -6,7 +6,8 @@
     # save_dir: /nfs/data/calebc/object_data/asteroids/coordinate_turn/testrun/
   environment:
     env: Asteroids
-    variant: default
+    variant: coordinate_turn
+    fixed_limits: True
   torch:
     gpu: 1
     no_cuda: False
@@ -37,7 +38,9 @@
       weighting: 0 200000 100 100000
   interaction_net:
     hidden_sizes: 512 256 256 128 128
-    net_type: mlp
+    net_type: inexp
+    input_expand:
+      use_relative: True
     init_form: xnorm
     optimizer:
       lr: .0001

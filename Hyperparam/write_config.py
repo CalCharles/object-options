@@ -51,10 +51,11 @@ def write_multi_config(multi_pth):
     save_endpoint = data["metaparam"]["save_endpoint"]
     bash_path = data["metaparam"]["bash_path"]
     runfile = data["metaparam"]["runfile"]
-    gpu = data["metaparam"]["gpu"]
-    cycle_gpu = data["metaparam"]["cycle_gpu"]
-    match = data["metaparam"]["match"]
+    gpu = data["metaparam"]["gpu"] # the gpu to use
+    match = data["metaparam"]["match"] # if 0, will one hot the parameters, if 1 will match up parameters, if 2 will run grid search
     num_trials = data["metaparam"]["num_trials"]
+    cycle_gpu = data["metaparam"]["cycle_gpu"] if 'cycle_gpu' in data['metaparam'] else -1# cycles through the GPU numbers % cycle_gpu
+    simul_run = data["metaparam"]["simul_run"] if 'simul_run' in data['metaparam'] else -1  # runs simul_run operations simultaniously
     base_config = read_config(data["metaparam"]["base_config"])
     del data["metaparam"]
 
@@ -93,7 +94,13 @@ def write_multi_config(multi_pth):
                 except ValueError as e:
                     full_values.append(v.split(" "))
             else:
-                full_values.append(final_type(v)) # casts other types without change
+                if final_type == bool:
+                    if v == "True":
+                        full_values.append(final_type(v))
+                    if v == "False":
+                        full_values.append(False)
+                else:
+                    full_values.append(final_type(v)) # casts other types without change
         print(full_values)
         return full_values
 
@@ -103,12 +110,22 @@ def write_multi_config(multi_pth):
         print(setting, name_path)
         all_settings_grid.append(convert_single(base_config, name_path, setting))
     # all combinations of indexes
-    if match:
+    if match == 0: # create n hot encodings for each of the indices
+        comb_array = np.array([[-1 for _ in range(len(all_settings_grid))] for _ in range(sum([len(s) for s in all_settings_grid]))])
+        row = 0
+        col = 0
+        for i in range(sum([len(s) for s in all_settings_grid])):
+            comb_array[i][row] = col
+            col += 1
+            if col == len(all_settings_grid[row]):
+                row += 1
+                col = 0
+    elif match == 1: # match the indices aligned
         comb_array = np.array([[i for _ in range(len(all_settings_grid))] for i in range(len(all_settings_grid[0]))])
-    else:
+    else: # create a grid search
         comb_array = np.array(np.meshgrid(*[np.array(list(range(len(n)))) for n in all_settings_grid])).T.reshape(-1, len(all_settings_grid))
     print(all_settings_grid, [np.array(list(range(len(n)))) for n in all_settings_grid], np.array(np.meshgrid(*[np.array(list(range(len(n)))) for n in all_settings_grid])).T.reshape(-1, len(all_settings_grid)))
-    print(comb_array)
+    print('comb_array', comb_array, all_settings_grid, len(all_settings_grid), len(all_settings_grid[0]))
     # create a config file corresponding to one combination of indexes
     def set_alt_network_values(base_config, name_path, setv):
         for b in base_config.keys():
@@ -123,12 +140,13 @@ def write_multi_config(multi_pth):
         config = copy.deepcopy(base_config)
         for c, setting, name_path in zip(combination, all_settings_grid, name_paths):
             set_val = config
-            for n in name_path[:-1]:
-                if n == "network":
-                    set_alt_network_values(config, name_path, setting[c])
-                set_val = set_val[n]
-            set_val[name_path[-1]] = setting[c]
-            print(name_path[-1], setting[c])
+            if c >= 0:
+                for n in name_path[:-1]:
+                    if n == "network":
+                        set_alt_network_values(config, name_path, setting[c])
+                    set_val = set_val[n]
+                set_val[name_path[-1]] = setting[c]
+                print(name_path[-1], setting[c], c)
         name = multi_filename + "_".join([str(c) for c in combination])
         use_gpu = gpu
         trial_configs, trial_names = list(), list()
@@ -164,11 +182,17 @@ def write_multi_config(multi_pth):
         config_names.append(os.path.join(yaml_endpoint, name + '.yaml'))
         write_config(os.path.join(yaml_endpoint, name + '.yaml'), config)
 
-    def write_bash(runfile, config_names, bash_path):
+    def write_bash(runfile, config_names, bash_path, simul_run):
         file_lines = list()
+        sr_ctr = 0
         for cfn, n in zip(config_names, all_names):
-            file_lines.append("python " + runfile + " --config " + cfn + " > " + os.path.join(create_directory(log_endpoint), n + '.txt\n'))
+            wr_ln = "python " + runfile + " --config " + cfn + " > " + os.path.join(create_directory(log_endpoint), n + '.txt\n')
+            if simul_run > 0 and sr_ctr % simul_run != simul_run - 1:
+                file_lines.append(wr_ln[:-1] + ' &\n')
+            else:
+                file_lines.append(wr_ln)
+            sr_ctr += 1
         with open(create_directory(bash_path, drop_last = True), 'w') as bash_file:
             bash_file.writelines(file_lines)
-    write_bash(runfile, config_names, bash_path)
+    write_bash(runfile, config_names, bash_path, simul_run)
     return all_args, all_names

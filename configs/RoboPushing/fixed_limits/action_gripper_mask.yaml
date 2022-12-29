@@ -1,0 +1,21 @@
+---
+  record:
+    load_dir: /nfs/data/calebc/object_data/robopushing/fixed/testrun/
+    save_dir: /nfs/data/calebc/object_data/robopushing/fixed/testrun/
+    refresh: True
+  environment:
+    env: RoboPushing
+    variant: default
+    fixed_limits: True
+  torch:
+    gpu: 1
+    no_cuda: False
+  train:
+    train_edge: Action Gripper
+    load_rollouts: /hdd/datasets/object_data/robopushing/fixed/testrun/random
+    num_frames: 1000
+  mask:
+    min_sample_difference: 0.1
+    var_cutoff: 0.05
+    sample_grid: False
+...

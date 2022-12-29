@@ -39,7 +39,7 @@ if __name__ == '__main__':
     test_buffer = ParamReplayBuffer(args.collect.buffer_len, stack_num=1)
 
     args.collect.env_reset = environment.self_reset
-    collector = OptionCollector(option.policy, environment, test_buffer, False, option, None, True, interaction_model.multi_instanced, None, args)
+    collector = OptionCollector(option.policy, environment, test_buffer, False, option, None, True, interaction_model.multi_instanced, record, args)
 
     test_logger = RLLogger(target_name + "_test", args.record.record_rollouts, args.policy.logging.log_interval, args.policy.logging.test_log_maxlen)
     full_logger = RLLogger(target_name + "_full", args.record.record_rollouts, args.policy.logging.log_interval, args.policy.logging.test_log_maxlen * args.train.num_iters)

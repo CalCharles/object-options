@@ -4,10 +4,11 @@
     # record_rollouts: /hdd/datasets/object_data/sokoban/testrun/paddle
     record_recycle: -1
     log_filename: logs/temp/pusher_test.log
-    load_dir: /nfs/data/calebc/object_data/sokoban/few_obs/testrun/
+    load_dir: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun/
   environment:
     env: Sokoban
     variant: few_obs
+    fixed_limits: True
   torch:
     gpu: 0
     no_cuda: False

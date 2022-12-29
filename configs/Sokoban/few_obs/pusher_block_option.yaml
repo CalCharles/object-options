@@ -1,17 +1,18 @@
 ---
   record:
-    # record_rollouts: /hdd/datasets/calebc/object_data/sokoban/few_obs/block/
+    # record_rollouts: /hdd/datasets/calebc/object_data/sokoban/fixed/few_obs/block/
     # record_recycle: -1
-    log_filename: /hdd/datasets/calebc/object_data/sokoban/few_obs/logs/temp/block_train.log
-    load_dir: /nfs/data/calebc/object_data/sokoban/few_obs/testrun_block/
-    save_dir: /nfs/data/calebc/object_data/sokoban/few_obs/testrun_block1/
-    # checkpoint_dir: /nfs/data/calebc/object_data/sokoban/few_obs/testrun/action_paddle_checkpoint
-    # load_checkpoint: /nfs/data/calebc/object_data/sokoban/few_obs/testrun_inline/action_paddle_checkpoint
+    log_filename: /hdd/datasets/calebc/object_data/sokoban/fixed/few_obs/logs/temp/block_train.log
+    load_dir: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun_block/
+    save_dir: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun_block1/
+    # checkpoint_dir: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun/action_paddle_checkpoint
+    # load_checkpoint: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun_inline/action_paddle_checkpoint
     # presave_graph: True
     save_interval: 100
   environment:
     env: Sokoban
     variant: few_obs
+    fixed_limits: True
   torch:
     gpu: 2
     no_cuda: False
@@ -19,7 +20,7 @@
     train: True
     num_steps: 100
     pretrain_frames: 10000
-    load_rollouts: /hdd/datasets/object_data/sokoban/few_obs/pusher
+    load_rollouts: /hdd/datasets/object_data/sokoban/fixed/few_obs/pusher
     train_edge: Pusher Action Obstacle Block
     num_iters: 5000
     batch_size: 128

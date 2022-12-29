@@ -2,11 +2,12 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    load_dir: /nfs/data/calebc/object_data/sokoban/few_obs/testrun/
-    save_dir: /nfs/data/calebc/object_data/sokoban/few_obs/testrun/
+    load_dir: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun/
+    save_dir: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun/
   environment:
     env: Sokoban
     variant: few_obs
+    fixed_limits: True
   torch:
     gpu: 1
     no_cuda: False
@@ -15,7 +16,7 @@
     num_frames: 200000
     train_test_order: time
     train_edge: Pusher Action Obstacle Block
-    load_rollouts: /hdd/datasets/object_data/sokoban/few_obs/pusher/
+    load_rollouts: /hdd/datasets/object_data/sokoban/fixed/few_obs/pusher/
     num_iters: 50000
     batch_size: 256
   inter:

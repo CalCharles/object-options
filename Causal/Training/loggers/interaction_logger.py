@@ -11,6 +11,16 @@ class interaction_logger(Logger):
         self.interaction_prediction = full_model.test.interaction_prediction
         self.reset()
 
+    def log_gradient(self, gradient_dict):
+        # losses may differ for values
+        for k in test_dict.keys():
+            if len(test_dict[k].squeeze().shape) == 0:
+                if k not in self.testing_log:
+                    self.testing_log[k] = deque(maxlen=self.maxlen)
+                self.testing_log[k].append(test_dict[k])
+        print(self.testing_log)
+
+
     def reset(self):
         self.loss = list()
         self.total_seen = 0

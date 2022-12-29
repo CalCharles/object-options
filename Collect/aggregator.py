@@ -3,8 +3,9 @@ import copy
 from tianshou.data import Batch, ReplayBuffer, to_torch_as, to_numpy
 
 class TemporalAggregator():
-    def __init__(self, sum_reward=False, only_termination=False):
+    def __init__(self, sum_reward=False, only_termination=False,name=""):
         self.current_data = Batch()
+        self.name= name
         self.next_action = False
         self.next_param = False
         self.keep_next = True
@@ -54,9 +55,9 @@ class TemporalAggregator():
         
         # if a true done happened, the NEXT data point will need to be recorded
         # if we just resampled (meaning temporal extension occurred), or a done or termination
-        # if np.linalg.norm(self.current_data.full_state.factored_state.Paddle - self.current_data.full_state.factored_state.Ball) < 7 or np.any(self.current_data.trace) or np.any(self.current_data.inter):
+        if self.name == "Ball" and (np.linalg.norm(self.current_data.full_state.factored_state.Paddle - self.current_data.full_state.factored_state.Ball) < 8 or np.any(self.current_data.trace) or np.any(self.current_data.inter)):
         # if np.any(self.current_data.trace) or np.any(self.current_data.inter):
-        #     print(self.current_data.target, self.current_data.next_target, self.current_data.param, self.current_data.trace, self.current_data.inter, self.current_data.rew, self.current_data.action_chain)
+            print(self.current_data.target, self.current_data.next_target, self.current_data.param, self.current_data.trace, self.current_data.inter, self.current_data.rew, self.current_data.action_chain)
         # print((np.any(data.ext_term) and not self.only_termination), # going to resample a new action
         #     np.any(data.done),
         #     np.any(data.terminate), data.true_done, self.temporal_skip, self.current_data.inter, self.current_data.parent_state, self.current_data.obs, self.current_data.obs_next)

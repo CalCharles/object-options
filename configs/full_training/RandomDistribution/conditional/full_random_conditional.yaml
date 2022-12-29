@@ -14,7 +14,7 @@
     no_cuda: False
   train:
     train: True
-    num_frames: 100000
+    num_frames: 10000
     train_test_order: time
     load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional/
     num_iters: 10000
@@ -23,12 +23,12 @@
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    load_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/temp/
-    # save_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/temp/
+    # load_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/temp/
+    save_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/temp/
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      # passive_iters: 10000
+      passive_iters: 10000
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
@@ -42,8 +42,9 @@
       # weighting: 0 200000 100 100000
   full_inter:
     object_id: True
-    lasso_lambda: 1 0.5 100 1000
+    lasso_lambda: 1 0.5 0 100 1000
     use_active_as_passive: True
+    log_gradients: True
   interaction_net:
     hidden_sizes: 512 512 512 512 512
     net_type: keypair

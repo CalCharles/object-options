@@ -24,19 +24,21 @@ def train_interaction(full_model, rollouts, object_rollout, args, interaction_op
         for i in range(args.inter.interaction.interaction_pretrain):
             # get the input and target values
             full_batch, idxes = rollouts.sample(args.train.batch_size, weights=weights)
-            batch = object_rollouts[target_name][idxes]
+            batch = object_rollouts[idxes]
+            batch.tarinter_state = np.concatenate([batch.obs, full_batch.obs], axis=-1)
+            batch.inter_state = full_batch.obs
             trace = batch.trace
 
             # get the network outputs
             # outputs the binary over all instances, in order of names, instance number
-            interaction_likelihood = full_model[target_name].interaction_model(pytorch_model.wrap(full_batch.obs))
+            interaction_likelihood = full_model.interaction(full_batch.obs)
 
             # compute loss
             trace_loss = (interaction_likelihood.squeeze() - trace).abs().sum(axis=-1).mean()
-            run_optimizer(interaction_optimizer[target_name], full_model[target_name].interaction_model, trace_loss)
+            run_optimizer(interaction_optimizer, full_model[target_name].interaction_model, trace_loss)
         
             # logging
-            interaction_logging(full_model[target_name], args, batchvals, i, trace_loss, trace, interaction_likelihood, target)
+            interaction_logging(full_model, args, batchvals, i, trace_loss, trace, interaction_likelihood, target)
             
             # change the weighting if necesary
             weights = reweighting(i, args, trw)

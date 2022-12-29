@@ -88,6 +88,7 @@ class InlineTrainer():
             # change interaction model values
             cut_rols = rollouts[:len(rollouts)]
             # print(cut_rols.weight_binary[-200:], cut_rols.proximity[-200:])
+            print("running inline training with", len(cut_rols))
             train_combined(self.interaction_model, rollouts, None, self.interaction_args,
                 rollouts.trace, get_weights(self.weighting[2], cut_rols.weight_binary).squeeze(),
                 get_weights(self.weighting[1], cut_rols.weight_binary).squeeze(), cut_rols.proximity, cut_rols.proximity_inst,

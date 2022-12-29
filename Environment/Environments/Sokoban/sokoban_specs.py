@@ -1,7 +1,7 @@
 import numpy as np
 RNG = 30
 
-def generate_specs_fixed(rows, columns, num_obstacles, num_blocks, num_targets):
+def generate_specs_fixed(num_obstacles, num_blocks, num_targets):
     ranges = { # TODO: we might need to normalize by RNG rather the rows, columns if we want to be bound agnostic
         "Action": [np.array([0]).astype(np.float64), np.array([3]).astype(np.float64)],
         "Pusher": [np.array([0, 0]).astype(np.float64), np.array([RNG,RNG]).astype(np.float64)],

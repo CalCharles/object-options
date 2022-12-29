@@ -94,6 +94,8 @@ def get_command_args():
                         help='number of passive iterations to run')
     parser.add_argument('--compare-trace', action ='store_true', default=False,
                         help='evaluates comparisons with the trace values')
+    parser.add_argument('--log-gradients', action ='store_true', default=False,
+                        help='logs the gradients of the interaction mask and active inputs in full training')
     # passive args
     parser.add_argument('--passive-logging-interval', type=int, default=0,
                         help='number of interaction-only trace iterations to run')
@@ -139,6 +141,8 @@ def get_command_args():
                         help='defines what function is used to reduce the pointnet points')
     parser.add_argument('--aggregate-final', action ='store_true', default=False,
                         help='combines all of the values at the end')
+    parser.add_argument('--num-pair-layers', type=int, default=0,
+                        help='number of layers to reembed the pair network')
     # mask_attn arguments
     parser.add_argument('--model-dim', type=int, default=0,
                         help='dimension of keys, queries and values')
@@ -267,8 +271,10 @@ def get_command_args():
                     help='adds the ids of the objects to the state')
     parser.add_argument('--use-active-as-passive', action='store_true', default=False,
                     help='uses the passive mask on the active model instead of a separate passive model')
-    parser.add_argument("--lasso-lambda", type=int, nargs='+', default=[0,0,0],
-                        help='sets the weights on the interaction component: final lasso weight, starting full-interaction weight, 1-mask schedule, lasso weight schedule')
+    parser.add_argument("--lasso-lambda", type=int, nargs='+', default=[0,0,0,0,0],
+                        help='sets the weights on the interaction component: final lasso weight, starting full-interaction weight,starting half-loss weight, 1-mask schedule, lasso weight schedule')
+    parser.add_argument("--lasso-order", type=int, default=1,
+                        help='norm order for the lasso lambda, (default: 1)')
     parser.add_argument('--soft-distribution', default = "Identity",
                         help='the distribution type for the soft interaction mask (identity uses the outputs directly) (options: Identity, RelaxedBernoulli)')
     parser.add_argument('--mixed-distribution', default = "Hard",

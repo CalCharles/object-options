@@ -48,26 +48,29 @@ Run Full Breakout Training:
 python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/full/breakout/small/random/ --num-frames 50000
 
 Run Robopushing training:
-python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/ --num-frames 5000
+python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/testrun/random --num-frames 5000
+python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/fixed/testrun/random/ --num-frames 5000 --fixed-limits
 python generate_random.py --env RoboPushing --record-rollouts ../data/object_data/robopushing/random/ --num-frames 5000
 
 
 Run Asteroids training:
-python generate_random.py --env Asteroids --record-rollouts /hdd/datasets/object_data/asteroids/random/ --num-frames 10000
+python generate_random.py --env Asteroids --record-rollouts /hdd/datasets/object_data/asteroids/random/ --num-frames 10000 --fixed-limits
 
-python generate_random.py --env Asteroids --record-rollouts /hdd/datasets/object_data/asteroids/coordinate_turn/random/ --variant coordinate_turn --num-frames 10000
+python generate_random.py --env Asteroids --record-rollouts /hdd/datasets/object_data/asteroids/coordinate_turn/random/ --variant coordinate_turn --num-frames 10000 --fixed-limits
 
 
 Run Sokoban training:
-python generate_random.py --env Sokoban --record-rollouts /hdd/datasets/object_data/Sokoban/random/ --num-frames 10000
+python generate_random.py --env Sokoban --record-rollouts /hdd/datasets/object_data/sokoban/random/ --num-frames 10000
 
-python generate_random.py --env Sokoban --record-rollouts /hdd/datasets/object_data/Sokoban/random/ --variant few_obs --num-frames 10000
+python generate_random.py --env Sokoban --record-rollouts /hdd/datasets/object_data/sokoban/fixed/few_obs/random/ --variant few_obs --num-frames 10000 --fixed-limits
 
 python generate_random.py --env Asteroids --demonstrate --num-frames 5000
 
 Run Taxicar Training:
 python generate_random.py --env TaxiCar --record-rollouts /hdd/datasets/object_data/TaxiCar/random/ --num-frames 10000
 
+Run airhockey training:
+python generate_random.py --env AirHockey --record-rollouts /hdd/datasets/object_data/airhockey/ --demonstrate --num-frames 5000
 
 
 todos:

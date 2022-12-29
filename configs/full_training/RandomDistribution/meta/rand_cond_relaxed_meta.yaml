@@ -1,0 +1,30 @@
+---
+metaparam: 
+  multi_filename: full_rand_cond_option_
+  log_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_logs/full_rand_cond/const/
+  yaml_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_yamls/full_rand_cond/const/
+  save_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam/full_rand_cond/const/
+  graph_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_graphs/full_rand_cond/const/
+  bash_path: full_rand_cond_const.sh
+  base_config: configs/full_training/RandomDistribution/conditional/full_random_conditional_relaxed.yaml
+  runfile: train_full_interaction.py
+  gpu: 1
+  match: False
+train:
+  num_iters: 4000
+inter:
+    active:
+        intrain_passive: 0,1,2
+        interaction_schedule: 1000,5000,10000
+        weighting: -3 1000 1 1000,0 1000 3 1000,-3 1000 3 2000
+        inline_iters: 2 0 0,3 0 1000
+interaction_net:
+    hidden_sizes: 1024 1024,128 128 128 128 128 128 128 128
+    optimizer:
+        lr: .001,.0001,.00001
+        alt_lr: .0001,.000001,.0000001
+        weight_decay: 0.0,0.00001,0.0001
+full_inter:
+    lasso_lambda: 2 1 1 1000 1000,2 0.0 1.0 1000 1000,2 0.25 0.25 3000 3000
+    lasso_order: 1,2
+...

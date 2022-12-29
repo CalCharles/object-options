@@ -1,0 +1,30 @@
+---
+metaparam: 
+  multi_filename: ship_opt_
+  log_endpoint: /hdd/datasets/object_data/asteroids/rotation/hyperparam/hyperparam_logs/ship/test1/
+  yaml_endpoint: /hdd/datasets/object_data/asteroids/rotation/hyperparam/hyperparam_yamls/ship/test1/
+  save_endpoint: /hdd/datasets/object_data/asteroids/rotation/hyperparam/hyperparam/ship/test1/
+  graph_endpoint: /hdd/datasets/object_data/asteroids/rotation/hyperparam/hyperparam_graphs/ship/test1/
+  bash_path: asteroid_as_option.sh
+  base_config: configs/Asteroids/rotation/action_ship_option.yaml
+  runfile: train_option.py
+  gpu: 0
+  match: 0
+  simul_run: 4
+  num_trials: 1
+network:
+  net_type: mlp,inexp
+  scale_logits: 5,10,20,30,40,50
+  optimizer:
+    lr: .0002,.00005,.00001
+    weight_decay: 0.001,0.0001,0.00001
+sample:
+  sample_distance: 0.0,0.1,0.15,0.3
+option:
+  epsilon_close: 1 1 0.3 0.3 0.5,2 2 0.3 0.3 0.5,3 3 0.3 0.3 0.5,4 4 0.3 0.3 0.5
+  param_norm: 0,1,10,100
+  time_cutoff: 30,50,75,100
+policy:
+  epsilon_random: 0.1,0.2,0.3
+  max_min_critic: -30 0,-50 0,-100 0
+...

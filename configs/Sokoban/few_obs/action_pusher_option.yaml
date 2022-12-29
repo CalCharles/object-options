@@ -1,36 +1,37 @@
 ---
   record:
     # record_rollouts: /nfs/data/calebc/object_data/sokoban/few_obs/pusher/
-    record_rollouts: /hdd/datasets/object_data/sokoban/few_obs/pusher
+    record_rollouts: /hdd/datasets/object_data/sokoban/fixed/few_obs/pusher
     record_recycle: -1
-    log_filename: logs/temp/paddle_train.log
-    load_dir: /nfs/data/calebc/object_data/sokoban/few_obs/testrun/
-    save_dir: /nfs/data/calebc/object_data/sokoban/few_obs/testrun/
-    # checkpoint_dir: /nfs/data/calebc/object_data/sokoban/few_obs/testrun/action_paddle_checkpoint
-    # load_checkpoint: /nfs/data/calebc/object_data/sokoban/few_obs/testrun_inline/action_paddle_checkpoint
+    log_filename: logs/temp/pusher_train.log
+    load_dir: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun/
+    save_dir: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun/
+    # checkpoint_dir: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun/action_paddle_checkpoint
+    # load_checkpoint: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun_inline/action_paddle_checkpoint
     save_interval: 1200
   environment:
     env: Sokoban
     variant: few_obs
+    fixed_limits: True
   torch:
     gpu: 0
     no_cuda: False
   train:
     train: True
     pretrain_frames: 10000
-    num_steps: 100
+    num_steps: 120
     num_frames: 1000
     train_edge: Action Obstacle Pusher
-    load_rollouts: /hdd/datasets/object_data/sokoban/few_obs/random
+    load_rollouts: /hdd/datasets/object_data/sokoban/fixed/few_obs/random
     num_iters: 1000
     batch_size: 128
   critic_net:
   actor_net:
   network:
-    hidden_sizes: 128 256 512 1024
+    hidden_sizes: 512 512 512 512 256
     net_type: pair
     activation_final: tanh
-    scale_logits: 30
+    scale_logits: 60
     optimizer:
       lr: .0003
       alt_lr: .0001
@@ -45,17 +46,17 @@
     param_recycle: 0
   extract:
     single_obs_setting: 1 0 1 1 0 0
-    relative_obs_setting: 0 1 0 1
+    relative_obs_setting: 0 0 1 0 1
   option:
     term_form: param
     term_as_done: True
     epsilon_close: 0.5 0.5
-    param_norm: 3
-    constant_lambda: -0.1
-    param_lambda: 0.1
+    param_norm: 1
+    constant_lambda: -1
+    param_lambda: 1
     inter_lambda: 0
     temporal_extend: 20
-    time_cutoff: 30
+    time_cutoff: 60
   collect:
     prioritized_replay: 0.4 0.4
     buffer_len : 100000
@@ -67,7 +68,7 @@
     use_her: True
     early_stopping: 2
   policy:
-    epsilon_random: 0.2
+    epsilon_random: 0.05
     learning_type: rainbow
     max_min_critic: -30 0
     tau: 10000

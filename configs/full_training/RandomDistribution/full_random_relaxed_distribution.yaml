@@ -41,7 +41,7 @@
       # weighting: 0 200000 100 100000
   full_inter:
     object_id: True
-    lasso_lambda: 3 0.25 100 1000
+    lasso_lambda: 3 0.25 0 100 1000
     dist_temperature: 5
     mixed_interaction: relaxed
     soft_distribution: RelaxedBernoulli

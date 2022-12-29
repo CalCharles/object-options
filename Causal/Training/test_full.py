@@ -12,7 +12,15 @@ def test_full_train(full_model, train_buffer, args, object_names, environment):
 	# l1 difference per element
 	train_l1_passive = get_error(full_model, train_buffer, error_type=error_types.PASSIVE, reduced=False)[train_valid]
 	train_l1_active = get_error(full_model, train_buffer, error_type=error_types.ACTIVE, reduced=False)[train_valid]
-	
+
+	# l1 difference between passive and active for train, per value, per element, without done states
+	train_raw_passive = get_error(full_model, train_buffer, error_type=error_types.PASSIVE_RAW, reduced=False, normalized=False)[train_valid]
+	train_raw_active = get_error(full_model, train_buffer, error_type=error_types.ACTIVE_RAW, reduced=False, normalized=False)[train_valid]
+
+	# variance for passive and active for train
+	train_passive_var = get_error(full_model, train_buffer, error_type=error_types.PASSIVE_VAR)[train_valid]
+	train_active_var = get_error(full_model, train_buffer, error_type=error_types.ACTIVE_VAR)[train_valid]
+
 	# active and passive mean, max min and sum
 	train_like_passive = (get_error(full_model, train_buffer, error_type = error_types.PASSIVE_LIKELIHOOD, reduced=False)[train_valid])
 	train_like_active = (get_error(full_model, train_buffer, error_type = error_types.ACTIVE_LIKELIHOOD, reduced=False)[train_valid])
@@ -34,8 +42,18 @@ def test_full_train(full_model, train_buffer, args, object_names, environment):
 	train_likev = get_error(full_model, train_buffer, error_type = error_types.INTERACTION_RAW)[train_valid]
 	train_likepred = full_model.test(train_likev)
 
+	# proximity
+	train_prox = get_error(full_model, train_buffer, error_type=error_types.PROXIMITY, normalized=True)[train_valid]
+
+
+
 	BN_train = np.mean((train_bin > train_likepred).astype(np.float64), axis=0) / np.sum(train_bin.astype(np.float64)) 
 	BP_train = np.mean((train_bin < train_likepred).astype(np.float64), axis=0) / np.sum((train_bin == 0).astype(np.float64)) 
+
+	# false positives and negatives compared to trace
+	FBN_test = np.sum((train_trace > train_bin).astype(np.float64), axis=0) / np.sum(train_trace.astype(np.float64))
+	FBP_test = np.sum((train_trace < train_bin).astype(np.float64), axis=0) / np.sum((train_trace).astype(np.float64))
+
 	FN_train = np.mean((train_trace > train_likepred).astype(np.float64), axis=0) / np.sum(train_trace.astype(np.float64))
 	FP_train = np.mean((train_trace < train_likepred).astype(np.float64), axis=0) / np.sum((train_trace == 0).astype(np.float64))
 
@@ -54,8 +72,37 @@ def test_full_train(full_model, train_buffer, args, object_names, environment):
 	log_string += f'\nlike_mean: {train_like_mean}'
 	log_string += f'\nBP: {BP_train.squeeze()}'
 	log_string += f'\nBN: {BN_train.squeeze()}'
+	log_string += f'\nFBP: {FBP_test.squeeze()}'
+	log_string += f'\nFBN: {FBN_test.squeeze()}'
 	log_string += f'\nFP: {FP_train.squeeze()}'
 	log_string += f'\nFN: {FN_train.squeeze()}'
+
+	rv = lambda x: full_model.norm.reverse(x, form="dyn" if full_model.predict_dynamics else "target", name=full_model.name)
+	inter_points = ((train_likepred.squeeze() != train_trace.squeeze()) + (train_bin.squeeze() != train_trace.squeeze())).astype(bool).squeeze() # high passive error could be added
+	passive_samp = np.concatenate([rv(train_target[train_valid]), train_raw_passive, train_l1_passive, train_passive_var, train_likev], axis=-1)[inter_points]
+	active_samp = np.concatenate([rv(train_target[train_valid]), train_raw_active, train_l1_active, train_active_var, train_likev], axis=-1)[inter_points]
+	log_string += '\n\nSampled computation: '
+	log_string += f'\npassive_pred_diff: {passive_samp}'
+	log_string += f'\nactive_pred_diff: {active_samp}'
+
+	inter_state = train_buffer.inter_state[:len(train_buffer)][train_valid]#[inter_points]
+	next_target = train_buffer.next_target[:len(train_buffer)][train_valid]#[inter_points]
+	bins = np.concatenate([
+							train_likev, 
+							train_likepred, 
+							train_bin, 
+							train_trace, 
+							train_prox,
+							# train_l1_passive,
+							np.expand_dims(np.sum(train_like, axis=-1), -1),
+							np.expand_dims(np.sum(train_like_passive, axis=-1), -1), 
+							np.expand_dims(np.sum(train_like_active, axis=-1), -1),
+							full_model.norm.reverse(inter_state, form = "inter"),
+							full_model.norm.reverse(next_target)], axis=-1)[inter_points]
+
+	for i in range(max(1, min(4, int(len(bins) // 50)))):
+		log_string += f'\nlike, pred, bin, trace, prox, like, plike, alike: {bins[i*50:(i+1) * 50]}'
+
 	print(log_string)
 	logging.info(log_string)
 
@@ -173,6 +220,8 @@ def test_full(full_model, test_buffer, args, object_names, environment):
 	next_target = test_buffer.next_target[:len(test_buffer)][test_valid]#[inter_points]
 	target_diff = test_buffer.target_diff[:len(test_buffer)][test_valid]#[inter_points]
 
+	passive_samp_norm = np.concatenate([target_diff, test_raw_passive, test_l1_passive, test_passive_var, test_likev], axis=-1)
+	active_samp_norm = np.concatenate([target_diff, test_raw_active, test_l1_active, test_active_var, test_likev], axis=-1)
 	passive_samp = np.concatenate([target_diff, test_raw_passive, test_l1_passive, test_passive_var, test_likev], axis=-1)[inter_points]
 	active_samp = np.concatenate([target_diff, test_raw_active, test_l1_active, test_active_var, test_likev], axis=-1)[inter_points]
 	bins = np.concatenate([
@@ -191,9 +240,11 @@ def test_full(full_model, test_buffer, args, object_names, environment):
 	# log_string += f'\ntarget: {target[:128]}'
 	# log_string += f'\nnext: {next_target[:128]}'
 	# log_string += f'\ndiff: {target_diff[:128]}'
+	log_string += f'\npassive_pred_diff_norm: {passive_samp_norm[:30]}'
+	log_string += f'\nactive_pred_diff_norm: {active_samp_norm[:30]}'
 	log_string += f'\npassive_pred_diff: {passive_samp}'
 	log_string += f'\nactive_pred_diff: {active_samp}'
-	for i in range(min(4, int(len(bins) // 50))):
+	for i in range(max(1, min(4, int(len(bins) // 50)))):
 		log_string += f'\nlike, pred, bin, trace, prox, like, plike, alike: {bins[i*50:(i+1) * 50]}'
 	logging.info(log_string)
 	print(log_string, np.sum(inter_points.astype(int)))
