@@ -76,6 +76,7 @@ class ChangepointModel():
 		if self.changepoint_model is not None:
 			models, indices, changepoints, filtered_changepoints, proximity = self.get_changepoints(target_states, parent_states, dones)
 			# print(filtered_changepoints.shape)
+			# print("changepoints", changepoints)
 			# get the displacements
 			# displacement = target_states[np.roll(filtered_changepoints, 1)] - target_states[filtered_changepoints]
 			filtered_indices = np.where(filtered_changepoints)[0]

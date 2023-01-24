@@ -1,0 +1,34 @@
+---
+metaparam: 
+  multi_filename: ball_grad_opt_
+  log_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_logs/ball_grad/test/
+  yaml_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_yamls/ball_grad/test/
+  save_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_grad/test/
+  graph_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_graphs/ball_grad/test/
+  bash_path: ball_grad.sh
+  base_config: configs/Baselines/HyPE/Breakout/paddle_ball_skill_grad.yaml
+  runfile: train_baselines.py
+  gpu: 0
+  match: 0
+  simul_run: 8
+  num_trials: 1
+  cycle_gpu: True
+reward:
+  reward_base: -1,-.1,-0.01
+  param_reward: 100.0,200
+  changepoint_reward: 10,50
+skill:
+  obs_components: 1 1 1,0 1 1,0 0 1
+  prioritized_replay: 0.4 0.4,0.2 0.4
+  learn:
+    grad_epoch: 50,100,200
+    max_min_critic: -10 200
+network:
+  hidden_sizes: 128 128 128,128 128 128 128 128,512 512 512,256 256 256 256
+  activation_final: tanh,none
+  activation: leakyrelu,sinc,relu,
+  scale_final: 10,100
+  optimizer:
+    lr: .0001,0.001,0.0005,0.00007
+    weight_decay: 0.0,0.001
+...

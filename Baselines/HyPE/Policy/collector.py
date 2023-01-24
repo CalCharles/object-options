@@ -203,7 +203,7 @@ class HyPECollector():
                 self.data.target = self.data.next_target
                 self.data.obs = self.data.obs_next
                 true_reward_total += true_reward
-                if true_reward != 0: print("adding true reward", true_reward, int(np.any(self.data.true_done)))
+                # if true_reward > 0: print("adding true reward", true_reward, int(np.any(self.data.true_done)))
                 last_true_done = [true_done]
                 episode_count += int(true_done)
                 true_episode_count += int(true_done)
@@ -220,7 +220,7 @@ class HyPECollector():
             assign_val = asmt
             if self.skill.reward_model.one_mode or self.merge_data: asmt = 0
             if asmt in assignment_dicts:
-                assignment_dicts[asmt]["assignment"] = assign_val
+                assignment_dicts[asmt]["assignment"].append(assign_val)
                 assignment_dicts[asmt]['full_data'].append(full_data)
                 assignment_dicts[asmt]['target'].append(full_data.target)
                 assignment_dicts[asmt]['parent_state'].append(full_data.parent_state)
@@ -265,7 +265,8 @@ class HyPECollector():
                 # print(ctr, asmt_dict["data_counts"][count_at])
                 if count_at < len(asmt_dict["data_counts"]) and ctr == asmt_dict["data_counts"][count_at]:
                     asmt_dict["data"][count_at].rew = full_reward[asmt]
-                    rews += full_reward[asmt]
+                    if asmt == asmt_dict["assignment"][count_at]:
+                        rews += full_reward[asmt]
                     if np.any(term) or np.any(asmt_dict["data"][count_at].done):
                         hit += int(int(full_reward[asmt]) == self.skill.reward_model.param_reward) # kind of hacky way to check
                         term_count += 1
@@ -273,7 +274,9 @@ class HyPECollector():
                     asmt_dict["data"][count_at].full_reward = full_reward
                     asmt_dict["data"][count_at].terminate = term
                     asmt_dict["data"][count_at].done = asmt_dict["data"][count_at].done or term
-                    if np.sum(full_reward) > 0: print("assigning", asmt_dict["data"][count_at].done, term, full_reward, asmt_dict["data"][count_at].rew, asmt)
+                    if np.sum(full_reward) > 0: print("assigning", asmt_dict["data"][count_at].target,asmt_dict["data"][count_at].target_diff, 
+                                            asmt_dict["data"][count_at].parent_state, asmt_dict["data"][count_at].done, term, full_reward, 
+                                            asmt_dict["data"][count_at].rew, asmt, asmt_dict["assignment"][count_at])
                     assignment_reward[asmt] += full_reward[asmt]
                     # print("reward", asmt_dict["data"][count_at].rew)
                     if self.buffers is not None: self.buffers[asmt].add(asmt_dict["data"][count_at])

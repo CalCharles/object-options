@@ -1,0 +1,7 @@
+---
+  environment:
+    env: RoboPushing
+    variant: obstacles
+  arg_dict: cdl
+  param_config: configs/Baselines/CDL/robopushing_cdl.json
+...

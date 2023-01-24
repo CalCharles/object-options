@@ -59,7 +59,6 @@ def train_skill(args):
         train_logger.log_losses(losses)
         train_logger.print_log(i)
 
-
         if i % args.skill.log_interval == 0:
             print("testing")
             collect_test_trials(test_logger, skill, test_collector, args.skill.test_policy_iters, num_repeats, i, args.skill.test_trials, False)

@@ -38,7 +38,7 @@ def logOneMinLenCDF(t, mean, sigma, min_seg_len):
 
 def logLenPDF(t, mean, sigma):
     # Integrate between t-1 and t, so that the CDF is consistent later for cdf(t) = pdf(t) + pdf(t-1) + ... + pdf(MIN_SEG_LEN) 
-    return np.log( gaussCDF(t, mean, sigma) - gaussCDF(t-1.0, mean, sigma) )
+    return np.log( (gaussCDF(t, mean, sigma) - gaussCDF(t-1.0, mean, sigma)) + 1e-10 )
 
 def add_new_cp(t, data, prev_max_MAP, particles, params, model_classes, max_path_indices, max_path_models, max_MAP, online=False):
     l_prior = np.log(1.0 / len(model_classes))
@@ -226,7 +226,7 @@ def calculateAlpha(particles, M):
             B_i += particles[j].nMAP
         
         kappa = particles[i].nMAP
-        if(kappa == 0):
+        if(kappa <= 1e-15):
             continue             # Account for underflow
         stat = (1.0/kappa)*B_i + A_i        # Check if sum[min(w_i/kappa , 1)] <= M
         # print(kappa, B_i, A_i, stat, i)

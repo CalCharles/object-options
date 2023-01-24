@@ -4,7 +4,7 @@ import os
 from gym import spaces
 import robosuite
 from robosuite.controllers import load_controller_config
-import imageio, tqdm
+import imageio
 import copy
 import cv2
 from Environment.environment import Environment
@@ -119,7 +119,7 @@ class RoboPushing(Environment):
         self.objects = ["Action", "Gripper", "Block"] + ["Obstacle" + str(i) for i in range(num_obstacles)] + ["Target", "Reward", "Done"]
         self.object_instanced = instanced
         self.object_instanced["Obstacle"] = num_obstacles
-        self.all_names = sum([[name + str(i) for i in range(instanced[name])] for name in self.object_names], start = [])
+        self.all_names = sum([[(name + str(i) if instanced[name] > 1 else name) for i in range(instanced[name])] for name in self.object_names], start = [])
         self.instance_length = len(self.all_names)
 
         # position mask

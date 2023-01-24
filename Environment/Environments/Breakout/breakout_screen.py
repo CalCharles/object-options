@@ -91,6 +91,7 @@ class Breakout(Environment):
         self.hit_counter = 0
         self.bounce_counter = 0
         self.since_last_bounce = 0
+        self.since_last_hit = 0
         self.choices = list()
         self.reset()
         self.safe_distance = self.ball.height + max(self.paddle.height, self.block_height) + 4
@@ -265,6 +266,7 @@ class Breakout(Environment):
         self.hit_counter = 0
         self.bounce_counter = 0
         self.since_last_bounce = 0
+        self.since_last_hit = 0
         self.total_score = 0
         self.render()
         if self.variant == "proximity" and hasattr(self, "sampler"): self.sampler.sample(self.get_state())
@@ -380,11 +382,14 @@ class Breakout(Environment):
                 needs_ball_reset = True
                 self.dropped = True
                 self.since_last_bounce = 0
+                self.since_last_hit = 0
 
             # end of episode by dropping
             if self.ball.losses == 5 or (self.dropped and self.drop_stopping):
                 self.done.attribute = True
                 needs_reset = self.ball.losses == 5
+                if self.ball.losses == 5:
+                    print("Breakout episode score:", self.total_score)
                 print("eoe", self.total_score)
                 break
 
@@ -399,13 +404,22 @@ class Breakout(Environment):
                     needs_reset = True
                     self.reward.attribute += self.completion_reward * self.default_reward
                     self.done.attribute = True
-                    print("eoe", self.total_score)
+                    print("Breakout episode score:", self.total_score)
                     break
 
             # reset because the ball is stuck
             self.since_last_bounce += 1
             if self.since_last_bounce > 1000:
                 needs_reset = True
+                break
+
+            # reset because no block has been struck
+            self.since_last_hit += 1
+            if self.since_last_hit > 1000:
+                needs_reset = True
+                self.done.attribute = True
+                self.reward.attribute  += self.timeout_penalty
+                print("eoe", self.total_score)
                 break
 
             # record paddle bounce information (end of episode)

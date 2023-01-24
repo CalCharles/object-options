@@ -22,24 +22,25 @@ skill:
   # policy_iters_schedule: 15
   # num_repeats_schedule: 1
   obs_components: 1 1 1
-  num_iters: 11000
+  num_iters: 2000
   num_repeats: 1
-  buffer_len: 50000
+  buffer_len: 200000
   epsilon_random: 0.01
   epsilon_schedule: 100
   num_networks: 1
-  prioritized_replay: 0.6 0.4
+  prioritized_replay: 0.4 0.4
   learning_type: rainbow
-  buffer_len: 10000
+  buffer_len: 100000
   num_iters: 1000
   log_interval: 50
   merge_data: True
   learn:
     grad_epoch: 100
     discount_factor: 0.99
-    max_min_critic: -10 100
+    max_min_critic: -10 200
     tau: 3000
-  test_trials: 10
+  test_trials: 3
+  train_log_maxlen: 12
   # normalized: False
   # epsilon_random: 0.0
   # num_networks: 10

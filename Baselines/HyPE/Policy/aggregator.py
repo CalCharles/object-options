@@ -40,8 +40,8 @@ class TemporalAggregator():
         self.current_data.update(next_target=[data.next_target], target=[data.target], target_diff=[data.target_diff],
                                  parent_state = [data.parent_state])
 
-        if np.sum(np.abs(self.current_data.target[:2] - self.current_data.parent_state[:2])) < 8:
-            print("close", np.concatenate([self.current_data.target,self.current_data.parent_state], axis=-1))
+        # if np.sum(np.abs(self.current_data.target[:2] - self.current_data.parent_state[:2])) < 8:
+        #     print("close", np.concatenate([self.current_data.target,self.current_data.parent_state], axis=-1))
         
         added = ((np.any(data.ext_term)) or # going to resample a new action
             np.any(data.done))

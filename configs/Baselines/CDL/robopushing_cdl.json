@@ -1,11 +1,11 @@
 {
-    "info": "breakout_dynamics_cmi",
+    "info": "robopushing_dynamics_cmi",
     "obs_keys": ["Ball", "Paddle", "Block80","Block81","Block82","Block83","Block84","Block85","Block86","Block87","Block88","Block89","Block90","Block91","Block92","Block93","Block94","Block95", "Block96", "Block97", "Block98", "Block99"],
     "goal_keys": [],
     "seed": 0,
-    "cuda_id": 2,
+    "cuda_id": 3,
     "env_params": {
-        "env_name": "Breakout",
+        "env_name": "RoboPushing",
         "num_env": 1,
         "causal_env_params": {
             "robots": "UR5e",
@@ -65,10 +65,10 @@
         "load_policy": "",
         "load_replay_buffer": "",
         "total_steps": 3000000,
-        "init_steps": 30000,
+        "init_steps": 10000,
         "collect_env_step": true,
-        "inference_gradient_steps": 200,
-        "policy_gradient_steps": 200,
+        "inference_gradient_steps": 250,
+        "policy_gradient_steps": 250,
         "saving_freq": 5000,
         "plot_freq": 1000,
         "replay_buffer_params": {

@@ -13,7 +13,7 @@
   reward:
     champ_parameters: 15 10 1 100 100 2 1e-2 3 
     dp_gmm: 10 6000 100 diag 1e-10
-    use_changepoint: False
+    use_changepoint: True
     proximity: 0.05
     num_frames: 50000
     reward_base: -0.1

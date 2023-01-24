@@ -3,7 +3,7 @@ record:
   # record_rollouts: /hdd/datasets/hype/robopushing/Block/
   record_recycle: -1
   load_dir: /hdd/datasets/hype/robopushing/testrun/
-  # save_dir: /hdd/datasets/hype/robopushing/testrun/
+  save_dir: /hdd/datasets/hype/robopushing/testrun/
 environment:
   env: RoboPushing
   variant: discrete
@@ -16,11 +16,11 @@ reward:
   one_mode: False
 skill:
   temporal_extend: 2
-  policy_iters: 120
+  policy_iters: 15
   # policy_iters_schedule: 15
   # num_repeats_schedule: 1
   obs_components: 1 1 1
-  num_iters: 11000
+  num_iters: 500000
   num_repeats: 1
   buffer_len: 50000
   epsilon_random: 0.1
