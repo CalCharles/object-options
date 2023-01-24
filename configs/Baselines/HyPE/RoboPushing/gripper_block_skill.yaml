@@ -3,7 +3,7 @@ record:
   # record_rollouts: /hdd/datasets/hype/robopushing/Block/
   record_recycle: -1
   load_dir: /hdd/datasets/hype/robopushing/testrun/
-  save_dir: /hdd/datasets/hype/robopushing/testrun/
+  save_dir: /nfs/data/calebc/hype/robopushing/testrun/
 environment:
   env: RoboPushing
   variant: discrete
@@ -12,7 +12,8 @@ train_mode: skill # either reward or policy
 train_edge: Gripper Block
 reward:
   reward_base: -0.1
-  param_reward: 1.0
+  changepoint_reward: 0.0
+  param_reward: 10.0
   one_mode: False
 skill:
   temporal_extend: 2
@@ -20,21 +21,20 @@ skill:
   # policy_iters_schedule: 15
   # num_repeats_schedule: 1
   obs_components: 1 1 1
-  num_iters: 500000
+  num_iters: 2000
   num_repeats: 1
   buffer_len: 50000
   epsilon_random: 0.1
   epsilon_schedule: 100
   num_networks: 1
   learning_type: rainbow
-  buffer_len: 10000
-  num_iters: 1000
+  buffer_len: 500000
   log_interval: 50
   merge_data: True
   learn:
     grad_epoch: 100
     discount_factor: 0.99
-    max_min_critic: -30 30
+    max_min_critic: -10 10
     tau: 3000
   test_trials: 10
   # normalized: False
@@ -53,7 +53,7 @@ network:
   net_type: mlp
   activation_final: tanh
   activation: leakyrelu
-  scale_logits: 30
+  scale_logits: 10
   init_form: xnorm
   optimizer:
     lr: .0001

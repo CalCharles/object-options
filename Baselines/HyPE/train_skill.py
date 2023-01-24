@@ -45,6 +45,8 @@ def train_skill(args):
     train_collector = HyPECollector(environment, buffers, skill, skill.extractor, False, record, policy_iters_schedule(0), args.skill.merge_data)
     test_collector = HyPECollector(environment, None, skill, skill.extractor, True, record, policy_iters_schedule(0))
 
+    print(args.skill.num_iters)
+    error
     for i in range(args.skill.num_iters):  # total step
         if args.skill.epsilon_schedule > 0 and i % args.skill.epsilon_schedule == 0:
             skill.set_epsilon(epsilon_schedule(i))
