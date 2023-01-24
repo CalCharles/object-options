@@ -10,9 +10,9 @@ metaparam:
   runfile: train_baselines.py
   gpu: 0
   match: 0
-  simul_run: 4
+  simul_run: 8
   num_trials: 1
-  cycle_gpu: True
+  cycle_gpu: 4
 reward:
   reward_base: -0.01,-0.1,-1
   param_reward: 1,10
