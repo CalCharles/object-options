@@ -227,7 +227,7 @@ class Skill():
             act = self.sample_action(random=True)
             state, policy_batch = None, Batch()
         else:
-            if self.assignment_mode: policy = self.policies[batch.assignment.squeeze()]
+            if self.assignment_mode: policy = self.policies[int(batch.assignment.squeeze())]
             else: policy = self.policy
             # print(self.train_epsilon, self.policy.epsilon)
             policy_batch = policy.forward(batch, state_chain[-1] if state_chain is not None else None)
