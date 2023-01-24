@@ -2,7 +2,7 @@
 record:
   # record_rollouts: /hdd/datasets/hype/breakout/Paddle/
   record_recycle: -1
-  load_dir: /hdd/datasets/hype/breakout/testrun/
+  load_dir: /nfs/data/calebc/hype/breakout/testrun/
   # save_dir: /hdd/datasets/hype/breakout/testrun/
 environment:
   env: Breakout
