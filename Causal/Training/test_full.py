@@ -5,6 +5,7 @@ import logging
 def test_full_train(full_model, train_buffer, args, object_names, environment):
 	# prints out training assessment, with most of the same values as test_full
 	# predicted target for the model
+	train_buffer = train_buffer.sample(0) # only sample valid indices
 	train_target = train_buffer.next_target if full_model.predict_dynamics else train_buffer.target_diff
 
 	train_valid = (train_buffer.done != 1).squeeze()
@@ -224,7 +225,7 @@ def test_full(full_model, test_buffer, args, object_names, environment):
 	active_samp_norm = np.concatenate([target_diff, test_raw_active, test_l1_active, test_active_var, test_likev], axis=-1)
 	passive_samp = np.concatenate([target_diff, test_raw_passive, test_l1_passive, test_passive_var, test_likev], axis=-1)[inter_points]
 	active_samp = np.concatenate([target_diff, test_raw_active, test_l1_active, test_active_var, test_likev], axis=-1)[inter_points]
-	bins = np.concatenate([
+	all_bins = np.concatenate([
 							test_likev, 
 							test_likepred, 
 							test_bin, 
@@ -235,7 +236,8 @@ def test_full(full_model, test_buffer, args, object_names, environment):
 							np.expand_dims(np.sum(test_like_passive, axis=-1), -1), 
 							np.expand_dims(np.sum(test_like_active, axis=-1), -1),
 							full_model.norm.reverse(inter_state, form = "inter"),
-							full_model.norm.reverse(next_target)], axis=-1)[inter_points]
+							full_model.norm.reverse(next_target)], axis=-1)
+	bins = all_bins[inter_points]
 	log_string += '\n\nSampled computation: '
 	# log_string += f'\ntarget: {target[:128]}'
 	# log_string += f'\nnext: {next_target[:128]}'
@@ -246,5 +248,10 @@ def test_full(full_model, test_buffer, args, object_names, environment):
 	log_string += f'\nactive_pred_diff: {active_samp}'
 	for i in range(max(1, min(4, int(len(bins) // 50)))):
 		log_string += f'\nlike, pred, bin, trace, prox, like, plike, alike: {bins[i*50:(i+1) * 50]}'
+
+	bin_inter = ((test_bin.squeeze() != test_trace.squeeze())).astype(bool).squeeze() # high passive error could be added
+	bin_bins = all_bins[bin_inter]
+	for i in range(max(1, min(4, int(len(bin_inter) // 50)))):
+		log_string += f'\nall like, pred, bin, trace, prox, like, plike, alike: {bin_bins[i*50:(i+1) * 50]}'		
 	logging.info(log_string)
 	print(log_string, np.sum(inter_points.astype(int)))

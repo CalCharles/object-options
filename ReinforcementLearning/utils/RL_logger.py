@@ -30,6 +30,7 @@ class RLLogger(Logger):
         self.term_count = 0
         self.time = time.time()
         self.current_episodes = deque(maxlen=self.maxlen)
+        self.current_true_episodes = deque(maxlen=self.maxlen)
         self.current_steps = deque(maxlen=self.maxlen)
         self.current_term = deque(maxlen=self.maxlen)
         self.reward = deque(maxlen=self.maxlen)
@@ -39,7 +40,8 @@ class RLLogger(Logger):
         self.total_losses = dict()
         
     def log_results(self, result):
-        # adds to the running totals 
+        # adds to the running totals
+        print(self.name, result)
         self.total_steps += result["n/st"]
         self.total_episodes += result["n/ep"]
         self.total_true_episodes += result["n/tep"]
@@ -49,6 +51,7 @@ class RLLogger(Logger):
         self.current_steps.append(result["n/st"])
         self.current_episodes.append(result["n/ep"])
         self.current_term.append(result["n/tr"])
+        self.current_true_episodes.append(result['n/tep'])
 
         self.reward.append(result["rews"])
         self.success.append(result["n/h"])
@@ -80,11 +83,11 @@ class RLLogger(Logger):
             # excludes environment resets
             miss_hit = (np.sum(self.miss) + np.sum(self.success) )
             # first line logs the rolling totals
-            log_string = self.name + f': Iters: {i}, Steps: {self.total_steps}, Episodes: {self.total_episodes}, True Ep: {self.total_true_episodes}, FPS: {self.total_steps/(time.time()-self.time)}'
+            log_string = self.name + f': Iters: {i}, Steps: {self.total_steps}, Episodes: {self.total_episodes}, True Ep: {self.total_true_episodes}, Cur ep: {np.sum(self.current_episodes)}, cur tep: {np.sum(self.current_true_episodes)}, FPS: {self.total_steps/(time.time()-self.time)}'
             # gives per step, per termination and per episode returns
             log_string += f'\nReturn (step, term, h/m, ep): {np.sum(self.reward)/np.sum(self.current_steps)}, {np.sum(self.reward)/np.sum(self.current_term)}, {np.sum(self.reward)/miss_hit}, {np.sum(self.reward)/max(1, np.sum(self.current_episodes))}'
             # gives hit rates (rate of reaching goal, regardless of negative rewards)
-            log_string += f'\nHit (step, term, h/m, ep, drp): {np.sum(self.success)/np.sum(self.current_steps)}, {np.sum(self.success)/np.sum(self.current_term)}, {np.sum(self.success)/miss_hit}, {np.sum(self.success)/max(1, np.sum(self.current_episodes))}, {np.sum(self.dropped)}'
+            log_string += f'\nHit (step, term, h/m, ep, drp): {np.sum(self.success)/np.sum(self.current_steps)}, {np.sum(self.success)/np.sum(self.current_term)}, {np.sum(self.success)/miss_hit}, {np.sum(self.success)/max(1, np.sum(self.current_episodes))}, {np.sum(self.dropped) / max(1, np.sum(self.current_true_episodes))}'
             for k in self.total_losses.keys():
                 log_string += f'\nLoss {k}: {np.mean(self.total_losses[k])}'
             if len(self.record_graphs) != 0:

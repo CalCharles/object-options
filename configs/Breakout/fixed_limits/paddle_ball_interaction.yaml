@@ -31,7 +31,7 @@
       passive_iters: 20000 # 5000
       passive_log_interval: 100
     active:
-      # no_interaction: 1
+      no_interaction: 2
       active_log_interval: 100
       inline_iters: 10 1 100000 # 10000
       interaction_weighting: 100 -1

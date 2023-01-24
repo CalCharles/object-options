@@ -22,6 +22,15 @@ DEFAULT = 0
 JOINT_MODE = 1
 HARD_MODE = 2
 PLANAR_MODE = 3
+DISCRETE_MODE = 4
+
+a = [[-0.7,0,0],
+   [0.7,0,0],
+   [0,-0.7,0],
+   [0,0.7,0],
+   [0,0,-0.25],
+   [0,0,.25]]
+DISCRETE_MOVEMENTS = np.array(a).astype(float)
 
 class RoboPushing(Environment):
     def __init__(self, variant="default", horizon=30, renderable=False, fixed_limits=False):
@@ -59,16 +68,25 @@ class RoboPushing(Environment):
         # environment properties
         self.num_actions = -1 # this must be defined, -1 for continuous. Only needed for primitive actions
         self.name = "RobosuitePushing" # required for an environment 
-        self.discrete_actions = False
+        self.discrete_mode = mode == DISCRETE_MODE
+        self.discrete_actions = self.discrete_mode
         self.frameskip = control_freq
         self.timeout_penalty = -horizon
-        self.planar_mode = mode == PLANAR_MODE 
+        self.planar_mode = mode == PLANAR_MODE
 
         # spaces
-        low, high = self.env.action_spec
-        limit = 7 if self.mode == JOINT_MODE else 3
-        self.action_shape = (limit,)
-        self.action_space = spaces.Box(low=low[:limit], high=high[:limit])
+        if self.discrete_mode:
+            self.action_shape = (1,)
+            self.num_actions = 6 # up down left right forward backward
+            self.action_space = spaces.Discrete(self.num_actions)
+            self.action = 0
+            limit = 1
+        else:
+            low, high = self.env.action_spec
+            limit = 7 if self.mode == JOINT_MODE else 3
+            self.action_shape = (limit,)
+            self.action_space = spaces.Box(low=low[:limit], high=high[:limit])
+            self.action = np.zeros(self.action_shape)
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=[9])
         self.renderable = renderable
 
@@ -78,16 +96,23 @@ class RoboPushing(Environment):
         # state components
         self.reward = 0
         self.done = False
-        self.action = np.zeros(self.action_shape)
         self.extracted_state = None
 
         # factorized state properties
         self.object_names = ["Action", "Gripper", "Block", 'Obstacle',"Target", 'Done', "Reward"] # must be initialized, a list of names that controls the ordering of things
         self.object_sizes = {"Action": limit, "Gripper": 3, "Block": 3, "Obstacle": 3,"Target": 3, "Done": 1, "Reward": 1} # must be initialized, a dictionary of name to length of the state
-        self.object_range = ranges if not self.fixed_limits else ranges_fixed # the minimum and maximum values for a given feature of an object
-        self.object_dynamics = dynamics if not self.fixed_limits else dynamics_fixed
-        self.object_range_true = ranges
-        self.object_dynamics_true = dynamics
+        if self.discrete_mode:
+            self.object_range = discrete_ranges
+            self.object_dynamics = discrete_dynamics
+            self.object_range_true = discrete_ranges
+            self.object_dynamics_true = discrete_dynamics
+            self.position_masks = discrete_position_masks
+        else:
+            self.object_range = ranges if not self.fixed_limits else ranges_fixed # the minimum and maximum values for a given feature of an object
+            self.object_dynamics = dynamics if not self.fixed_limits else dynamics_fixed
+            self.object_range_true = ranges
+            self.object_dynamics_true = dynamics
+            self.position_masks = position_masks
 
         # obstacles and objects
         self.num_obstacles = num_obstacles
@@ -98,7 +123,6 @@ class RoboPushing(Environment):
         self.instance_length = len(self.all_names)
 
         # position mask
-        self.position_masks = position_masks
         self.pos_size = 3
 
         self.full_state = self.reset()
@@ -106,6 +130,8 @@ class RoboPushing(Environment):
 
     def set_named_state(self, obs_dict):
         obs_dict['Action'], obs_dict['Gripper'], obs_dict['Block'], obs_dict['Target'] = self.action, obs_dict['robot0_eef_pos'], obs_dict['cube_pos'], obs_dict['goal_pos']# assign the appropriate values
+        if self.discrete_mode:
+            obs_dict['Action'] = [self.action]
         for i in range(self.num_obstacles):
             # print("settin", obs_dict[f"obstacle{i}_pos"])
             obs_dict['Obstacle' + str(i)] = obs_dict[f"obstacle{i}_pos"]
@@ -120,6 +146,8 @@ class RoboPushing(Environment):
             use_act = action
         elif self.mode == PLANAR_MODE:
             use_act = np.concatenate([action[:2], [0,0,0,0]])
+        elif self.mode == DISCRETE_MODE:
+            use_act = np.concatenate([DISCRETE_MOVEMENTS[action], [0,0,0]])
         else:
             use_act = np.concatenate([action, [0, 0, 0]])
         return use_act

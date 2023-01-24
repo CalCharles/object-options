@@ -59,7 +59,7 @@ def separate_weights(weighting, full_model, rollouts, proximity, trace, object_r
     else: # no special weighting on the samples
         passive_error, weights, binaries = uni_weights(rollouts)
     if len(binaries.shape) == 1 and ((object_rollouts is not None and len(object_rollouts.weight_binary.shape) == 2) or
-                                 (weight_binary in rollouts and len(rollouts.weight_binary.shape) == 2)): binaries = np.expand_dims(binaries, -1)
+                                 ("weight_binary" in rollouts and len(rollouts.weight_binary.shape) == 2)): binaries = np.expand_dims(binaries, -1)
     if object_rollouts is None: rollouts.weight_binary[:len(rollouts)] = binaries
     else: object_rollouts.weight_binary[:len(rollouts)] = (np.sum(binaries, axis=-1) > 0).astype(int) if len(binaries.shape) > 1 else binaries
     return passive_error, weights, binaries

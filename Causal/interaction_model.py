@@ -254,7 +254,8 @@ class NeuralInteractionForwardModel(nn.Module):
     def get_active_mask(self):
         return self.test.selection_binary
 
-    def interaction(self, val, target=None, next_target=None, target_diff=None, prenormalize=False, use_binary=False): # val is either a batch, or a ndarray of inter_state. Does NOT unwrap, Does NOT normalize
+    def interaction(self, val, target=None, next_target=None, target_diff=None, prenormalize=False, use_binary=False, return_hot=False): # val is either a batch, or a ndarray of inter_state. Does NOT unwrap, Does NOT normalize
+        # hot is an unused parameter (see full_interaction_model for usage)
         if type(val) != Batch:
             bat = Batch()
             bat.inter_state = val

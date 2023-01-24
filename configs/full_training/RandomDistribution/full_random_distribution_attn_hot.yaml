@@ -9,7 +9,7 @@
     env: RandomDistribution
     load_environment: /hdd/datasets/object_data/RandomDistribution/random/
   torch:
-    gpu: 0
+    gpu: 1
     no_cuda: False
   train:
     train: True
@@ -30,7 +30,7 @@
     proximity_epsilon: 7
     passive:
       # passive_iters: 3000
-      # passive_iters: 1000
+      # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
     active:
@@ -42,7 +42,7 @@
       # weighting: 0 200000 100 100000
   full_inter:
     object_id: True
-    lasso_lambda: 1 0.25 100 1000
+    lasso_lambda: 1 0.25 0 100 1000
     # use_active_as_passive: True
   interaction_net:
     hidden_sizes: 512 256
@@ -61,7 +61,7 @@
       num_layers: 2
       cluster: True
       num_clusters: 3
-      attention_dropout: 0.0
+      attention_dropout: 0.1
     optimizer:
       lr: .0001
       alt_lr: .0001

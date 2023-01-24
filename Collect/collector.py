@@ -396,7 +396,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             #     self.data.done, self.data.true_done, true_done, self.data.terminate, cutoff, self.environment.steps)
             # self.last_rec = copy.deepcopy(self.data.full_state)
             if self.record is not None:
-                print("recording", self.record.save_path)
+                # print("recording", self.record.save_path)
                 # print(self.data[0].full_state['factored_state']["Done"], self.data[0].full_state['factored_state']["Ball"], self.data[0].next_full_state['factored_state']["Ball"])
                 self.record.save(self.data[0].full_state['factored_state'], self.data[0].full_state["raw_state"], self.environment.toString)
             tc_record = time.time()

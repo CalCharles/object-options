@@ -69,7 +69,7 @@ def train_combined(full_model, rollouts, test_rollout, args,
     active_weighting_schedule = (lambda i: awl * np.power(0.5, (i/aws))) if aws > 0 else (lambda i: awl)
     interaction_weighting_schedule = (lambda i: iwl * np.power(0.5, (i/iws))) if iws > 0 else (lambda i: iwl)
 
-    print("num_values", len(rollouts), len(test_rollout))
+    print("num_values", len(rollouts), len(test_rollout) if test_rollout is not None else 0)
     print_errors(full_model, rollouts, error_types=[error_types.ACTIVE_RAW, error_types.ACTIVE, error_types.TRACE, error_types.DONE], prenormalize=normalize)
 
     for i in range(args.train.num_iters):

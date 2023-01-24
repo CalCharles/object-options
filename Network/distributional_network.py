@@ -141,6 +141,18 @@ class InteractionMaskNetwork(Network):
         v = self.inter.forward(x)
         return v
 
+def apply_probabilistic_mask(inter_mask, inter_dist=None, relaxed_inter_dist=None, test=None, dist_temperature=0, revert_mask=False):
+    # applys the logic for a probabilistic mask
+    # test = flat, which uses a threshold to decide the interaction mask
+    if test is not None: return pytorch_model.unwrap(test(inter_mask)) if revert_mask else test(inter_mask)
+    # print(soft, self.relaxed_inter_dist, revert_mask, inter_mask)
+    # inter_dist = hard, which uses a hard sample
+    if inter_dist is not None: pytorch_model.unwrap(inter_dist(inter_mask).sample()) if revert_mask else inter_dist(inter_mask).sample()  # hard masks don't need gradient
+    # relaxed_inter is none is for weighted interaction, which uses the values directly
+    # otherwise, use the soft distribution for interaction
+    if relaxed_inter_dist is None: return pytorch_model.unwrap(inter_mask) if revert_mask else inter_mask
+    else: return pytorch_model.unwrap(relaxed_inter_dist(dist_temperature, probs=inter_mask).rsample()) if revert_mask else relaxed_inter_dist(dist_temperature, probs=inter_mask).rsample()
+
 
 class DiagGaussianForwardPadHotNetwork(Network):
     def __init__(self, args):
@@ -153,6 +165,12 @@ class DiagGaussianForwardPadHotNetwork(Network):
         self.first_obj_dim = args.pair.first_obj_dim # this should include all the instances of the object, should be divisible by self.object_dim
         self.embed_dim = args.mask_attn.embed_dim
         self.model_dim = args.mask_attn.model_dim
+        
+        # distributional parameters
+        self.inter_dist = args.mask_attn.inter_dist
+        self.relaxed_inter_dist = args.mask_attn.relaxed_inter_dist
+        self.dist_temperature = args.mask_attn.dist_temperature
+        self.test = args.mask_attn.test
 
         # COPIED FROM mask_attention.py
         args.include_last = True
@@ -190,8 +208,6 @@ class DiagGaussianForwardPadHotNetwork(Network):
         self.stds = nn.ModuleList([network_type[args.net_type](forward_args) for i in range(self.num_clusters)])
 
         self.passive_mask = args.mask_attn.passive_mask.astype(np.float32)
-
-
 
         layers = [self.key_encoding, self.query_encoding, self.means, self.stds]
         self.model = layers
@@ -246,13 +262,19 @@ class DiagGaussianForwardPadHotNetwork(Network):
         if batch_size <= 0: return pytorch_model.wrap(torch.ones(num_keys, num_queries), cuda=self.iscuda)
         return pytorch_model.wrap(torch.ones(batch_size, num_keys, num_queries), cuda=self.iscuda)
 
-    def compute_cluster_masks(self, x, m, num_keys, num_queries):
+    def get_inter_mask(self, i, x, num_keys, soft, flat):
+        inter = self.inter_models[i](x).reshape(x.shape[0], num_keys, -1)
+        return apply_probabilistic_mask(inter, inter_dist=self.inter_dist if not soft else None, relaxed_inter_dist=self.relaxed_inter_dist if soft else None, test=self.test if flat else None, dist_temperature=self.dist_temperature, revert_mask=False)
+
+    def compute_cluster_masks(self, x, m, num_keys, num_queries, soft=False, flat=False):
         passive_masks = [self.get_passive_mask(x.shape[0], num_keys, num_queries)] # broadcast to batch size
         active_masks = [self.get_active_mask(x.shape[0], num_keys, num_queries)]
         # print(passive_masks[0], active_masks[0], self.inter_models[0](x).reshape(x.shape[0], num_keys, -1))
-        all_masks = torch.stack(passive_masks + active_masks + [self.inter_models[i](x).reshape(x.shape[0], num_keys, -1) for i in range(self.num_clusters - 2)], axis=0)
+
+        all_masks = torch.stack(passive_masks + active_masks + [self.get_inter_mask(i, x, num_keys, soft, flat) for i in range(self.num_clusters - 2)], axis=0)
         # all masks shape: num_clusters, batch size, num_keys, num_queries 
-        # print(all_masks.shape, m.shape, x.shape)
+        # print(all_masks.shape, m.shape, x.shape, num_keys, self.num_clusters, m.reshape(x.shape[0], num_keys, self.num_clusters).shape)
+        # print(torch.transpose(m.reshape(x.shape[0], num_keys, self.num_clusters), 0, 2).shape)
         m = m.reshape(x.shape[0], num_keys, self.num_clusters).transpose(0,2).transpose(1,2).unsqueeze(-1) # flip clusters to the front, flip keys and num_batch add a dimension for queries broadcasting
         # print("mask shapes", all_masks.shape, m.shape, x.shape)
         # print(m, all_masks, (all_masks * m).sum(0))
@@ -270,7 +292,7 @@ class DiagGaussianForwardPadHotNetwork(Network):
         # print(torch.stack(total_out, dim=-1).shape, m.unsqueeze(-2).shape, (torch.stack(total_out, dim=-1) * m.unsqueeze(-2)).sum(-1).shape)
         return (torch.stack(total_out, dim=-1) * m.unsqueeze(-2)).sum(-1).reshape(keys.shape[0], -1) # batch size x n_keys * single_obj_dim
 
-    def forward(self, x, m):
+    def forward(self, x, m, soft=False, flat=False):
         # x: batch size, single_object_dim * num_keys (first_obj_dim) + object_dim * num_queries
         # m: batch size, num_keys * num_clusters
         x = pytorch_model.wrap(x, cuda=self.iscuda)
@@ -278,7 +300,7 @@ class DiagGaussianForwardPadHotNetwork(Network):
         keys = self.key_encoding(keys) # [batch size, num keys, single object dim]
         queries = self.query_encoding(queries) # [batch size, num queries, object dim]
         # print(keys.shape, queries.shape, m)
-        inter_masks, total_mask = self.compute_cluster_masks(x, m, keys.shape[-1], queries.shape[-1])
+        inter_masks, total_mask = self.compute_cluster_masks(x, m, keys.shape[-1], queries.shape[-1], soft=soft, flat=flat)
         # print(m.shape)
         # print("masks", inter_masks, total_mask)
         # m = m.reshape(self.num_clusters, x.shape[0], keys.shape[-1], -1)
@@ -288,4 +310,4 @@ class DiagGaussianForwardPadHotNetwork(Network):
         # mean = self.compute_clusters(self.means, keys, queries, inter_masks, m)
         # var = self.compute_clusters(self.stds, keys, queries, inter_masks, m)
         # print(mean.shape, var.shape)
-        return (torch.tanh(mean), torch.sigmoid(var) + self.base_variance), inter_masks
+        return (torch.tanh(mean), torch.sigmoid(var) + self.base_variance), total_mask

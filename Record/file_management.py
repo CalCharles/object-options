@@ -212,8 +212,8 @@ def display_param(frame, param, waitkey=10, rescale=-1, dot=True, transpose = Tr
             if dot:
                 color = np.array(color)
                 color[color > 0] = 1
-                frame[np.round(loc).astype(int)[0], np.round(loc).astype(int)[1]] += np.array(color).astype(float)
-                print(np.round(loc).astype(int)[0], np.round(loc).astype(int)[1], frame[np.round(loc).astype(int)[0], np.round(loc).astype(int)[1]])
+                frame[np.round(loc).astype(int)[1], np.round(loc).astype(int)[0]] += np.array(color).astype(float)
+                # print(np.round(loc).astype(int)[0], np.round(loc).astype(int)[1], frame[np.round(loc).astype(int)[0], np.round(loc).astype(int)[1]])
             else:
                 loc[0], loc[1] = loc[1], loc[0]
                 cv2.circle(frame, loc.astype(int), 3, color, 1)

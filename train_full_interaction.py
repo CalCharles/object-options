@@ -42,6 +42,8 @@ if __name__ == '__main__':
     if len(args.inter.load_intermediate) > 0: 
         print("loaded model")
         full_models = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_inter_model.pkl"))
+        for full_model in full_models.values():
+            full_model.cpu().cuda()
         passive_weights = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_weights.pkl"))
     for name in environment.object_names:
         if name not in ["Action", "Reward", "Done"]:
@@ -54,8 +56,8 @@ if __name__ == '__main__':
         if name not in ["Action"]:
             full_models[name].regenerate(extractor, normalization, environment)
     for name in environment.object_names:
-        if name not in ["Action", "Reward", "Done"]:
-        # if name in ["cwto"]:
+        # if name not in ["Action", "Reward", "Done"]:
+        if name in ["ydgndn"]:
             print("TRAINING", name)
             if args.train.train: train_full(full_models[name], train_full_buffer, train_object_buffers[name], test_full_buffer, test_object_buffers[name], passive_weights[name], args, environment)
             test_full(full_models[name], test_full_buffer, test_object_buffers[name], args, environment)

@@ -3,7 +3,7 @@
     # record_rollouts: /hdd/datasets/calebc/object_data/asteroids/ship/
     # record_recycle: -1
     log_filename: logs/temp/ship_test.log
-    load_dir: /nfs/data/calebc/object_data/asteroids/testrun6/
+    load_dir: /nfs/data/calebc/object_data/asteroids/testrun7/
   environment:
     env: Asteroids
     variant: default

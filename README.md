@@ -19,6 +19,17 @@ pip install opencv-python
 conda install psutil
 pip install pyyaml
 
+# installing for cdl
+conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
+conda install -c conda-forge tensorboard
+conda install -c anaconda scikit-image
+conda install -c conda-forge matplotlib
+git clone https://github.com/kvablack/robosuite.git
+cd robosuite
+pip install -r requirements.txt
+conda install -c conda-forge gym
+pip install opencv-python
+conda install -c anaconda seaborn
 
 Breakout: get perfect paddle policy
 get perfect ball bouncing policy with inline training
@@ -51,7 +62,7 @@ Run Robopushing training:
 python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/testrun/random --num-frames 5000
 python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/fixed/testrun/random/ --num-frames 5000 --fixed-limits
 python generate_random.py --env RoboPushing --record-rollouts ../data/object_data/robopushing/random/ --num-frames 5000
-
+python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/discrete/random --variant discrete --num-frames 5000
 
 Run Asteroids training:
 python generate_random.py --env Asteroids --record-rollouts /hdd/datasets/object_data/asteroids/random/ --num-frames 10000 --fixed-limits

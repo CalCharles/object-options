@@ -27,8 +27,8 @@
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 3000
-      # passive_iters: 1000
+      passive_iters: 1000
+      # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
     active:
@@ -37,6 +37,7 @@
       inline_iters: 1 0 0
       interaction_weighting: 100 -1
       interaction_schedule: 10000
+      intrain_passive: 1
       # weighting: 0 200000 100 100000
   full_inter:
     object_id: True
@@ -51,11 +52,11 @@
     mask_attn:
       model_dim: 256
       embed_dim: 512
-      num_heads: 8
+      num_heads: 16
       num_layers: 2
       cluster: False
       num_clusters: 0
-      attention_dropout: 0.0
+      attention_dropout: 0.1
     optimizer:
       lr: .0001
       alt_lr: .0001

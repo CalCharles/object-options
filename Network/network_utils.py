@@ -114,10 +114,13 @@ def identity(x):
 
 def get_acti(acti):
     if acti == "relu": return F.relu
+    elif acti == "leakyrelu": return F.leaky_relu
     elif acti == "sin": return torch.sin
+    elif acti == "sinc": return torch.sinc
     elif acti == "sigmoid": return torch.sigmoid
     elif acti == "tanh": return torch.tanh
     elif acti == "softmax": return nn.SoftMax(-1)(x)
+    elif acti == "cos": return torch.cos
     elif acti == "none": return identity
 
 def reduce_function(red, x):
@@ -256,3 +259,36 @@ def count_layers(network):
             pass
 
     return total_layers
+
+def get_parameters(model):
+    params = []
+    for param in model.parameters():
+        params.append(param.data.flatten())
+    return torch.cat(params)
+
+def set_parameters(model, param_val): 
+    # sets the parameters of a model to the parameter values given as a single long vector
+    # this is used for black box methods
+    if len(param_val) != count_parameters(model):
+        raise ValueError('invalid number of parameters to set')
+    pval_idx = 0
+    for param in model.parameters():
+        param_size = np.prod(param.size())
+        cur_param_val = param_val[pval_idx : pval_idx+param_size]
+        if type(cur_param_val) == torch.Tensor:
+            param.data = cur_param_val.reshape(param.size()).float().clone()
+        else:
+            param.data = torch.from_numpy(cur_param_val) \
+                          .reshape(param.size()).float()
+        pval_idx += param_size
+    if (hasattr(model, "iscuda") and model.iscuda) or (hasattr(model, "device") and (type(model.device) == int or model.device.find("cuda") != -1)):
+        model.cuda()
+
+def count_parameters(model, reuse=True):
+    # it may be necessary to know how many parameters there are in the model
+    if reuse and hasattr(model, "parameter_count") and model.parameter_count > 0:
+        return model.parameter_count
+    model.parameter_count = 0
+    for param in model.parameters():
+        model.parameter_count += np.prod(param.size())
+    return model.parameter_count

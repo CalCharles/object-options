@@ -9,7 +9,7 @@ from collections import Counter
 from tianshou.data import Collector, Batch, ReplayBuffer
 from Record.file_management import create_directory
 from State.object_dict import ObjDict
-from Network.distributional_network import DiagGaussianForwardMaskNetwork, DiagGaussianForwardPadMaskNetwork, DiagGaussianForwardPadHotNetwork, InteractionMaskNetwork, DiagGaussianForwardNetwork
+from Network.distributional_network import DiagGaussianForwardMaskNetwork, DiagGaussianForwardPadMaskNetwork, DiagGaussianForwardPadHotNetwork, InteractionMaskNetwork, DiagGaussianForwardNetwork, apply_probabilistic_mask
 from Network.network_utils import pytorch_model, cuda_string
 from Causal.interaction_test import InteractionTesting
 from Causal.Utils.instance_handling import compute_likelihood
@@ -29,6 +29,7 @@ def assign_distribution(assign_dist):
         elif assign_dist == "Bernoulli": return dist.bernoulli.Bernoulli
         elif assign_dist == "RelaxedHot": return dist.relaxed_categorical.RelaxedOneHotCategorical
         elif assign_dist == "Categorical": return dist.categorical.Categorical
+        elif assign_dist == "CategoricalHot": return dist.one_hot_categorical.OneHotCategorical
         else: raise NotImplementedError
 
 def load_interaction(pth, name, device=-1):
@@ -105,6 +106,7 @@ def get_params(model, full_args, is_pair, multi_instanced, total_inter_size, tot
             if interaction_model_args.mask_attn.cluster:
                 interaction_model_args.num_outputs = interaction_model_args.mask_attn.num_clusters
                 interaction_model_args.pair.aggregate_final = True
+                interaction_model_args.pair.total_instances = interaction_model_args.mask_attn.num_clusters # interaction models use this as a replacement for num_outputs
             interaction_model_args.mask_attn.cluster = False
         interaction_model_args.query_pair = True if interaction_model_args.net_type in ["keypair"] else False # a query pair means that the query network outputs pairwise
         if not model.multi_instanced: # passive model won't be a pairnet TODO: add additional to passive model
@@ -146,8 +148,12 @@ class FullNeuralInteractionForwardModel(nn.Module):
         self.dist_temperature = args.full_inter.dist_temperature
         self.inter_dist = assign_distribution("Bernoulli")
         self.mixing = args.full_inter.mixed_interaction# mostly only used for training
+        
+        # set the testing module
+        self.test = InteractionMaskTesting(args.inter.interaction_testing)
 
         # set the forward model
+        self.active_model_args.mask_attn.inter_dist, self.active_model_args.mask_attn.relaxed_inter_dist, self.active_model_args.mask_attn.dist_temperature, self.active_model_args.mask_attn.test = self.inter_dist, self.relaxed_inter_dist, self.dist_temperature, self.test
         self.active_model = DiagGaussianForwardPadHotNetwork(self.active_model_args) if self.cluster_mode else DiagGaussianForwardPadMaskNetwork(self.active_model_args)
 
         # set the passive model
@@ -156,11 +162,8 @@ class FullNeuralInteractionForwardModel(nn.Module):
 
         # construct the interaction model
         self.soft_inter_dist = assign_distribution("RelaxedHot") if self.cluster_mode else assign_distribution("Identity")
-        self.hard_inter_dist = assign_distribution("Categorical") if self.cluster_mode else assign_distribution("Identity")
+        self.hard_inter_dist = assign_distribution("CategoricalHot") if self.cluster_mode else assign_distribution("Identity")
         self.interaction_model = InteractionMaskNetwork(self.interaction_model_args)
-
-        # set the testing module
-        self.test = InteractionMaskTesting(args.inter.interaction_testing)
 
         # set the normalization function
         self.norm, self.extractor = normalization, causal_extractor
@@ -395,28 +398,33 @@ class FullNeuralInteractionForwardModel(nn.Module):
 
     def apply_cluster_mask(self, inter_mask, cluster_hard=False):
         # only applicable in cluster mode, turns a softmax selection over clusters into the mask corresponding to that selection
-        if cluster_hard: return self.hard_inter_dist(inter_mask).rsample()
-        else: return self.soft_inter_dist(inter_mask).rsample()
+        # print(self.hard_inter_dist, self.soft_inter_dist)
+        if cluster_hard: return self.hard_inter_dist(inter_mask).sample()
+        else: return self.soft_inter_dist(self.dist_temperature, probs=inter_mask).rsample()
 
     def apply_mask(self, inter_mask, soft=True, flat=False, cluster_hard=False, x=None):
         # TODO: generate the interaction mask out of the outputs of the interaction model
         # if the interaction model is in cluster mode, extracts the cluster interaction mask first
+        # inter_mask in this case is the selection over cluster modes
         # x is required in this mode
         revert_mask = type(inter_mask) != torch.Tensor
         if self.cluster_mode:
-            if len(inter_mask.shape) < 2: batch_size = 0
-            else: batch_size = x.shape[0]
-            # in cluster mode, m has the form num_batch, num_keys, num_cluster_heads
-            num_keys, num_queries = self.active_model.count_keys_queries(x)
-            all_masks, inter_mask = self.active_model.compute_cluster_masks(pytorch_model.wrap(x, cuda = self.iscuda), inter_mask, num_keys, num_queries)
-        revert_mask = False
+            if len(inter_mask.shape) < 2: total_len = 0
+            else: total_len = x.shape[0]
+            true_inter_mask = list()
+            for i in range(int(np.ceil(total_len / 512))): # break it up to avoid overloading the GPU
+                batch = x[i*512:(i+1) * 512]
+                batch_len = batch.shape[0]
+
+                # in cluster mode, m has the form num_batch, num_keys, num_cluster_heads
+                num_keys, num_queries = self.active_model.count_keys_queries(batch)
+                # print(type(batch), batch.shape)
+                all_masks, inter_m = self.active_model.compute_cluster_masks(pytorch_model.wrap(batch, cuda = self.iscuda), pytorch_model.wrap(inter_mask[i*512:(i+1) * 512], cuda=self.iscuda), num_keys, num_queries)
+                true_inter_mask.append(inter_m)
+            inter_mask = torch.cat(true_inter_mask, dim=0)
+            # print(inter_mask.shape, int(np.ceil(total_len / 512)), total_len)
         if revert_mask: inter_mask = pytorch_model.wrap(inter_mask, cuda=self.iscuda)
-        if flat: return pytorch_model.unwrap(self.test(inter_mask)) if revert_mask else self.test(inter_mask)
-        # print(soft, self.relaxed_inter_dist, revert_mask, inter_mask)
-        if soft:
-            if self.relaxed_inter_dist is None: return pytorch_model.unwrap(inter_mask) if revert_mask else inter_mask
-            else: return pytorch_model.unwrap(self.relaxed_inter_dist(self.dist_temperature, probs=inter_mask).rsample()) if revert_mask else self.relaxed_inter_dist(self.dist_temperature, probs=inter_mask).rsample()
-        return pytorch_model.unwrap(self.inter_dist(inter_mask).sample()) if revert_mask else self.inter_dist(inter_mask).sample() # hard masks don't need gradient
+        return apply_probabilistic_mask(inter_mask, inter_dist=self.inter_dist if not soft else None, relaxed_inter_dist=self.relaxed_inter_dist if soft else None, test=self.test if flat else None, dist_temperature=self.dist_temperature, revert_mask=revert_mask)
 
     def combine_mask(self, inter_mask, hard_mask, mixed=""):
         if len(mixed) == 0: mixed = self.mixing
@@ -436,7 +444,7 @@ class FullNeuralInteractionForwardModel(nn.Module):
         if normalize: batch = self.normalize_batch(batch)
         inter = self.interaction_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda))
         if self.cluster_mode:
-            active_params, m = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), inter, masking=masking) # always uses soft for the gumbel softmax
+            active_params, m = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), inter) # always uses soft for the gumbel softmax
             inter_mask = m
         else:
             if masking == "flat": inter_mask = self.apply_mask(inter, soft=False, flat = True)
@@ -462,18 +470,22 @@ class FullNeuralInteractionForwardModel(nn.Module):
         # if input_grad: active_hard_input.retain_grad(), active_soft_input.retain_grad(), active_full_input.retain_grad()
         if self.cluster_mode:
             hot_inter_soft, hot_inter_hard = self.apply_cluster_mask(inter, cluster_hard=False), self.apply_cluster_mask(inter, cluster_hard=True) 
+            hot_mask = inter
             # inter_mask_soft = (torch.stack(self.active_model.get_masks(), dim=0).unsqueeze(0) * hot_inter_soft.unsuqeeze(-1)).mean(-1)
             # inter_mask_hard = (torch.stack(self.active_model.get_masks(), dim=0).unsqueeze(0) * hot_inter_hard.unsuqeeze(-1)).mean(-1)
             # these masks are not, in a sense, the actual masks used, TODO: create evaluation hot encodings
-            soft_inter_mask = self.apply_mask(hot_inter_soft, soft=True, x=batch.tarinter_state)
-            hard_inter_mask = self.apply_mask(hot_inter_hard, soft=False, x=batch.tarinter_state)
+            # soft_inter_mask = self.apply_mask(hot_inter_soft, soft=True, x=batch.tarinter_state)
+            # print(hot_inter_hard, self.hard_inter_dist)
+            # hard_inter_mask = self.apply_mask(hot_inter_hard, soft=False, x=batch.tarinter_state)
             full_mask = self.get_cluster_full_mask(batch.tarinter_state)
-            active_hard_params, m = self.active_model(active_hard_input, hot_inter_soft)
-            active_soft_params, m = self.active_model(active_soft_input, hot_inter_soft)
+            active_hard_params, hard_inter_mask = self.active_model(active_hard_input, hot_inter_hard, soft=False, flat=False)
+            active_soft_params, soft_inter_mask = self.active_model(active_soft_input, hot_inter_soft, soft=True, flat=False)
+            inter = soft_inter_mask
             active_full_params, m = self.active_model(active_full_input, full_mask)
         else:
             soft_inter_mask = self.apply_mask(inter, soft=True)
             hard_inter_mask = self.apply_mask(inter, soft=False)
+            hot_mask = None
             full_mask = pytorch_model.wrap(torch.ones(len(self.all_names) * self.target_num), cuda = self.iscuda)
             active_hard_params, m = self.active_model(active_hard_input, hard_inter_mask)
             mixed_mask = self.combine_mask(soft_inter_mask, hard_inter_mask, mixed=mixed)
@@ -503,7 +515,7 @@ class FullNeuralInteractionForwardModel(nn.Module):
         #     error
 
         return active_hard_params, active_soft_params, active_full_params, passive_params,\
-                 inter, soft_inter_mask, hard_inter_mask, \
+                 inter, soft_inter_mask, hard_inter_mask, hot_mask,\
                  target, \
                  active_hard_dist, active_soft_dist, active_full_dist, passive_dist, \
                  active_hard_log_probs, active_soft_log_probs, active_full_log_probs, passive_log_probs,\
@@ -537,10 +549,15 @@ class FullNeuralInteractionForwardModel(nn.Module):
 
     def active_likelihoods(self, batch, normalize=False, soft=False, flat=True):
         if normalize: batch = self.normalize_batch(batch)
-        if self.cluster_mode: inter = self.active_model.get_hot_passive_mask(batch.tarinter_state)
-        else: inter = self.interaction_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda))
-        inter_mask = self.apply_mask(inter, soft=soft, flat=flat, x=batch.tarinter_state)
-        active_params, mask = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), inter_mask)
+        inter = self.interaction_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda))
+        if self.cluster_mode:
+            # print(inter, self.interaction_model)
+            hot_inter_soft = self.apply_cluster_mask(inter, cluster_hard=False)
+            active_params, mask = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), hot_inter_soft, soft=soft, flat=flat)
+        else: 
+            inter = self.interaction_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda))
+            inter_mask = self.apply_mask(inter, soft=soft, flat=flat, x=batch.tarinter_state)
+            active_params, mask = self.active_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), inter_mask)
         target, dist, log_probs = self._target_dists(batch, active_params)
         return active_params, dist, log_probs
 

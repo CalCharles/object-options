@@ -1,0 +1,86 @@
+---
+  record:
+    # record_rollouts: /hdd/datasets/calebc/object_data/asteroids/ship/
+    # record_recycle: -1
+    log_filename: logs/temp/ship_train.log
+    load_dir: /nfs/data/calebc/object_data/asteroids/testrun/
+    save_dir: /nfs/data/calebc/object_data/asteroids/testrun7/
+    # checkpoint_dir: /nfs/data/calebc/object_data/breakout/testrun/action_paddle_checkpoint
+    # load_checkpoint: /nfs/data/calebc/object_data/breakout/testrun_inline/action_paddle_checkpoint
+    presave_graph: True
+    save_interval: 100
+  environment:
+    env: Asteroids
+    variant: default
+    fixed_limits: True
+  torch:
+    gpu: 1
+    no_cuda: False
+  train:
+    train: True
+    num_steps: 100
+    pretrain_frames: 50000
+    load_rollouts: /hdd/datasets/object_data/asteroids/random
+    train_edge: Action Ship
+    num_iters: 3000
+    batch_size: 128
+  critic_net:
+  actor_net:
+  network:
+    hidden_sizes: 512 512 512 512 512
+    net_type: mlp
+    activation_final: tanh
+    scale_logits: 30
+    optimizer:
+      lr: .0005
+      alt_lr: .0001
+      eps: .00001
+      alpha: 0.99
+      betas: 0.9 0.999
+      weight_decay: 0.0001
+    input_expand:
+      include_relative: True
+  sample:
+    sample_type: angle
+    sample_distance: 0.15
+    sample_schedule: 400
+    param_recycle: 0.05
+  extract:
+    single_obs_setting: 1 0 0 1 0 0
+    relative_obs_setting: 0 0 0 0 1
+  option:
+    term_form: param
+    term_as_done: True
+    epsilon_close: 2.5 2.5 0.3 0.3 0.5
+    param_norm: 1
+    constant_lambda: -1
+    param_lambda: 100
+    inter_lambda: 0
+    temporal_extend: 20
+    time_cutoff: 30
+  collect:
+    prioritized_replay: 0.4 0.4
+    buffer_len : 100000
+    test_episode: True
+    max_steps: 1000
+    stream_print_file: logs/asteroids/hyperparam/ship_option_stream.txt
+  hindsight:
+    use_her: True
+    early_stopping: 2
+  policy:
+    epsilon_random: 0.2
+    learning_type: rainbow
+    max_min_critic: -50 0
+    tau: 3000
+    logging:
+      log_interval: 100
+      train_log_maxlen: 5
+      test_log_maxlen: 50
+      initial_trials: 20
+      test_trials: 10
+      max_terminate_step: 1 30
+    learn:
+      post_random_iters: 250
+      grad_epoch: 200
+      sample_form: merged
+...

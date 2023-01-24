@@ -1,17 +1,18 @@
 ---
 metaparam: 
-  multi_filename: full_rand_cond_option_
-  log_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_logs/full_rand_cond/const/
-  yaml_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_yamls/full_rand_cond/const/
-  save_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam/full_rand_cond/const/
-  graph_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_graphs/full_rand_cond/const/
-  bash_path: full_rand_cond_const.sh
+  multi_filename: full_rand_relaxed_inter_
+  log_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_logs/full_rand_cond/base/
+  yaml_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_yamls/full_rand_cond/base/
+  save_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam/full_rand_cond/base/
+  graph_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_graphs/full_rand_cond/base/
+  bash_path: full_rand_cond_relaxed.sh
   base_config: configs/full_training/RandomDistribution/conditional/full_random_conditional.yaml
   runfile: train_full_interaction.py
-  gpu: 1
-  match: False
-train:
-  num_iters: 4000
+  gpu: 0
+  match: 0
+  simul_run: 4
+  num_trials: 1
+  cycle_gpu: 4
 inter:
     active:
         intrain_passive: 0,1,2

@@ -87,6 +87,8 @@ class Option():
 
     def toggle_test(self, test):
         if test:
+            # self.set_epsilon(self.test_epsilon)
+            # self.set_epsilon(0.5)
             self.zero_epsilon()
             self.sampler, self.test_sampler = self.test_sampler, self.sampler # use test_sampler to keep train sampler
             self.reset_timer = self.terminate_reward.compute_done.timer

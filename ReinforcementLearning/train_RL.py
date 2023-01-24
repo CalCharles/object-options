@@ -55,7 +55,7 @@ def trainRL(args, train_collector, test_collector, option, graph,  loggers, keep
         tc_logging = time.time()
         print("running iter: ", i)
         if i % args.policy.logging.log_interval == 0:
-            collect_test_trials(test_logger, option, test_collector, args.policy.logging.max_terminate_step, i, args.policy.logging.initial_trials, False)
+            collect_test_trials(test_logger, option, test_collector, args.policy.logging.max_terminate_step, i, args.policy.logging.test_trials, False)
         # train option.policy with a sampled batch data from buffer
         tc_test = time.time()
         losses = option.policy.update(args.train.batch_size, train_collector.buffer, train_collector.her_buffer)

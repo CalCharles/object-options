@@ -1,11 +1,11 @@
 ---
   record:
     # record_rollouts: /nfs/data/calebc/object_data/sokoban/few_obs/pusher/
-    record_rollouts: /hdd/datasets/object_data/sokoban/fixed/few_obs/pusher
+    # record_rollouts: /hdd/datasets/object_data/sokoban/fixed/few_obs/pusher
     record_recycle: -1
     log_filename: logs/temp/pusher_train.log
     load_dir: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun/
-    save_dir: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun/
+    save_dir: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun2/
     # checkpoint_dir: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun/action_paddle_checkpoint
     # load_checkpoint: /nfs/data/calebc/object_data/sokoban/fixed/few_obs/testrun_inline/action_paddle_checkpoint
     save_interval: 1200
@@ -14,7 +14,7 @@
     variant: few_obs
     fixed_limits: True
   torch:
-    gpu: 0
+    gpu: 2
     no_cuda: False
   train:
     train: True
@@ -23,22 +23,22 @@
     num_frames: 1000
     train_edge: Action Obstacle Pusher
     load_rollouts: /hdd/datasets/object_data/sokoban/fixed/few_obs/random
-    num_iters: 1000
+    num_iters: 3000
     batch_size: 128
   critic_net:
   actor_net:
   network:
-    hidden_sizes: 512 512 512 512 256
+    hidden_sizes: 512 512 512 1024 256
     net_type: pair
     activation_final: tanh
-    scale_logits: 60
+    scale_logits: 30
     optimizer:
-      lr: .0003
+      lr: .0001
       alt_lr: .0001
       eps: .00001
       alpha: 0.99
       betas: 0.9 0.999
-      weight_decay: 0.00
+      weight_decay: 0.001
   sample:
     sample_type: empty
     sample_distance: 0.25
@@ -53,10 +53,10 @@
     epsilon_close: 0.5 0.5
     param_norm: 1
     constant_lambda: -1
-    param_lambda: 1
+    param_lambda: 10
     inter_lambda: 0
     temporal_extend: 20
-    time_cutoff: 60
+    time_cutoff: 30
   collect:
     prioritized_replay: 0.4 0.4
     buffer_len : 100000
@@ -68,7 +68,7 @@
     use_her: True
     early_stopping: 2
   policy:
-    epsilon_random: 0.05
+    epsilon_random: 0.2
     learning_type: rainbow
     max_min_critic: -30 0
     tau: 10000

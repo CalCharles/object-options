@@ -12,6 +12,7 @@ metaparam:
   match: 0
   simul_run: 4
   num_trials: 1
+  cycle_gpu: True
 network:
   net_type: mlp,inexp
   scale_logits: 5,10,20,30,40,50
@@ -27,4 +28,15 @@ option:
 policy:
   epsilon_random: 0.1,0.2,0.3
   max_min_critic: -30 0,-50 0,-100 0
+# Results:
+  # inexp failed? -- figure out if there is a missing component
+  # scale logits: 20,30,40
+  # lr: .0002 or higher
+  # Weight decay: no significant effect
+  # sample distance: .1-.15
+  # distance > 2.5 approximately similar
+  # param norm largely no effect, but 100 reward appears to perform better
+  # 30 or 100 time cutoff
+  # Epsilon random .2-.3 is better
+  # min-max critic larger appears to be better -50 vs -100
 ...

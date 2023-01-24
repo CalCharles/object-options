@@ -157,7 +157,7 @@ def write_multi_config(multi_pth):
             tconfig.record.log_filename = os.path.join(log_endpoint, tname + '.log')
             tconfig.record.save_dir = os.path.join(save_endpoint, tname)
             tconfig.torch.gpu = use_gpu % cycle_gpu if cycle_gpu > 0 else gpu # will cycle through the gpus for different trials
-            tconfig.collect.stream_print_file = os.path.join(log_endpoint, tname + '_stream.txt')
+            if "collect" in tconfig: tconfig.collect.stream_print_file = os.path.join(log_endpoint, tname + '_stream.txt')
             tconfig.hyperparam = ObjDict()
             tconfig.hyperparam.name_orders = ["+".join(name_path) for name_path in name_paths]
             trial_configs.append(tconfig)

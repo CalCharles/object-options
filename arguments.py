@@ -6,6 +6,8 @@ import os
 
 def get_command_args():
     parser = argparse.ArgumentParser(description='Construct an environment')
+    parser.add_argument('--arg-dict', default = "full_args",
+                        help='choice of arguments to use')
     # environment parameters
     parser.add_argument('--record-rollouts', default = "",
                         help='base directory to save results')
@@ -293,9 +295,12 @@ def get_args():
     args.command = get_command_args()
     config = args.command.config
     if len(args.command.config) > 0:
-        args = read_config(args.command.config)
+        if args.command.config[-5:] == ".yaml":
+            args = read_config(args.command.config)
+            if args.environment.seed == -1: args.environment.seed = np.random.randint(100000) # randomly assign seed
+            if args.torch.torch_seed == -1: args.torch.torch_seed = np.random.randint(100000) # randomly assign seed
+        else:
+            args = args.command
         args.config = config
         args.config_name = os.path.split(config)[1][:-5]
-    if args.environment.seed == -1: args.environment.seed = np.random.randint(100000) # randomly assign seed
-    if args.torch.torch_seed == -1: args.torch.torch_seed = np.random.randint(100000) # randomly assign seed
     return args

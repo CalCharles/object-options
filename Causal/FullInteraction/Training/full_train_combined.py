@@ -59,6 +59,11 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
     lasso_lambda = lasso_schedule(0)
     print("awliwl", awl, iwl, olls, lws, lasso_schedule(100))
 
+    full_vals, idxes = rollouts.sample(0, weights=active_weights)
+    vals = object_rollouts[idxes]
+    tarinter_all = np.concatenate([vals.obs, full_vals.obs], axis=-1)
+
+
     uw = pytorch_model.unwrap
     print_errors(full_model, rollouts, object_rollouts, error_types=[error_types.ACTIVE_RAW, error_types.ACTIVE, error_types.TRACE, error_types.DONE], prenormalize=normalize)
     start = time.time()
@@ -76,7 +81,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
         weight_rate = np.sum(active_weights[idxes]) / len(idxes)
         # run the networks and get both the active and passive outputs (passive for interaction binaries)
         active_hard_params, active_soft_params, active_full, passive_params, \
-            interaction_likelihood, soft_interaction_mask, hard_interaction_mask,\
+            interaction_likelihood, soft_interaction_mask, hard_interaction_mask, hot_likelihood,\
             target, active_hard_dist, active_soft_dist, active_full_dist, passive_dist, \
             active_hard_log_probs, active_soft_log_probs, active_full_log_probs, passive_log_probs_act, \
             active_hard_inputs, active_soft_inputs, active_full_inputs = full_model.likelihoods(batch, 
@@ -124,7 +129,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
         if args.inter.interaction.interaction_pretrain <= 0:
             for ii in range(int(inline_iters)):
                 inter_idxes, interaction_loss, interaction_calc_likelihood,\
-                     interaction_binaries, weight_count, inter_done_flags, grad_variables = _train_combined_interaction(full_model, args, rollouts, object_rollouts,
+                     interaction_binaries, hot_likelihood, weight_count, inter_done_flags, grad_variables = _train_combined_interaction(full_model, args, rollouts, object_rollouts,
                                                                          lasso_oneloss_lambda,lasso_halfloss_lambda, lasso_lambda, interaction_weights, inter_loss, interaction_optimizer, normalize=normalize)
                 single_trace = None
                 if object_rollouts.trace is not None:
@@ -136,7 +141,9 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
         
         print(i, lasso_lambda, lasso_oneloss_lambda, uw(loss.mean()), uw(interaction_loss.mean()), full_model.name,interaction_schedule(i),args.full_inter.mixed_interaction, 
             uw(active_nlikelihood.mean()), uw(active_full_nlikelihood.mean()), uw(passive_nlikelihood.mean()), np.sum(np.abs(batch.trace - uw(hard_interaction_mask))) / args.train.batch_size / batch.trace.shape[-1])
-        print("combined_vals",np.concatenate([uw(passive_log_probs_act.sum(dim=-1).unsqueeze(-1)), uw(active_hard_log_probs.sum(dim=-1).unsqueeze(-1)), uw(active_full_log_probs.sum(dim=-1).unsqueeze(-1)), uw(soft_interaction_mask), batch.trace], axis=-1)[:4])
+        # print([passive_log_probs_act.shape, active_hard_log_probs.shape, active_full_log_probs.shape, soft_interaction_mask.shape, batch.trace.shape])
+        print("combined_vals",np.concatenate([uw(passive_log_probs_act.sum(dim=-1).unsqueeze(-1)), uw(active_hard_log_probs.sum(dim=-1).unsqueeze(-1)),
+                            uw(active_full_log_probs.sum(dim=-1).unsqueeze(-1)),uw(hot_likelihood), uw(soft_interaction_mask), batch.trace], axis=-1)[:4])
 
         if i % args.inter.active.active_log_interval == 0:
             print(i, "speed", (args.inter.active.active_log_interval * i) / (time.time() - start))
@@ -153,7 +160,11 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             print(active_weights)
             inter_weighting_lambda = interaction_weighting_schedule(i)
 
-            mask_binary = (np.sum(np.round(full_model.apply_mask(get_error(full_model, rollouts, object_rollout=object_rollouts, error_type = error_types.INTERACTION_RAW))), axis=-1) > 1).astype(int)
+            check_error = error_types.INTERACTION_HOT if full_model.cluster_mode else error_types.INTERACTION_RAW
+            # print(get_error(full_model, rollouts, object_rollout=object_rollouts, error_type = check_error))
+            # print(type(full_model.apply_mask(get_error(full_model, rollouts, object_rollout=object_rollouts, error_type = check_error), x=tarinter_all)))
+            # print(type(get_error(full_model, rollouts, object_rollout=object_rollouts, error_type = check_error)), type(tarinter_all))
+            mask_binary = (np.sum(np.round(full_model.apply_mask(get_error(full_model, rollouts, object_rollout=object_rollouts, error_type = check_error), x=tarinter_all)), axis=-1) > 1).astype(int)
             inter_bin = (object_rollouts.weight_binary[:len(rollouts)].squeeze() + mask_binary.squeeze())
             inter_bin[inter_bin> 1] = 1
             interaction_weights = get_weights(inter_weighting_lambda, inter_bin)

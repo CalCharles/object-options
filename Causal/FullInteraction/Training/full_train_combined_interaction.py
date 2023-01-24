@@ -42,7 +42,7 @@ def get_masking_gradients(full_model, args, rollouts, object_rollout, onemask_la
     # print("running inline iters")
     # run the networks and get both the active and passive outputs (passive for interaction binaries)
     active_hard_params, active_soft_params, active_full, passive_params, \
-        interaction_likelihood, soft_interaction_mask, hard_interaction_mask,\
+        interaction_likelihood, soft_interaction_mask, hard_interaction_mask, hot_likelihood,\
         target, active_hard_dist, active_soft_dist, active_full_dist, passive_dist, \
         active_hard_log_probs, active_soft_log_probs, active_full_log_probs, passive_log_probs,\
         active_hard_inputs, active_soft_inputs, active_full_inputs = full_model.likelihoods(batch, normalize=normalize, 
@@ -82,7 +82,7 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, onem
     # print("running inline iters")
     # run the networks and get both the active and passive outputs (passive for interaction binaries)
     active_hard_params, active_soft_params, active_full, passive_params, \
-        interaction_likelihood, soft_interaction_mask, hard_interaction_mask,\
+        interaction_likelihood, soft_interaction_mask, hard_interaction_mask, hot_likelihood,\
         target, active_hard_dist, active_soft_dist, active_full_dist, passive_dist, \
         active_hard_log_probs, active_soft_log_probs, active_full_log_probs, passive_log_probs,\
         active_hard_inputs, active_soft_inputs, active_full_inputs = full_model.likelihoods(batch, normalize=normalize, mixed="mixed" if args.full_inter.mixed_interaction == "hard" else args.full_inter.mixed_interaction)
@@ -99,4 +99,4 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, onem
     # loss and optimizer
     grad_variables = [interaction_likelihood, active_hard_inputs, active_soft_inputs, active_full_inputs] if args.inter.active.log_gradients else list()
     grad_variables = run_optimizer(interaction_optimizer, full_model.interaction_model, interaction_loss, grad_variables=grad_variables)
-    return idxes, interaction_loss, interaction_likelihood, hard_interaction_mask, weight_count, done_flags, grad_variables
+    return idxes, interaction_loss, interaction_likelihood, hard_interaction_mask, hot_likelihood, weight_count, done_flags, grad_variables

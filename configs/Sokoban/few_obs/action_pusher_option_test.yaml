@@ -26,7 +26,7 @@
       log_interval: 10
       test_log_maxlen: 50
       test_trials: 10
-      max_terminate_step: 1 10
+      max_terminate_step: 1 30
   sample:
     param_recycle: 0.1
 ...

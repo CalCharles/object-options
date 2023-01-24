@@ -1,0 +1,35 @@
+---
+metaparam: 
+  multi_filename: ball_cmaes_opt_
+  log_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_logs/ball_cmaes/test/
+  yaml_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_yamls/ball_cmaes/test/
+  save_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_cmaes/test/
+  graph_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_graphs/ball_cmaes/test/
+  bash_path: ball_cmaes.sh
+  base_config: configs/Baselines/HyPE/Breakout/paddle_ball_skill.yaml
+  runfile: train_baselines.py
+  gpu: 0
+  match: 0
+  simul_run: 4
+  num_trials: 1
+  cycle_gpu: True
+reward:
+  reward_base: -0.01,-0.1,-1
+  param_reward: 1,10
+  one_mode: False,True
+skill:
+  policy_iters: 50,100 # the number of steps to sample for a policy
+  policy_iters_schedule: 10,20 # doubles every n iterations
+  epsilon_random: 0.1 # action randomness
+  obs_components: 1.0 1.0 1.0,0.0 1.0 1.0,0.0 0.0 1.0 # which of the there components to use as obs
+  learn:
+    init_var: 1,0.7,0.5,0.3,0.1,0.05,0.02
+    elitism: 0,2,3
+network:
+  activation: relu,tanh,sigmoid,leakyrelu,sinc,sin
+  activation_final: tanh,relu
+  hidden_sizes: 16,32,64,128,256,512
+  init_form: xnorm,xuni
+  scale_logits: 1,10
+  scale_final: 1,10,100
+...

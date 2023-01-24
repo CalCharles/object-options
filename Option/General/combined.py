@@ -15,6 +15,7 @@ class BinaryInteractionParameterizedOptionControl(RTD):
         self.constant_lambda = kwargs['constant_lambda']
         self.inter_term = kwargs['interaction_as_termination']
         self.use_binary = kwargs['use_binary']
+        # TODO: make it so that if there is a discrete number of params, term only fires if we actually have a valid param, even if it isn't the desired one
 
     def compute_rew_term_done(self, inter_state, target, next_target, target_diff, param, mask, true_done, true_reward):
         self.epsilon_close = np.array(self.epsilon_close).squeeze()

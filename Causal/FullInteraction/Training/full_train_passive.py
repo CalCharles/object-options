@@ -68,7 +68,7 @@ def train_passive(full_model, args, rollouts, object_rollout, active_optimizer, 
             active_likelihood_full = - active_log_probs
             
             # active_hard_params, active_soft_params, active_full, passive_params, \
-            #     interaction_likelihood, soft_interaction_mask, hard_interaction_mask,\
+            #     interaction_likelihood, soft_interaction_mask, hard_interaction_mask, hot_likelihood,\
             #     target, active_hard_dist, active_soft_dist, active_full_dist, passive_dist, \
             #     active_hard_log_probs, active_soft_log_probs, active_likelihood_full, passive_log_probs = full_model.likelihoods(batch, normalize=False, mixed=args.full_inter.mixed_interaction)
             # active_likelihood_full = - active_likelihood_full

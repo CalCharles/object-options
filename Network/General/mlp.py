@@ -8,7 +8,7 @@ import numpy as np
 class MLPNetwork(Network):    
     def __init__(self, args):
         super().__init__(args)
-        print(self.num_inputs)
+        self.scale_final = args.scale_final
         if len(self.hs) == 0:
             if self.use_layer_norm:
                 layers = [nn.LayerNorm(self.num_inputs), nn.Linear(self.num_inputs, self.num_outputs)]
@@ -29,4 +29,5 @@ class MLPNetwork(Network):
     def forward(self, x):
         x = self.model(x)
         x = self.activation_final(x)
+        if hasattr(self, "scale_final"): x = x * self.scale_final
         return x

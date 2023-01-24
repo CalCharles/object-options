@@ -11,7 +11,7 @@
     no_cuda: False
   train:
     train_edge: Paddle Ball
-    load_rollouts: /hdd/datasets/object_data/breakout/fixed_limits/paddle/
+    load_rollouts: /hdd/datasets/object_data/breakout/fixed_limits/paddle_test/
     num_frames: 100000
   mask:
     min_sample_difference: 0.1

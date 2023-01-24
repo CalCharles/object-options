@@ -16,9 +16,10 @@ error_names = [# an enumerator for different error types
     "LIKELIHOOD",# weighted likelihood, multiplying active output with the interaction, if is_full, this is the OPEN likelihood
     "PASSIVE_LIKELIHOOD", # likelihood under the passive model
     "ACTIVE_LIKELIHOOD", # likelihood of data under the active model
-    "INTERACTION", #interaction values
-    "INTERACTION_RAW",
-    "INTERACTION_BINARIES",
+    "INTERACTION", #interaction values from the network after thresholding
+    "INTERACTION_RAW", # interaction values directly output by the network
+    "INTERACTION_HOT", # get the expert assignment for interaction
+    "INTERACTION_BINARIES", # interaction values based on comparing active and passive
     "PROXIMITY",# measures if two objects are close together
     "PROXIMITY_FLAT", # gets the flattened proximity between two states given in names
     "PROXIMITY_FULL", # gets the full proximity (all other objects) for one object
@@ -119,6 +120,8 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
         return np.abs(pytorch_model.unwrap(output)-target) # should probably use CE loss
     elif error_type == error_types.INTERACTION_RAW:
         return pytorch_model.unwrap(full_model.interaction(use_part))
+    elif error_type == error_types.INTERACTION_HOT:
+        return pytorch_model.unwrap(full_model.interaction(use_part, return_hot=True)[0]) # note that this could produces issues if incorrectly called
     elif error_type == error_types.INTERACTION_BINARIES:
         binaries = pytorch_model.unwrap(full_model.interaction(use_part, use_binary=True))
         return binaries        

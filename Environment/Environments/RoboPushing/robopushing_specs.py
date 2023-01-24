@@ -8,6 +8,8 @@ variants = {
     "joint": (2, 300, 15, -0.1, 10, -3, -3, 1),
     "hard": (2, 300, 15, -1, 10, -3, -3, 2),
     "planar": (2, 300, 15, -0.1, 10, -3, -3, 3),
+    "discrete": (2, 30, 0, -0.1, 10, -3, -3, 4),
+    "discrete_obs": (2, 300, 10, -0.1, 10, -3, -3, 4),
 }
 
 ranges_fixed = {
@@ -71,3 +73,10 @@ instanced = {
     "Done": 1,
     "Reward": 1
 }
+
+discrete_ranges = ranges
+discrete_ranges["Action"] = [np.array([0]), np.array([5])]
+discrete_dynamics = dynamics
+discrete_dynamics["Action"] = [np.array([-5]), np.array([5])]
+discrete_position_masks = position_masks
+discrete_position_masks["Action"] = np.array([0])
