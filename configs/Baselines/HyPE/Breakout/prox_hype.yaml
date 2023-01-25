@@ -8,6 +8,7 @@ record:
 environment:
   env: Breakout
   variant: proximity
+  render: True
 arg_dict: hype
 train_mode: skill # either reward or policy
 train_edge: Ball Reward

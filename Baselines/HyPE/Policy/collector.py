@@ -10,7 +10,7 @@ import copy
 from typing import Any, Dict, List, Union, Optional, Callable
 from argparse import Namespace
 from collections import deque
-from Record.file_management import action_chain_string, display_param, write_string
+from Record.file_management import action_chain_string, display_param, display_frame, write_string
 from Network.network_utils import pytorch_model
 from Baselines.HyPE.Policy.aggregator import TemporalAggregator
 from Record.file_management import save_to_pickle, create_directory
@@ -150,6 +150,7 @@ class HyPECollector():
                 # step in env
                 action_remap = self.data.true_action[0]
                 next_full_state, rew, done, info = self.env.step(action_remap)
+                display_frame(next_full_state['raw_state'])
                 # if self.env.discrete_actions: self.data.full_state.factored_state.Action = [action_remap] # reassign the action to correspond to the current action taken
                 self.data.full_state.factored_state.Action = [self.data.true_action]
                 true_done, true_reward = done, rew

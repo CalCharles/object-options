@@ -317,6 +317,10 @@ class Breakout(Environment):
         for o in self.objects:
             o.interaction_trace = list()
 
+    def restore_back(self):
+        for i in range(self.num_columns):
+            self.blocks[i].attribute = 1
+
     def interaction_effects(self, obj1, obj2):
         '''
         if obj2 is a block and obj1 is a ball and the ball hit the block, then the block attribute should change
@@ -354,12 +358,15 @@ class Breakout(Environment):
             self.reset_rewards = False
         for i in range(self.frameskip):
             if self.no_breakout: # fixes the blocks that got hit so breakouts do not occur
-                atrv, nmode = self.get_nmode_atrv() 
-                for choice in self.choices:
-                    self.blocks[choice].attribute = atrv
-                for block in self.blocks:
-                    if block.attribute == 0:
-                        block.attribute = 1
+                if self.variant == "proximity":
+                    self.restore_back()
+                else:
+                    atrv, nmode = self.get_nmode_atrv()
+                    for choice in self.choices:
+                        self.blocks[choice].attribute = atrv
+                    for block in self.blocks:
+                        if block.attribute == 0:
+                            block.attribute = 1
             # perform the object dynamics, updating block reward accordingly
             self.actions.take_action(action)
             self.paddle.interact(self.actions)
