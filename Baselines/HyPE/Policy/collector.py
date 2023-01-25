@@ -251,6 +251,7 @@ class HyPECollector():
         # print(assignment_dicts.keys())
         # print(np.concatenate(assignments).squeeze().tolist())
         asmt_keys = assignment_dicts.keys() if not self.merge_data else set(np.concatenate(assignments).squeeze().tolist())
+        crewards, cterminations = None, None # caching
         for asmt in asmt_keys:
             if self.single_buffer: asmt = 0
             asmt_dict = assignment_dicts[asmt] if not self.merge_data else assignment_dicts[0]
@@ -263,7 +264,9 @@ class HyPECollector():
                 terminations = asmt_dict['true_done']
             else:
                 rewards, terminations = self.skill.reward_model.compute_reward(np.stack(asmt_dict['target_diff'], axis=0), np.stack(asmt_dict['target'], axis=0),
-                                            np.stack(asmt_dict['parent_state'], axis=0), np.stack(asmt_dict['done'], axis=0))
+                                            np.stack(asmt_dict['parent_state'], axis=0), np.stack(asmt_dict['done'], axis=0), cached_rewards = crewards, cached_terminations = cterminations)
+                if self.merge_data:
+                    crewards, cterminations = rewards, terminations
             count_at = 0
             rewards = np.stack(rewards, axis=-1)
             assignment_reward[asmt] = 0
@@ -285,7 +288,7 @@ class HyPECollector():
                                             asmt_dict["data"][count_at].parent_state, asmt_dict["data"][count_at].done, term, full_reward, 
                                             asmt_dict["data"][count_at].rew, asmt, asmt_dict["assignment"][count_at])
                     assignment_reward[asmt] += full_reward[asmt]
-                    print("reward", asmt_dict["data"][count_at].rew)
+                    # print("reward", asmt_dict["data"][count_at].rew)
                     if self.buffers is not None: self.buffers[asmt].add(asmt_dict["data"][count_at])
                     count_at += 1
         # generate statistics

@@ -14,7 +14,7 @@ reward:
   reward_base: -.1
   param_reward: 100.0
   one_mode: False
-  changepoint_reward: 10
+  changepoint_reward: 25
 skill:
   temporal_extend: 2
   policy_iters: 100
@@ -22,7 +22,7 @@ skill:
   # policy_iters_schedule: 15
   # num_repeats_schedule: 1
   obs_components: 1 1 1
-  num_iters: 1500
+  num_iters: 3000
   num_repeats: 1
   buffer_len: 200000
   epsilon_random: 0.01
@@ -31,11 +31,10 @@ skill:
   prioritized_replay: 0.4 0.4
   learning_type: rainbow
   buffer_len: 100000
-  num_iters: 1000
-  log_interval: 50
+  log_interval: 10
   merge_data: True
   learn:
-    grad_epoch: 50
+    grad_epoch: 100
     discount_factor: 0.99
     max_min_critic: -10 200
     tau: 3000
