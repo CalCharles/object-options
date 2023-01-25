@@ -8,6 +8,7 @@ import os, copy
 from Environment.Environments.Breakout.breakout_specs import *
 from Record.file_management import numpy_factored
 from gym import spaces
+from Causal.Sampling.General.block import BreakoutBlockSampler
 
 
 # default settings for normal variants, args in order: 
@@ -86,6 +87,9 @@ class Breakout(Environment):
         self.block_height = min(self.max_block_height, 10 // self.num_rows)
         self.block_width = 60 // self.num_columns
         self.hard_mode = self.negative_mode[:4] == "hard"
+        self.sampler = BreakoutBlockSampler(self.num_blocks)
+        self.param = self.sampler.param
+        self.param_idx = self.sampler.param_idx
 
         # reset counters
         self.hit_counter = 0
@@ -269,7 +273,8 @@ class Breakout(Environment):
         self.since_last_hit = 0
         self.total_score = 0
         self.render()
-        if self.variant == "proximity" and hasattr(self, "sampler"): self.sampler.sample(self.get_state())
+        self.param = self.sampler.sample(self.get_state())
+        self.param_idx = self.sampler.param_idx
         return self.get_state()
 
     def render(self):
@@ -299,6 +304,7 @@ class Breakout(Environment):
         if render: self.render()
         rdset = set(["Reward", "Done"])
         state =  {"raw_state": self.frame, "factored_state": numpy_factored({**{obj.name: obj.getMidpoint() + obj.vel.tolist() + [obj.getAttribute()] for obj in self.objects if obj.name not in rdset}, **{'Done': [self.done.attribute], 'Reward': [self.reward.attribute]}})}
+        if self.variant == "proximity": state["factored_state"]["Param"] = self.param
         return state
 
     def get_info(self):
@@ -391,11 +397,15 @@ class Breakout(Environment):
                 if self.ball.losses == 5:
                     print("Breakout episode score:", self.total_score)
                 print("eoe", self.total_score)
+                if self.drop_stopping:
+                    print("Breakout episode score:", self.total_score)
                 break
 
             # record hit information (end of episode)
             if hit:
                 self.hit_counter += 1
+                self.param = self.sampler.sample(self.get_state())
+                self.param_idx = self.sampler.param_idx
                 # end of episode by hitting
                 if ((self.get_num(True) == 0 and self.hit_reset <= 0) # removed as many blocks as necessary (all the positive blocks in negative/hard block domains, all the blocks in other domains)
                     or (self.no_breakout and self.hit_reset > 0 and self.hit_counter == self.hit_reset) # reset after a fixed number of hits

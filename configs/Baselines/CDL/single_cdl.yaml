@@ -1,0 +1,9 @@
+---
+  environment:
+    env: Breakout
+    variant: single_block
+  torch:
+    gpu: 1
+  arg_dict: cdl
+  param_config: configs/Baselines/CDL/breakout_cdl.json
+...

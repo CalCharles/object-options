@@ -1,7 +1,9 @@
 ---
   environment:
     env: RoboPushing
-    variant: obstacles
+    variant: obstacles_many
+  torch:
+    gpu: 3
   arg_dict: cdl
   param_config: configs/Baselines/CDL/robopushing_cdl.json
 ...

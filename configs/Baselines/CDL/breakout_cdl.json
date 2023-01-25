@@ -68,7 +68,7 @@
         "init_steps": 30000,
         "collect_env_step": true,
         "inference_gradient_steps": 200,
-        "policy_gradient_steps": 200,
+        "policy_gradient_steps": 500,
         "saving_freq": 5000,
         "plot_freq": 1000,
         "replay_buffer_params": {
@@ -198,7 +198,7 @@
             "planner_type": "cem",
             "std_scale": 1.0,
             "n_horizon_step": 3,
-            "n_iter": 5,
+            "n_iter": 2,
             "n_candidate": 64,
             "n_top_candidate": 32,
             "action_noise": 0.03,

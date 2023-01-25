@@ -16,5 +16,4 @@ if __name__ == "__main__":
         from Baselines.CDL.main_policy import train
         from Baselines.CDL.utils.utils import TrainingParams
         params = TrainingParams(training_params_fname=args.param_config, train=True)
-        
         train(params, args)

@@ -25,7 +25,7 @@ conda install -c anaconda scikit-learn
 pip -U install cma
 
 # installing for cdl
-conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
+conda install pytorch=1.11=py3.8_cuda10.2_cudnn7.6.5_0 torchvision torchaudio cudatoolkit=10.2 -c pytorch
 conda install -c conda-forge tensorboard
 conda install -c anaconda scikit-image
 conda install -c conda-forge matplotlib
