@@ -25,7 +25,6 @@ class ChangepointDetectionReward():
         self.extractor = extractor
         self.norm = norm
         self.one_mode = False
-        self.v
 
     def toggle_one_mode(self, one_mode):
         # one mode uses only a single mode for reward assignment---every nonnegative assignment of mode gets reward

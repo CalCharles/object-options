@@ -25,7 +25,7 @@ class Policy(nn.Module):
     Note that TianShao Policies also support learning
 
     '''
-    def __init__(self, num_actions, input_shape, args):
+    def __init__(self, num_actions, input_shape, args, pair_args):
         '''
         @param input shape is the shape of the input to the network
         @param paction space is a gym.space corresponding to the ENVIRONMENT action space
@@ -41,7 +41,7 @@ class Policy(nn.Module):
         self.MIN_HER = 1000
         
         # initialize networks
-        nets_optims = init_networks(args, input_shape, num_actions)
+        nets_optims = init_networks(args, input_shape, num_actions, pair_args)
         self.critic_lr, self.actor_lr = args.critic_net.optimizer.lr, args.actor_net.optimizer.lr
 
         # initialize tianshou lower level

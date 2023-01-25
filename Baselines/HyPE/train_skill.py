@@ -6,6 +6,7 @@ from Baselines.HyPE.Policy.test_trials import collect_test_trials
 from Baselines.HyPE.Policy.HyPE_buffer import HyPEBuffer, HyPEPrioBuffer
 from Baselines.HyPE.Policy.temporal_extension_manager import TemporalExtensionManager
 from Baselines.HyPE.generate_reward_fn import load_reward, generate_extractor_norm
+from Baselines.HyPE.Policy.default_extractors import BreakoutExtractor, RoboPushingExtractor
 from ReinforcementLearning.utils.RL_logger import RLLogger
 from State.object_dict import ObjDict
 from Environment.Environments.initialize_environment import initialize_environment
@@ -24,17 +25,30 @@ def train_skill(args):
     num_repeats_schedule = (lambda i: args.skill.num_repeats * (min(2 ** ( i // args.skill.num_repeats_schedule), 4))) if args.skill.num_repeats_schedule  > 0 else (lambda i: args.skill.num_repeats)
     epsilon_schedule = (lambda i: max(np.exp(- i / args.skill.epsilon_schedule), args.skill.epsilon_random)) if args.skill.epsilon_schedule > 0 else (lambda i: args.skill.epsilon_random)
 
-    reward = load_reward(args)
-    reward.set_extractor_norm(*generate_extractor_norm(args.object_names, environment))
-    reward.set_params(args.reward.reward_base, args.reward.param_reward, args.reward.changepoint_reward, args.reward.one_mode)
+
+    if args.reward.true_reward:
+        reward = TrueReward(environment)
+    else:
+        reward = load_reward(args)
+        reward.set_extractor_norm(*generate_extractor_norm(args.object_names, environment))
+        reward.set_params(args.reward.reward_base, args.reward.param_reward, args.reward.changepoint_reward, args.reward.one_mode)
     num_actions = last_skill.num_skills
     models = ObjDict()
     models.temporal_extension_manager= TemporalExtensionManager(args)
-    models.extractor = Extractor(reward.extractor, reward.norm, args.skill.obs_components, args.skill.input_scaling, args.skill.normalized)
+    if args.reward.true_reward:
+        if args.environment.env == "Breakout":
+            models.extractor = BreakoutExtractor(args.skill.input_scaling, args.skill.normalized, environment.num_blocks)
+            pair_args = models.extractor.pair_args()
+        elif args.environment.env == "RoboPushing":
+            models.extractor = RoboPushingExtractor(args.skill.input_scaling, args.skill.normalized, environment.num_obstacles)
+            pair_args = models.extractor.pair_args()
+    else:
+        models.extractor = Extractor(reward.extractor, reward.norm, args.skill.obs_components, args.skill.input_scaling, args.skill.normalized)
+        pair_args = None # TODO: not supported
     input_shape = models.extractor.get_obs(environment.reset()).shape # get the first state
     models.reward_model = reward
-    policies = [Policy(num_actions, input_shape, args) for i in range(reward.num_modes)]
-    skill = Skill(args, policies, models, last_skill)
+    policies = [Policy(num_actions, input_shape, args, pair_args) for i in range(reward.num_modes)]
+    skill = Skill(args, policies, models, last_skill)#, augment_primitive=environment.num_actions if args.skill.augment_primitive else num_actions)
     # train_loggers = [RLLogger(args.object_names.target + "_train" + str(i), args.record.record_graphs, args.skill.log_interval, args.skill.train_log_maxlen, args.record.log_filename) for
     #                         i in range(reward.num_modes)]
     train_logger = RLLogger(args.object_names.target + "_train", args.record.record_graphs, args.skill.log_interval, args.skill.train_log_maxlen, args.record.log_filename)
@@ -42,11 +56,10 @@ def train_skill(args):
 
     buffers = [(HyPEBuffer(args.skill.buffer_len) if len(args.skill.prioritized_replay) == 0 else HyPEPrioBuffer(args.skill.buffer_len, *args.skill.prioritized_replay) )for i in range(reward.num_modes)]
     print(policy_iters_schedule(0), policy_iters_schedule)
-    train_collector = HyPECollector(environment, buffers, skill, skill.extractor, False, record, policy_iters_schedule(0), args.skill.merge_data)
-    test_collector = HyPECollector(environment, None, skill, skill.extractor, True, record, policy_iters_schedule(0))
+    train_collector = HyPECollector(environment, buffers, skill, skill.extractor, False, record, policy_iters_schedule(0), args.skill.merge_data, use_true_reward = args.reward.true_reward)
+    test_collector = HyPECollector(environment, None, skill, skill.extractor, True, record, policy_iters_schedule(0), use_true_reward = args.reward.true_reward)
 
     print(args.skill.num_iters)
-    error
     for i in range(args.skill.num_iters):  # total step
         if args.skill.epsilon_schedule > 0 and i % args.skill.epsilon_schedule == 0:
             skill.set_epsilon(epsilon_schedule(i))

@@ -33,7 +33,8 @@ class HyPECollector():
         test: bool = False,
         record: None = None, # a record object to save states
         policy_iters: int = 0,
-        merge_data: bool = False
+        merge_data: bool = False,
+        use_true_reward: bool = False
     ) -> None: 
         self.skill = skill
         self.state_extractor = extractor
@@ -47,6 +48,7 @@ class HyPECollector():
         self.policy_iters = policy_iters
         self.counter = 0
         self.merge_data = merge_data
+        self.use_true_reward = use_true_reward
         self.reset_env()
 
     def reset_env(self, keep_statistics: bool = False):
@@ -169,14 +171,15 @@ class HyPECollector():
                 # get the dones, rewards, terminations and temporal extension terminations
                 # print(self.data.full_state, self.data.true_done)
                 changepoint_history_queue.append(next_full_state)
-                ext_term_chain = self.skill.terminate_chain(Batch(changepoint_history_queue), self.data.true_done[0], True)
+                ext_term_chain = self.skill.terminate_chain(Batch(changepoint_history_queue), self.data.true_done[0], True, force=False)
                 self.skill.update(act, action_chain, ext_term_chain, update_policy=True)
-                self.data.update(ext_terms = ext_term_chain, ext_term=ext_term_chain[-1], skill_resample=[new_param], done=[(new_param and not first) or true_done], truncated=[new_param])
+                use_done = [(new_param and not first) or true_done] if not self.use_true_reward else [true_done]
+                self.data.update(ext_terms = ext_term_chain, ext_term=ext_term_chain[-1], skill_resample=[new_param], done=use_done, truncated=[new_param])
                 first = False
 
                 # update the current values TODO: next_full_state is time expensive (.001 sec per iteration). It should be stored separately
                 self.data.update(next_full_state=[next_full_state], true_done=last_true_done, next_true_done=[true_done], true_reward=true_reward, 
-                    assignment=param, info = info, time=[1], done=[done])
+                    assignment=param, info = info, time=[1])
 
                 if render:
                     self.env.render()
@@ -255,8 +258,12 @@ class HyPECollector():
             #                             np.stack(asmt_dict['parent_state'], axis=0), np.stack(asmt_dict['done'], axis=0))
             # print("rewarding", asmt, np.stack(asmt_dict['target_diff'], axis=0).shape, np.stack(asmt_dict['target'], axis=0).shape,
             #                             np.stack(asmt_dict['parent_state'], axis=0).shape, np.stack(asmt_dict['done'], axis=0).shape)
-            rewards, terminations = self.skill.reward_model.compute_reward(np.stack(asmt_dict['target_diff'], axis=0), np.stack(asmt_dict['target'], axis=0),
-                                        np.stack(asmt_dict['parent_state'], axis=0), np.stack(asmt_dict['done'], axis=0))
+            if self.use_true_reward:
+                rewards = asmt_dict['true_reward']
+                terminations = asmt_dict['true_done']
+            else:
+                rewards, terminations = self.skill.reward_model.compute_reward(np.stack(asmt_dict['target_diff'], axis=0), np.stack(asmt_dict['target'], axis=0),
+                                            np.stack(asmt_dict['parent_state'], axis=0), np.stack(asmt_dict['done'], axis=0))
             count_at = 0
             rewards = np.stack(rewards, axis=-1)
             assignment_reward[asmt] = 0
@@ -278,7 +285,7 @@ class HyPECollector():
                                             asmt_dict["data"][count_at].parent_state, asmt_dict["data"][count_at].done, term, full_reward, 
                                             asmt_dict["data"][count_at].rew, asmt, asmt_dict["assignment"][count_at])
                     assignment_reward[asmt] += full_reward[asmt]
-                    # print("reward", asmt_dict["data"][count_at].rew)
+                    print("reward", asmt_dict["data"][count_at].rew)
                     if self.buffers is not None: self.buffers[asmt].add(asmt_dict["data"][count_at])
                     count_at += 1
         # generate statistics
