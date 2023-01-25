@@ -293,11 +293,13 @@ class Skill():
             if force:
                 return last_terminations + [True]
             parent, target, target_diff = self.extractor.get_parent(full_states)[1:], self.extractor.get_target(full_states)[1:], self.extractor.get_diff(full_states[:-1], full_states[1:])
-            _, terminations = self.reward_model.compute_reward(target_diff, target, parent, true_done) # TODO: true_inter = ?
+            dones = np.concatenate([d for d in full_states.factored_state.Done], axis = -1)[1:]
+            _, terminations = self.reward_model.compute_reward(target_diff, target, parent, dones) # TODO: true_inter = ?
             cutoff = self.temporal_extension_manager.is_cutoff()
+            # the exact moment of terminations might be difficult to read, so we just take any termination within the front end of the window
             # print(self.name, cutoff, self.temporal_extension_manager.timer, self.temporal_extension_manager.ext_cutoff)
             # print(self.reward_model.name, type(self.reward_model), target_diff, target, parent, true_done, terminations)
-            terminations = last_terminations + [terminations[-1] or cutoff]
+            terminations = last_terminations + [np.any(terminations[-int(len(terminations)// 2):]) or cutoff]
         return terminations
 
     def save(self, save_dir):

@@ -406,6 +406,7 @@ class Breakout(Environment):
                 self.hit_counter += 1
                 self.param = self.sampler.sample(self.get_state())
                 self.param_idx = self.sampler.param_idx
+                self.since_last_hit = 0
                 # end of episode by hitting
                 if ((self.get_num(True) == 0 and self.hit_reset <= 0) # removed as many blocks as necessary (all the positive blocks in negative/hard block domains, all the blocks in other domains)
                     or (self.no_breakout and self.hit_reset > 0 and self.hit_counter == self.hit_reset) # reset after a fixed number of hits

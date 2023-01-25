@@ -21,7 +21,7 @@ class BreakoutExtractor():
         var = np.array([84,84, 2,1.0,1.0])
         paddle = np.array(copy.deepcopy(full_state['factored_state']["Paddle"]))
         ball = np.array(copy.deepcopy(full_state['factored_state']["Ball"]))
-        blocks = [np.array(full_state['factored_state']["Block" + str(i)]) for i in range(self.num_blocks)]
+        blocks = [np.array(full_state['factored_state']["Block" + str(i)]) for i in range(self.num_blocks)] if self.num_blocks > 1 else [np.array(full_state['factored_state']["Block"])]
         rel = paddle - ball
         # print(parent.shape, target.shape, rel.shape)
         if self.normalized: components = [paddle / var - 0.5, ball / var - 0.5, rel / var] + [block / var - 0.5 for block in blocks]

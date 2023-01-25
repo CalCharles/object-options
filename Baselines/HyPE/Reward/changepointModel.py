@@ -28,7 +28,11 @@ class ChangepointModel():
 
 	def get_changepoints(self, target_states, parent_states, dones):
 		# gets changepoints and returns the correspond segment models, indices of the changepoints, raw changepoints and changepoints filtered for proximity and done flags
-		
+		# print(target_states, parent_states, dones)
+		if target_states.shape[0] <= 1:
+			prox = check_proximity(self.proximity, target_states, parent_states) if target_states.shape[0] > 0 else np.array([])
+			return None, list(), np.array([False for i in range(target_states.shape[0])]), np.array([False for i in range(target_states.shape[0])]), np.array([])
+
 		# sets the trajectory dimension
 		target_states, parent_states = target_states[...,:self.traj_dim], parent_states[...,:self.traj_dim]
 		# runs the changpoint model
