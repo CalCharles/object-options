@@ -1,0 +1,18 @@
+---
+metaparam: 
+  multi_filename: obstacles_runs_
+  log_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_logs/obstacles_runs/test/
+  yaml_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_yamls/obstacles_runs/test/
+  save_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam/obstacles_runs/test/
+  graph_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_graphs/obstacles_runs/test/
+  bash_path: obstacles_runs.sh
+  base_config: configs/Baselines/HyPE/RoboPushing/obstacles.yaml
+  runfile: train_baselines.py
+  gpu: 0
+  match: 0
+  simul_run: 8
+  num_trials: 8
+  cycle_gpu: 4
+skill:
+  num_iters: 20000
+...

@@ -1,0 +1,21 @@
+---
+record:
+  # record_rollouts: /hdd/datasets/hype/breakout/Paddle/
+  record_recycle: -1
+  load_dir: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam/block_trains/test/block_trains_1_trial_0
+  # save_dir: /hdd/datasets/hype/breakout/testrun/
+  save_interval: 100
+environment:
+  env: RoboPushing
+  variant: discrete_obs
+arg_dict: hype
+train_mode: test # either reward or policy
+train_edge: Gripper Block
+reward:
+  true_reward: False
+skill:
+  log_interval: 50
+  train_log_maxlen: 100
+  test_policy_iters: 5
+  test_trials: 30
+...

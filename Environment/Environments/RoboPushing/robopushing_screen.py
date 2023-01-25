@@ -159,6 +159,7 @@ class RoboPushing(Environment):
         use_act = self.set_action(action)
         next_obs, self.reward, self.done, info = self.env.step(use_act)
         self.reward_collect += self.reward
+        # print(self.reward_collect, next_obs["cube_pos"], next_obs["robot0_eef_pos"])
         info["TimeLimit.truncated"] = False
         if self.done:
             info["TimeLimit.truncated"] = True
