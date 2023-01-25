@@ -416,6 +416,10 @@ class Breakout(Environment):
                     self.reset_rewards = True
                 print("eoe", self.total_score)
                 if self.drop_stopping:
+                    if self.variant == "big_block":
+                        self.reset_rewards = True
+                        print("Breakout episode score:", self.total_score + self.reward.attribute)
+                        needs_reset = True
                     print("drop episode score:", self.total_score)
                 break
 
