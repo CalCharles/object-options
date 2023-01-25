@@ -46,7 +46,9 @@ class ChangepointDetectionReward():
         self.toggle_one_mode(one_mode)
 
 
-    def compute_reward(self, target_diff, target_states, parent_states, dones):
+    def compute_reward(self, target_diff, target_states, parent_states, dones, cached_rewards=None, cached_terminations=None):
+        if cached_rewards is not None:
+            return cached_rewards, cached_terminations
         assignments, terminations = self.model.get_mode(target_diff, target_states, parent_states, dones)
         
         # print(assignments[:100], self.desired_modes)

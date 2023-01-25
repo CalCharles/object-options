@@ -256,7 +256,7 @@ class HyPECollector():
         # print(assignment_dicts.keys())
         # print(np.concatenate(assignments).squeeze().tolist())
         asmt_keys = assignment_dicts.keys() if not self.merge_data else set(np.concatenate(assignments).squeeze().tolist())
-        # print(len(full_data_queue), len(assignment_dicts[0]), list(assignment_dicts.keys()))
+        crewards, cterminations = None, None # caching
         for asmt in asmt_keys:
             if self.single_buffer: asmt = 0
             asmt_dict = assignment_dicts[asmt] if not self.merge_data else assignment_dicts[0]
@@ -269,8 +269,10 @@ class HyPECollector():
                 terminations = np.stack(asmt_dict['true_done'], axis=0).squeeze()
             else:
                 rewards, terminations = self.skill.reward_model.compute_reward(np.stack(asmt_dict['target_diff'], axis=0), np.stack(asmt_dict['target'], axis=0),
-                                            np.stack(asmt_dict['parent_state'], axis=0), np.stack(asmt_dict['done'], axis=0))
+                                            np.stack(asmt_dict['parent_state'], axis=0), np.stack(asmt_dict['done'], axis=0), cached_rewards = crewards, cached_terminations = cterminations)
                 rewards = np.stack(rewards, axis=-1)
+                if self.merge_data:
+                    crewards, cterminations = rewards, terminations
             count_at = 0
             assignment_reward[asmt] = 0
             # print(asmt, rewards.shape, len(terminations))

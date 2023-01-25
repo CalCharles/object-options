@@ -398,7 +398,7 @@ class Breakout(Environment):
                     print("Breakout episode score:", self.total_score)
                 print("eoe", self.total_score)
                 if self.drop_stopping:
-                    print("Breakout episode score:", self.total_score)
+                    print("drop episode score:", self.total_score)
                 break
 
             # record hit information (end of episode)

@@ -37,7 +37,8 @@ skill:
     discount_factor: 0.99
     max_min_critic: -60 10
     tau: 3000
-  test_trials: 10
+  train_log_maxlen: 15
+  test_trials: 3
   # normalized: False
   # epsilon_random: 0.0
   # num_networks: 10

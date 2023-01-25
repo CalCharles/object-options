@@ -1,0 +1,18 @@
+---
+metaparam: 
+  multi_filename: block_trains_
+  log_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_logs/block_trains/test/
+  yaml_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_yamls/block_trains/test/
+  save_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam/block_trains/test/
+  graph_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_graphs/block_trains/test/
+  bash_path: block_trains.sh
+  base_config: configs/Baselines/HyPE/RoboPushing/gripper_block_skill.yaml
+  runfile: train_baselines.py
+  gpu: 0
+  match: 0
+  simul_run: 10
+  num_trials: 1
+  cycle_gpu: 4
+record:
+  save_dir: /nfs/data/calebc/hype/robopushing/block1/,/nfs/data/calebc/hype/robopushing/block2/,/nfs/data/calebc/hype/robopushing/block3/,/nfs/data/calebc/hype/robopushing/block4/,/nfs/data/calebc/hype/robopushing/block5/,/nfs/data/calebc/hype/robopushing/block6/,/nfs/data/calebc/hype/robopushing/block7/,/nfs/data/calebc/hype/robopushing/block8/,/nfs/data/calebc/hype/robopushing/block9/,/nfs/data/calebc/hype/robopushing/block10/
+...

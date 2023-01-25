@@ -3,6 +3,7 @@ record:
   # record_rollouts: /hdd/datasets/hype/robopushing/Block/
   record_recycle: -1
   load_dir: /hdd/datasets/hype/robopushing/testrun/
+  save_interval: 100
   # save_dir: /nfs/data/calebc/hype/robopushing/testrun/
 environment:
   env: RoboPushing
@@ -21,7 +22,7 @@ skill:
   # policy_iters_schedule: 15
   # num_repeats_schedule: 1
   obs_components: 1 1 1
-  num_iters: 2000
+  num_iters: 3400
   num_repeats: 1
   buffer_len: 50000
   epsilon_random: 0.1
@@ -53,7 +54,7 @@ network:
   net_type: mlp
   activation_final: tanh
   activation: leakyrelu
-  scale_logits: 10
+  scale_final: 10
   init_form: xnorm
   optimizer:
     lr: .0001
