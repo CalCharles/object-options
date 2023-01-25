@@ -22,7 +22,7 @@ skill:
   policy_iters_schedule: 15
   # num_repeats_schedule: 1
   obs_components: 0 0 1
-  num_iters: 100
+  num_iters: 400
   num_repeats: 10
   buffer_len: 50000
   normalized: False

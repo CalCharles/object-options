@@ -1,0 +1,64 @@
+---
+record:
+  # record_rollouts: /hdd/datasets/hype/breakout/Paddle/
+  record_recycle: -1
+  load_dir: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_grad_trains/test/ball_grad_trains_1_trial_0
+  save_interval: 10
+  # save_dir: /hdd/datasets/hype/breakout/testrun/
+environment:
+  env: Breakout
+  variant: single_block
+arg_dict: hype
+train_mode: skill # either reward or policy
+train_edge: Ball Reward
+reward:
+  one_mode: False
+  true_reward: True
+skill:
+  temporal_extend: 50
+  policy_iters: 100
+  # policy_iters_schedule: 15
+  # num_repeats_schedule: 1
+  num_iters: 15000
+  num_repeats: 1
+  buffer_len: 50000
+  epsilon_random: 0.03
+  epsilon_schedule: 100
+  num_networks: 1
+  learning_type: rainbow
+  buffer_len: 500000
+  log_interval: 50
+  merge_data: True
+  learn:
+    grad_epoch: 100
+    discount_factor: 0.999
+    max_min_critic: -10 10
+    tau: 3000
+  train_log_maxlen: 15
+  test_trials: 3
+  # normalized: False
+  # epsilon_random: 0.0
+  # num_networks: 10
+  # # input_scaling: 100
+  # learning_type: cmaes
+  # learn:
+  #   init_var: 0.1
+  #   grad_epoch: 1
+  #   discount_factor: 0.0
+critic_net:
+actor_net:
+network:
+  hidden_sizes: 128 256 512 1024
+  net_type: pair
+  activation_final: tanh
+  activation: leakyrelu
+  scale_final: 10
+  init_form: xnorm
+  optimizer:
+    lr: .0001
+    alt_lr: .0001
+    eps: .00001
+    alpha: 0.99
+    betas: 0.9 0.999
+    weight_decay: 0.00
+...

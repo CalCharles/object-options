@@ -1,11 +1,11 @@
 ---
 metaparam: 
-  multi_filename: ball_grad_trains_
-  log_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_logs/ball_grad_trains/test/
-  yaml_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_yamls/ball_grad_trains/test/
-  save_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_grad_trains/test/
-  graph_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_graphs/ball_grad_trains/test/
-  bash_path: ball_grad_trains.sh
+  multi_filename: ball_grad_trains2_
+  log_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_logs/ball_grad_trains2/test/
+  yaml_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_yamls/ball_grad_trains2/test/
+  save_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_grad_trains2/test/
+  graph_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_graphs/ball_grad_trains2/test/
+  bash_path: ball_grad_trains2.sh
   base_config: configs/Baselines/HyPE/Breakout/paddle_ball_skill_grad.yaml
   runfile: train_baselines.py
   gpu: 0
@@ -14,5 +14,5 @@ metaparam:
   num_trials: 1
   cycle_gpu: 4
 record:
-  save_dir: /nfs/data/calebc/hype/breakout/ballrun1/,/nfs/data/calebc/hype/breakout/ballrun2/,/nfs/data/calebc/hype/breakout/ballrun3/,/nfs/data/calebc/hype/breakout/ballrun4/,/nfs/data/calebc/hype/breakout/ballrun5/,/nfs/data/calebc/hype/breakout/ballrun6/,/nfs/data/calebc/hype/breakout/ballrun7/,/nfs/data/calebc/hype/breakout/ballrun8/,/nfs/data/calebc/hype/breakout/ballrun9/,/nfs/data/calebc/hype/breakout/ballrun10/
+  save_dir: /nfs/data/calebc/hype/breakout/grad/ballrun1/,/nfs/data/calebc/hype/breakout/grad/ballrun2/,/nfs/data/calebc/hype/breakout/grad/ballrun3/,/nfs/data/calebc/hype/breakout/grad/ballrun4/,/nfs/data/calebc/hype/breakout/grad/ballrun5/,/nfs/data/calebc/hype/breakout/grad/ballrun6/,/nfs/data/calebc/hype/breakout/grad/ballrun7/,/nfs/data/calebc/hype/breakout/grad/ballrun8/,/nfs/data/calebc/hype/breakout/grad/ballrun9/,/nfs/data/calebc/hype/breakout/grad/ballrun10/
 ...

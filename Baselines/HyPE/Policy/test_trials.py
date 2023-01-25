@@ -21,7 +21,6 @@ def collect_test_trials(logger, skill, test_collector, num_sample, num_repeats, 
         result = test_collector.collect(num_sample, num_repeats, episodes=1, random=random, demonstrate=demonstrate_skill)
         result['n/tr'] = max(1, result['n/tr']) # at least one (virtual) epsiode occurs before the end, for testing purposes
         result['n/ep'] = max(1, result['n/ep']) # at least one (virtual) epsiode occurs before the end, for testing purposes
-        result['n/m'] = int(result['n/m'] > 0) 
         logger.log_results(result)
         # print(result)
         results.append(result)

@@ -38,7 +38,7 @@ def train_skill(args):
     models.temporal_extension_manager= TemporalExtensionManager(args)
     if args.reward.true_reward:
         if args.environment.env == "Breakout":
-            models.extractor = BreakoutExtractor(args.skill.input_scaling, args.skill.normalized, environment.num_blocks)
+            models.extractor = BreakoutExtractor(args.skill.input_scaling, args.skill.normalized, environment.num_blocks, environment.variant == "proximity ")
             pair_args = models.extractor.pair_args()
         elif args.environment.env == "RoboPushing":
             models.extractor = RoboPushingExtractor(args.skill.input_scaling, args.skill.normalized, environment.num_obstacles)

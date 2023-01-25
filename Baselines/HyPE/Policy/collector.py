@@ -284,10 +284,12 @@ class HyPECollector():
                     asmt_dict["data"][count_at].rew = full_reward[asmt] if not self.sum_reward else [upto_reward]
                     if asmt == asmt_dict["assignment"][count_at]:
                         rews += full_reward[asmt] if not self.sum_reward else upto_reward
-                    if np.any(term) or np.any(asmt_dict["data"][count_at].done):
+                    if np.any(term) or np.any(asmt_dict['true_done'][count_at]):
                         hit += int(int(full_reward[asmt]) == self.skill.reward_model.param_reward) # kind of hacky way to check
                         term_count += 1
                         miss += int(int(full_reward[asmt]) != self.skill.reward_model.param_reward)
+                        print(miss, hit, np.any(term), asmt_dict['true_done'][count_at-2:count_at + 2], full_reward, asmt,
+                         full_reward[asmt], self.skill.reward_model.param_reward, int(full_reward[asmt]) != self.skill.reward_model.param_reward, int(int(full_reward[asmt]) == self.skill.reward_model.param_reward))
                     asmt_dict["data"][count_at].full_reward = full_reward
                     asmt_dict["data"][count_at].terminate = term
                     # print(asmt_dict["data"][count_at].done, term)

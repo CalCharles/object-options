@@ -2,10 +2,11 @@ import copy
 import numpy as np
 
 class BreakoutExtractor():
-    def __init__(self, input_scaling, normalized, num_blocks):
+    def __init__(self, input_scaling, normalized, num_blocks, prox):
         self.input_scaling = input_scaling
         self.normalized = normalized
         self.num_blocks = num_blocks
+        self.prox = prox
 
     def get_target(self, full_state):
         return np.array(copy.deepcopy(full_state['factored_state']["Reward"]))
@@ -24,15 +25,22 @@ class BreakoutExtractor():
         blocks = [np.array(full_state['factored_state']["Block" + str(i)]) for i in range(self.num_blocks)] if self.num_blocks > 1 else [np.array(full_state['factored_state']["Block"])]
         rel = paddle - ball
         # print(parent.shape, target.shape, rel.shape)
-        if self.normalized: components = [paddle / var - 0.5, ball / var - 0.5, rel / var] + [block / var - 0.5 for block in blocks]
-        else: components = [paddle, ball, rel] + blocks
+        if self.prox:
+            param = np.array(copy.deepcopy(full_state['factored_state']["Param"]))
+            if self.normalized: components = [paddle / var - 0.5, ball / var - 0.5, rel / var, param / var - 0.5] + [block / var - 0.5 for block in blocks]
+            else: components = [paddle, ball, rel, param] + blocks
+        else:
+            if self.normalized: components = [paddle / var - 0.5, ball / var - 0.5, rel / var] + [block / var - 0.5 for block in blocks]
+            else: components = [paddle, ball, rel] + blocks
         # print(cat, self.obs_components)
         if hasattr(self, "input_scaling"):
             return np.concatenate(components, axis=-1) * self.input_scaling
         else: return np.concatenate(components, axis=-1)
 
     def pair_args(self):
-    	return 15, 5
+        if self.prox:
+            return 20, 5
+        return 15, 5
 
 class RoboPushingExtractor():
     def __init__(self, input_scaling, normalized, num_obstacles):
@@ -73,4 +81,4 @@ class RoboPushingExtractor():
         else: return np.concatenate(components, axis=-1)
 
     def pair_args(self):
-    	return 15, 3
+        return 15, 3

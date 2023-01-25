@@ -104,6 +104,7 @@ class Breakout(Environment):
         self.num_remove = self.get_num(True)
         self.all_names = ["Action", "Paddle", "Ball"] + [b.name for b in self.blocks] + ['Done', "Reward"]
         self.instance_length = len(self.all_names)
+        self.reset_rewards = True # resets rewards on the NEXT iteration
 
     def assign_assessment_stat(self):
         if self.dropped and self.variant != "proximity":
@@ -275,6 +276,7 @@ class Breakout(Environment):
         self.render()
         self.param = self.sampler.sample(self.get_state())
         self.param_idx = self.sampler.param_idx
+        self.total_score = 0
         return self.get_state()
 
     def render(self):
@@ -328,8 +330,11 @@ class Breakout(Environment):
         if preattr != obj2.attribute:
             if self.variant == "proximity":
                 rew = self.compute_proximity_reward(self.sampler.param, np.concatenate([np.array(obj2.getMidpoint()), np.array([0,0,0])]))
+                print(self.itr, ",proximity_reward,", rew)
                 self.reward.attribute += rew
             else:
+                if self.variant.find("center") != -1 or self.variant.find("edges") != -1 or self.variant.find("harden") != -1: # negative is used in this case to encode hard blocks
+                    preattr = 0 if preattr == -1 else preattr
                 self.reward.attribute += preattr * self.default_reward
                 self.total_score += preattr * self.default_reward
             hit = True
@@ -343,6 +348,10 @@ class Breakout(Environment):
         needs_reset = False
         needs_ball_reset = False
         self.clear_interactions()
+        if self.reset_rewards:
+            self.reward.attribute = 0
+            self.done.attribute = False
+            self.reset_rewards = False
         for i in range(self.frameskip):
             if self.no_breakout: # fixes the blocks that got hit so breakouts do not occur
                 atrv, nmode = self.get_nmode_atrv() 
@@ -380,7 +389,8 @@ class Breakout(Environment):
             if render: self.render()
 
             # penalize bouncing the ball off the paddle, if necessary
-            if self.ball.paddle and self.bounce_cost < 0: self.reward.attribute += self.bounce_cost # the bounce count is a penalty for paddle bounces only if negative
+            if self.ball.paddle and self.bounce_cost < 0: 
+                self.reward.attribute += self.bounce_cost # the bounce count is a penalty for paddle bounces only if negative
             self.dropped = self.ball.bottom_wall or self.top_dropping and self.ball.top_wall
             if self.dropped:
                 self.reward.attribute += self.timeout_penalty # negative reward for dropping the ball since done is not triggered
@@ -395,7 +405,8 @@ class Breakout(Environment):
                 self.done.attribute = True
                 needs_reset = self.ball.losses == 5
                 if self.ball.losses == 5:
-                    print("Breakout episode score:", self.total_score)
+                    print("Breakout episode score:", self.total_score + self.reward.attribute)
+                    self.reset_rewards = True
                 print("eoe", self.total_score)
                 if self.drop_stopping:
                     print("drop episode score:", self.total_score)
@@ -407,6 +418,8 @@ class Breakout(Environment):
                 self.param = self.sampler.sample(self.get_state())
                 self.param_idx = self.sampler.param_idx
                 self.since_last_hit = 0
+                if self.variant == "prox":
+                    self.done.attribute = True
                 # end of episode by hitting
                 if ((self.get_num(True) == 0 and self.hit_reset <= 0) # removed as many blocks as necessary (all the positive blocks in negative/hard block domains, all the blocks in other domains)
                     or (self.no_breakout and self.hit_reset > 0 and self.hit_counter == self.hit_reset) # reset after a fixed number of hits
@@ -415,7 +428,8 @@ class Breakout(Environment):
                     needs_reset = True
                     self.reward.attribute += self.completion_reward * self.default_reward
                     self.done.attribute = True
-                    print("Breakout episode score:", self.total_score)
+                    self.reset_rewards = True
+                    print("Breakout episode score:", self.total_score + self.reward.attribute)
                     break
 
             # reset because the ball is stuck
@@ -430,6 +444,9 @@ class Breakout(Environment):
                 needs_reset = True
                 self.done.attribute = True
                 self.reward.attribute  += self.timeout_penalty
+                self.reset_rewards = True
+                print("Breakout episode score:", self.total_score + self.reward.attribute)
+                print("nohit clause", self.timeout_penalty, self.since_last_hit)
                 print("eoe", self.total_score)
                 break
 
@@ -441,6 +458,9 @@ class Breakout(Environment):
                     if self.bounce_counter == self.bounce_reset:
                         needs_reset = True
                         self.done.attribute = True
+                        self.reset_rewards = True
+                        print("Breakout episode score:", self.total_score + self.reward.attribute)
+                        print("bounce counter ellapsed", self.bounce_counter, self.bounce_reset)
                         break
 
         # record state information before any resets
@@ -457,10 +477,13 @@ class Breakout(Environment):
         
         # perform resets
         rew, done = self.reward.attribute, self.done.attribute
+        self.total_score += self.reward.attribute
         if needs_ball_reset: self.ball.reset_pos()
         if needs_reset: self.reset()
         if hit and self.variant == "proximity": self.sampler.sample(full_state)
         self.reward.attribute, self.done.attribute = rew, done
+        # if self.reward.attribute != 0:
+        #     print(self.reward.attribute, self.ball.interaction_trace, self.total_score)
         return full_state, rew, done, info
 
     def compute_proximity_reward(self, target_block, block):

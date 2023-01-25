@@ -8,8 +8,11 @@ if __name__ == "__main__":
         from Environment.Environments.initialize_environment import initialize_environment
         from Baselines.HyPE.generate_reward_fn import generate_reward_function
         from Baselines.HyPE.train_skill import train_skill
+        from Baselines.HyPE.test_skill import test_skill
         if args.train_mode == "reward":
             generate_reward_function()
+        elif args.train_mode == "test":
+            test_skill(args)
         else:
             train_skill(args)
     if args.arg_dict == "cdl":

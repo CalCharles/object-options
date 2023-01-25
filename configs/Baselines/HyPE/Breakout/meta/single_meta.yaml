@@ -1,0 +1,18 @@
+---
+metaparam: 
+  multi_filename: single_runs_
+  log_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_logs/single_runs/test/
+  yaml_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_yamls/single_runs/test/
+  save_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam/single_runs/test/
+  graph_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_graphs/single_runs/test/
+  bash_path: single_runs.sh
+  base_config: configs/Baselines/HyPE/Breakout/single_hype.yaml
+  runfile: train_baselines.py
+  gpu: 3
+  match: 0
+  simul_run: 5
+  num_trials: 5
+  cycle_gpu: 4
+skill:
+  num_iters: 5000
+...

@@ -1,11 +1,11 @@
 ---
 metaparam: 
-  multi_filename: ball_cmaes_trains_
-  log_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_logs/ball_cmaes_trains/test/
-  yaml_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_yamls/ball_cmaes_trains/test/
-  save_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_cmaes_trains/test/
-  graph_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_graphs/ball_cmaes_trains/test/
-  bash_path: ball_cmaes_trains.sh
+  multi_filename: ball_cmaes_trains3_
+  log_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_logs/ball_cmaes_trains3/test/
+  yaml_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_yamls/ball_cmaes_trains3/test/
+  save_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_cmaes_trains3/test/
+  graph_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_graphs/ball_cmaes_trains3/test/
+  bash_path: ball_cmaes_trains3.sh
   base_config: configs/Baselines/HyPE/Breakout/paddle_ball_skill.yaml
   runfile: train_baselines.py
   gpu: 0
@@ -14,5 +14,5 @@ metaparam:
   num_trials: 1
   cycle_gpu: 4
 record:
-  save_dir: /nfs/data/calebc/hype/breakout/cmaes/ballrun1/,/nfs/data/calebc/hype/breakout/cmaes/ballrun2/,/nfs/data/calebc/hype/breakout/cmaes/ballrun3/,/nfs/data/calebc/hype/breakout/cmaes/ballrun4/,/nfs/data/calebc/hype/breakout/cmaes/ballrun5/,/nfs/data/calebc/hype/breakout/cmaes/ballrun6/,/nfs/data/calebc/hype/breakout/cmaes/ballrun7/,/nfs/data/calebc/hype/breakout/cmaes/ballrun8/,/nfs/data/calebc/hype/breakout/cmaes/ballrun9/,/nfs/data/calebc/hype/breakout/cmaes/ballrun10/
+  save_dir: /nfs/data/calebc/hype/breakout/cmaes3/ballrun1/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun3/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun3/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun4/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun5/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun6/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun7/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun8/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun9/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun10/
 ...

@@ -1,0 +1,18 @@
+---
+metaparam: 
+  multi_filename: center_runs_
+  log_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_logs/center_runs/test/
+  yaml_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_yamls/center_runs/test/
+  save_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam/center_runs/test/
+  graph_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_graphs/center_runs/test/
+  bash_path: center_runs.sh
+  base_config: configs/Baselines/HyPE/Breakout/center_hype.yaml
+  runfile: train_baselines.py
+  gpu: 1
+  match: 0
+  simul_run: 5
+  num_trials: 5
+  cycle_gpu: 4
+skill:
+  num_iters: 20000
+...

@@ -1,0 +1,18 @@
+---
+metaparam: 
+  multi_filename: harden_runs_
+  log_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_logs/harden_runs/test/
+  yaml_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_yamls/harden_runs/test/
+  save_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam/harden_runs/test/
+  graph_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_graphs/harden_runs/test/
+  bash_path: harden_runs.sh
+  base_config: configs/Baselines/HyPE/Breakout/harden_hype.yaml
+  runfile: train_baselines.py
+  gpu: 2
+  match: 0
+  simul_run: 5
+  num_trials: 5
+  cycle_gpu: 4
+skill:
+  num_iters: 10000
+...

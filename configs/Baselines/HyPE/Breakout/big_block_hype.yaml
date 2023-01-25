@@ -2,7 +2,7 @@
 record:
   # record_rollouts: /hdd/datasets/hype/breakout/Paddle/
   record_recycle: -1
-  load_dir: /nfs/data/calebc/hype/breakout/testrun2/
+  load_dir: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_grad_trains/test/ball_grad_trains_1_trial_0
   save_interval: 10
   # save_dir: /hdd/datasets/hype/breakout/testrun/
 environment:
@@ -15,12 +15,12 @@ reward:
   one_mode: False
   true_reward: True
 skill:
-  temporal_extend: 10
+  temporal_extend: 50
   policy_iters: 100
   # policy_iters_schedule: 15
   # num_repeats_schedule: 1
   obs_components: 1 1 1
-  num_iters: 15000
+  num_iters: 5000
   num_repeats: 1
   buffer_len: 50000
   epsilon_random: 0.03
