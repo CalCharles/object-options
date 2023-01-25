@@ -49,6 +49,7 @@ class HyPECollector():
         self.counter = 0
         self.merge_data = merge_data
         self.use_true_reward = use_true_reward
+        self.sum_reward = use_true_reward
         self.reset_env()
 
     def reset_env(self, keep_statistics: bool = False):
@@ -129,7 +130,7 @@ class HyPECollector():
         data_queue = list()
         aggregates = list()
         changepoint_history_queue = [self.data.full_state[0]]
-        print(int(num_sample * self.skill.num_skills * num_repeats), num_sample, self.skill.num_skills, num_repeats)
+        # print(int(num_sample * self.skill.num_skills * num_repeats), num_sample, self.skill.num_skills, num_repeats)
         i = 0
         timer_end = ((i >= int(self.skill.num_skills * num_repeats)) and episodes <= 0)
         episode_end = ((episodes > 0 and true_episode_count == episodes))
@@ -172,8 +173,8 @@ class HyPECollector():
                 # print(self.data.full_state, self.data.true_done)
                 changepoint_history_queue.append(next_full_state)
                 ext_term_chain = self.skill.terminate_chain(Batch(changepoint_history_queue), self.data.true_done[0], True, force=False)
-                self.skill.update(act, action_chain, ext_term_chain, update_policy=True)
-                use_done = [(new_param and not first) or true_done] if not self.use_true_reward else [true_done]
+                use_done = (new_param and not first) or true_done or ext_term_chain[-1] if not self.use_true_reward else true_done
+                self.skill.update(act, action_chain, ext_term_chain + [use_done], update_policy=True)
                 self.data.update(ext_terms = ext_term_chain, ext_term=ext_term_chain[-1], skill_resample=[new_param], done=use_done, truncated=[new_param])
                 first = False
 
@@ -229,6 +230,9 @@ class HyPECollector():
                 assignment_dicts[asmt]['parent_state'].append(full_data.parent_state)
                 assignment_dicts[asmt]['target_diff'].append(full_data.target_diff)
                 assignment_dicts[asmt]['done'].append(full_data.done)
+                assignment_dicts[asmt]['true_done'].append(full_data.true_done)
+                assignment_dicts[asmt]['true_reward'].append(full_data.true_reward)
+                assignment_dicts[asmt]['info'].append(full_data.info)
                 if agg:
                     assignment_dicts[asmt]["data"].append(data_queue[data_index])
                     assignment_dicts[asmt]["data_counts"].append(assignment_dicts[asmt]["ctr"])
@@ -237,7 +241,8 @@ class HyPECollector():
             else:
                 assignment_dicts[asmt] = {'assignment': [assign_val], 'full_data': [full_data], 'target': [full_data.target], 
                                         'parent_state': [full_data.parent_state], 'target_diff': [full_data.target_diff],
-                                        'done': [full_data.done], "ctr": 0}
+                                        'done': [full_data.done], 'true_done': [full_data.true_done], 'true_reward': [full_data.true_reward], 
+                                        'info': [full_data.info], "ctr": 0}
                 if agg:
                     assignment_dicts[asmt]["data"] = [data_queue[data_index]]
                     assignment_dicts[asmt]["data_counts"] = [assignment_dicts[asmt]["ctr"]]
@@ -251,6 +256,7 @@ class HyPECollector():
         # print(assignment_dicts.keys())
         # print(np.concatenate(assignments).squeeze().tolist())
         asmt_keys = assignment_dicts.keys() if not self.merge_data else set(np.concatenate(assignments).squeeze().tolist())
+        # print(len(full_data_queue), len(assignment_dicts[0]), list(assignment_dicts.keys()))
         for asmt in asmt_keys:
             if self.single_buffer: asmt = 0
             asmt_dict = assignment_dicts[asmt] if not self.merge_data else assignment_dicts[0]
@@ -259,35 +265,43 @@ class HyPECollector():
             # print("rewarding", asmt, np.stack(asmt_dict['target_diff'], axis=0).shape, np.stack(asmt_dict['target'], axis=0).shape,
             #                             np.stack(asmt_dict['parent_state'], axis=0).shape, np.stack(asmt_dict['done'], axis=0).shape)
             if self.use_true_reward:
-                rewards = asmt_dict['true_reward']
-                terminations = asmt_dict['true_done']
+                rewards = np.expand_dims(np.stack(asmt_dict['true_reward']), axis=-1)
+                terminations = np.stack(asmt_dict['true_done'], axis=0).squeeze()
             else:
                 rewards, terminations = self.skill.reward_model.compute_reward(np.stack(asmt_dict['target_diff'], axis=0), np.stack(asmt_dict['target'], axis=0),
                                             np.stack(asmt_dict['parent_state'], axis=0), np.stack(asmt_dict['done'], axis=0))
+                rewards = np.stack(rewards, axis=-1)
             count_at = 0
-            rewards = np.stack(rewards, axis=-1)
             assignment_reward[asmt] = 0
-            # print(asmt, rewards, terminations)
+            # print(asmt, rewards.shape, len(terminations))
+            upto_reward = 0
             for ctr, (full_reward, term) in enumerate(zip(rewards, terminations)):
                 # print(ctr, asmt_dict["data_counts"][count_at])
+                # print(count_at, ctr, len(asmt_dict["data_counts"]), asmt_dict["data_counts"][count_at])
                 if count_at < len(asmt_dict["data_counts"]) and ctr == asmt_dict["data_counts"][count_at]:
-                    asmt_dict["data"][count_at].rew = full_reward[asmt]
+                    asmt_dict["data"][count_at].rew = full_reward[asmt] if not self.sum_reward else [upto_reward]
                     if asmt == asmt_dict["assignment"][count_at]:
-                        rews += full_reward[asmt]
+                        rews += full_reward[asmt] if not self.sum_reward else upto_reward
                     if np.any(term) or np.any(asmt_dict["data"][count_at].done):
                         hit += int(int(full_reward[asmt]) == self.skill.reward_model.param_reward) # kind of hacky way to check
                         term_count += 1
                         miss += int(int(full_reward[asmt]) != self.skill.reward_model.param_reward)
                     asmt_dict["data"][count_at].full_reward = full_reward
                     asmt_dict["data"][count_at].terminate = term
+                    # print(asmt_dict["data"][count_at].done, term)
                     asmt_dict["data"][count_at].done = asmt_dict["data"][count_at].done or term
+                    asmt_dict["data"][count_at].info = asmt_dict["info"][ctr]
                     if np.sum(full_reward) > 0: print("assigning", asmt_dict["data"][count_at].target,asmt_dict["data"][count_at].target_diff, 
                                             asmt_dict["data"][count_at].parent_state, asmt_dict["data"][count_at].done, term, full_reward, 
                                             asmt_dict["data"][count_at].rew, asmt, asmt_dict["assignment"][count_at])
                     assignment_reward[asmt] += full_reward[asmt]
-                    print("reward", asmt_dict["data"][count_at].rew)
+                    # print("reward", asmt_dict["data"][count_at].rew)
+                    # print(asmt_dict["data"][count_at])
                     if self.buffers is not None: self.buffers[asmt].add(asmt_dict["data"][count_at])
                     count_at += 1
+                    upto_reward = 0
+                if self.sum_reward:
+                    upto_reward += full_reward[asmt]
         # generate statistics
         # self.collect_step += int(num_sample * self.skill.num_skills * num_repeats)
         # self.collect_episode += episode_count

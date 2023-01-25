@@ -44,6 +44,8 @@ class ChangepointModel():
 		if self.skip_one: done_flags[1:] = done_flags[:-1] * done_flags[1:]
 
 		filtered_changepoints = (changepoints.squeeze() * proximity.squeeze() * done_flags.squeeze()).astype(bool) # make sure the very last state is not counted as a changepoint
+		if len(filtered_changepoints.shape) == 0:
+			filtered_changepoints = np.expand_dims(filtered_changepoints, axis=0)
 		return models, indices, changepoints, filtered_changepoints, proximity
 
 	def fit_modes(self, target_diff, target_states, parent_states, dones, min_size=10):
@@ -81,6 +83,7 @@ class ChangepointModel():
 			# displacement = target_states[np.roll(filtered_changepoints, 1)] - target_states[filtered_changepoints]
 			filtered_indices = np.where(filtered_changepoints)[0]
 			displacement = target_diff[filtered_changepoints]
+			# print("fcp", filtered_changepoints)
 		else:
 			filtered_changepoints = np.ones(len(target_states)).astype(bool)
 			filtered_indices = np.arange(len(target_states))

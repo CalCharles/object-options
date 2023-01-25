@@ -20,16 +20,16 @@ class TemporalExtensionManager():
     def reset(self):
         self.just_reset = True
 
-    def update(self, act, chain, TEterm):
+    def update(self, act, chain, term):
         # update the policy action and mapped action chain and the timer
         self.timer += 1
-        if TEterm or self.timer > self.ext_cutoff:
+        if term or self.timer > self.ext_cutoff:
             self.timer = 1
         self.act = act # this is the policy action ONLY for the highest option
         self.chain = chain
 
     def is_cutoff(self):
-        return self.timer > self.ext_cutoff
+        return self.timer >= self.ext_cutoff
 
     def update_policy(self, policy_batch, state):
         '''

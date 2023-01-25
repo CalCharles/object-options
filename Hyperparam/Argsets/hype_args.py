@@ -10,7 +10,7 @@ hype_args = {
         'checkpoint_dir': "",
         "pretrain_dir": "",
         'save_action': False, # saves in record_rollouts, saves the whole action chain and the param
-        "save_interval": 0,
+        "save_interval": 100,
         "log_filename": "",
         "refresh": False,
         "presave_graph": False,
@@ -71,6 +71,7 @@ hype_args = {
         "obs_components": [1.0,1.0,1.0], # which of the there components to use as obs
         "normalized": True, # uses the normalzied values for the obs
         "merge_data": False, # merges together all the buffers, only off policy
+        "include_primitive": False, # includes the primitive actions in the action space, pushing primitive actions down the chain
         "learn": {
             "discount_factor": 0.99,
             "lookahead": 2,

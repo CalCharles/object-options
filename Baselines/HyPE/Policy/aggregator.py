@@ -3,7 +3,7 @@ import copy
 from tianshou.data import Batch, ReplayBuffer, to_torch_as, to_numpy
 
 class TemporalAggregator():
-    def __init__(self, name=""):
+    def __init__(self, name="", sum_reward=False):
         self.current_data = Batch()
         self.name= name
         self.next_action = False

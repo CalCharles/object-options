@@ -71,11 +71,16 @@ class Skill():
         self.policy_iters = args.skill.policy_iters
         self.assignment_mode = False
         self.move_policies = True
+        self.non_primitive_actions = self.policy.action_space.n
         if args.torch.cuda: self.cuda(args.torch.gpu)
         else:
             self.device = 'cpu'
             self.cpu()
         self.set_epsilon(args.skill.epsilon_random)
+
+    def set_cutoff(self, cutoff):
+        # print("setting cutoff", self.temporal_extension_manager, cutoff)
+        self.temporal_extension_manager.ext_cutoff = cutoff
 
     def toggle_test(self, on):
         if on:
@@ -210,7 +215,7 @@ class Skill():
             batch.update(assignment=param,obs=obs)
         return (*result_tuple, needs_sample)        
 
-    def sample_action_chain(self, batch, state_chain, random=False, action=None): # TODO: change this to match the TS parameter format, in particular, make sure that forward returns the desired components in RLOutput
+    def sample_action_chain(self, batch, state_chain, random=False, action=None, primitive=False): # TODO: change this to match the TS parameter format, in particular, make sure that forward returns the desired components in RLOutput
         '''
         takes in a tianshou.data.Batch object and param, and runs the policy on it
         the batch object can only contain a single full state (computes one state at a time), because of handling issues
@@ -238,8 +243,16 @@ class Skill():
         # recursively propagate action up the chain
         compute = time.time()
         if self.next_option is not None:
+            if (hasattr(self, "non_policy_actions") and act.squeeze() >= self.non_policy_actions) or primitive: # it's a primitive action
+                if not primitive: # the first time, we need to remap the action
+                    action = act - self.non_policy_actions
+                else: action = act
+                primitive = True
+            else:
+                action = None
+                primitive = False
             next_batch, cur_param, cur_obs = self._set_next_option(batch, act)
-            next_policy_act, rem_chain, result, rem_state_chain = self.next_option.sample_action_chain(next_batch, state_chain[-1] if state_chain is not None else None) # , random=random # TODO: only sample top level randomly, if we resampled make sure not to temporally extend the next layer
+            next_policy_act, rem_chain, result, rem_state_chain = self.next_option.sample_action_chain(next_batch, state_chain[-1] if state_chain is not None else None, action = action, primitive=primitive) # , random=random # TODO: only sample top level randomly, if we resampled make sure not to temporally extend the next layer
             chain, state = rem_chain + chain, rem_state_chain + [state] # TODO: mask is not set from the policy
             batch.update(param=cur_param,obs=cur_obs)
         return act, chain, policy_batch, state
@@ -282,6 +295,8 @@ class Skill():
             parent, target, target_diff = self.extractor.get_parent(full_states)[1:], self.extractor.get_target(full_states)[1:], self.extractor.get_diff(full_states[:-1], full_states[1:])
             _, terminations = self.reward_model.compute_reward(target_diff, target, parent, true_done) # TODO: true_inter = ?
             cutoff = self.temporal_extension_manager.is_cutoff()
+            # print(self.name, cutoff, self.temporal_extension_manager.timer, self.temporal_extension_manager.ext_cutoff)
+            # print(self.reward_model.name, type(self.reward_model), target_diff, target, parent, true_done, terminations)
             terminations = last_terminations + [terminations[-1] or cutoff]
         return terminations
 

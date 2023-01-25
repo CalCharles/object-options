@@ -3,7 +3,7 @@ record:
   # record_rollouts: /hdd/datasets/hype/robopushing/Block/
   record_recycle: -1
   load_dir: /hdd/datasets/hype/robopushing/testrun/
-  save_dir: /nfs/data/calebc/hype/robopushing/testrun/
+  # save_dir: /nfs/data/calebc/hype/robopushing/testrun/
 environment:
   env: RoboPushing
   variant: discrete

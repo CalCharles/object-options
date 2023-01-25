@@ -70,7 +70,7 @@ class PrimitiveSkill(Skill): # primitive discrete actions
         self.interaction_model = interaction_model
         return interaction_model
 
-    def sample_action_chain(self, batch, state, random=False): # param is an int denoting the primitive action, not protected (could send a faulty param)
+    def sample_action_chain(self, batch, state, random=False, action=None, primitive=False): # param is an int denoting the primitive action, not protected (could send a faulty param)
         # start = time.time()
         sq_param = batch['assignment'].squeeze()
         if random: sq_param = self.action_map.sample()

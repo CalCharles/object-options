@@ -97,6 +97,7 @@ def _init_critic(args, NetType, action_shape, input_shape, final_layer, device, 
         critic = dCritic(critic, last_size=action_shape, device=device).to(device)
     critic_optim = torch.optim.Adam(critic.parameters(), lr=args.optimizer.lr)
     nets_optims += [critic, critic_optim]
+    print(critic)
 
 def init_networks(args, input_shape, action_shape, pair_args=None):
     '''
@@ -136,6 +137,7 @@ def init_networks(args, input_shape, action_shape, pair_args=None):
                 actor_optim = torch.optim.Adam(actor.parameters(), lr=actor_args.optimizer.lr)
                 nets_optims += [actor, actor_optim]
             else: nets_optims += [actor]
+            print("actor", actor)
     print(args.skill.learning_type, nets_optims)
 
     # initialize critic

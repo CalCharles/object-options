@@ -1,13 +1,13 @@
 import numpy as np
 
 class TrueReward():
-    def __init__(self, object_names, model, desired_modes, reward_base, param_reward, changepoint_reward, extractor, norm):
+    def __init__(self, object_names):
         self.name = "true reward"
         self.names = object_names
         self.true_num_modes = 1
         self.num_modes = 1
         self.parameter_minmax = [np.array([0]), np.array([84])] # TODO: where does this come from?
-        self.desired_modes = desired_modes
+        self.desired_modes = [0]
         self.changepoint_reward = 0
         self.reward_base = 0
         self.param_reward = 0
