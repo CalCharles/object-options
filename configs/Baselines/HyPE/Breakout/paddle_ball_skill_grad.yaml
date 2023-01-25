@@ -4,6 +4,7 @@ record:
   record_recycle: -1
   load_dir: /nfs/data/calebc/hype/breakout/testrun/
   # save_dir: /hdd/datasets/hype/breakout/testrun/
+  save_interval: 100
 environment:
   env: Breakout
   variant: drop_stopping
@@ -31,7 +32,7 @@ skill:
   prioritized_replay: 0.4 0.4
   learning_type: rainbow
   buffer_len: 100000
-  log_interval: 10
+  log_interval: 50
   merge_data: True
   learn:
     grad_epoch: 100
