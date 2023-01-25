@@ -14,9 +14,7 @@ from Graph.graph import Graph, load_graph
 from Option.primitive_option import PrimitiveOption
 from State.feature_selector import construct_object_selector
 
-
-if __name__ == '__main__':
-    args = get_args()
+def train_mask(args):
     print(args)
     torch.cuda.set_device(args.torch.gpu)
     np.set_printoptions(threshold=3000, linewidth=120, precision=4, suppress=True)
@@ -64,3 +62,7 @@ if __name__ == '__main__':
     print(args.record.save_dir, graph.nodes.Action.option, graph.nodes.Action.option.sampler, graph.nodes.Action.option.sampler.mask)
     print(full_model.active_mask, full_model.mask.active_mask, graph.nodes.Action.option.sampler.mask.active_mask, len(graph.nodes[object_names.target].interaction.mask.filtered_active_set))
     print(graph.nodes.Action.option.name, graph.nodes.Action.option.interaction_model)
+
+if __name__ == '__main__':
+    args = get_args()
+    train_mask(args)

@@ -106,8 +106,7 @@ def init_buffer(args, option, policy, graph, environment, test_environment, reco
     option.zero_below_grads(True)
     return train_buffer, test_buffer, hindsight, train_collector, test_collector, train_logger, test_logger, initial_logger
 
-if __name__ == '__main__':
-    args = get_args()
+def train_option(args):
     print(args)
     torch.manual_seed(args.torch.torch_seed)
     torch.cuda.set_device(args.torch.gpu)
@@ -122,4 +121,6 @@ if __name__ == '__main__':
 
     if len(args.record.save_dir) > 0: graph.save(args.record.save_dir)
 
-
+if __name__ == "__main__":
+    args = get_args()
+    train_option(args)

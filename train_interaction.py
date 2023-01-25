@@ -24,8 +24,7 @@ def init_names(train_edge):
     object_names.inter_names = train_edge
     return object_names
 
-if __name__ == '__main__':
-    args = get_args()
+def train_interaction(args):
     print(args) # print out args for records
     torch.cuda.set_device(args.torch.gpu)
     np.set_printoptions(threshold=3000, linewidth=120, precision=4, suppress=True)
@@ -53,3 +52,7 @@ if __name__ == '__main__':
     elif len(args.record.load_dir) > 0: full_model = torch.load(os.path.join(args.record.load_dir, full_model.name + "_inter_model.pt"))
     test_full_train(full_model, train_buffer, args, args.object_names, environment)
     test_full(full_model, test_buffer, args, args.object_names, environment)
+
+if __name__ == '__main__':
+    args = get_args()
+    train_interaction(args)

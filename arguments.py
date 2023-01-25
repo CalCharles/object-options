@@ -8,6 +8,9 @@ def get_command_args():
     parser = argparse.ArgumentParser(description='Construct an environment')
     parser.add_argument('--arg-dict', default = "full_args",
                         help='choice of arguments to use')
+    # config parameter
+    parser.add_argument('--main-train', default = "Breakout",
+                        help='choice of arguments to use')
     # environment parameters
     parser.add_argument('--record-rollouts', default = "",
                         help='base directory to save results')

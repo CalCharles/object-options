@@ -49,7 +49,7 @@ Asteroids: get ship policy
 
 CT asteroids: get ship policy
 
-Run Random conditionals
+# Run Random conditionals
 python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random/ --num-frames 1000
 python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional/ --num-frames 1000 --variant conditional
 python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional_passive/ --num-frames 1000 --variant conditional_passive
@@ -57,35 +57,42 @@ python generate_random.py --env RandomDistribution --record-rollouts /hdd/datase
 python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_passive_only_noise/ --num-frames 1000 --variant passive_only_noise
 
 
-Run Breakout Training:
-python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/breakout/random/
+# Run Breakout Training:
+python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/breakout/random/ --variant drop_stopping
+python main.py --main-train BreakoutStack
+python main.py --main-train BreakoutVariants
 
-Run Full Breakout Training:
-python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/full/breakout/small/random/ --num-frames 50000
-
-Run Robopushing training:
+# Run Robopushing training:
 python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/testrun/random --num-frames 5000
+python main.py --main-train RoboPushingStack
+python main.py --main-train RoboPushingObstacle
+
+# Robopushing variants
 python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/fixed/testrun/random/ --num-frames 5000 --fixed-limits
-python generate_random.py --env RoboPushing --record-rollouts ../data/object_data/robopushing/random/ --num-frames 5000
 python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/discrete/random --variant discrete --num-frames 5000
 
-Run Asteroids training:
+
+# Run Full Breakout Training:
+python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/full/breakout/small/random/ --num-frames 50000
+
+
+# Run Asteroids training:
 python generate_random.py --env Asteroids --record-rollouts /hdd/datasets/object_data/asteroids/random/ --num-frames 10000 --fixed-limits
 
 python generate_random.py --env Asteroids --record-rollouts /hdd/datasets/object_data/asteroids/coordinate_turn/random/ --variant coordinate_turn --num-frames 10000 --fixed-limits
 
 
-Run Sokoban training:
+# Run Sokoban training:
 python generate_random.py --env Sokoban --record-rollouts /hdd/datasets/object_data/sokoban/random/ --num-frames 10000
 
 python generate_random.py --env Sokoban --record-rollouts /hdd/datasets/object_data/sokoban/fixed/few_obs/random/ --variant few_obs --num-frames 10000 --fixed-limits
 
 python generate_random.py --env Asteroids --demonstrate --num-frames 5000
 
-Run Taxicar Training:
+# Run Taxicar Training:
 python generate_random.py --env TaxiCar --record-rollouts /hdd/datasets/object_data/TaxiCar/random/ --num-frames 10000
 
-Run airhockey training:
+# Run airhockey training:
 python generate_random.py --env AirHockey --record-rollouts /hdd/datasets/object_data/airhockey/ --demonstrate --num-frames 5000
 
 
