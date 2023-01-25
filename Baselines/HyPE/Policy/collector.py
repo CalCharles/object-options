@@ -150,7 +150,7 @@ class HyPECollector():
                 # step in env
                 action_remap = self.data.true_action[0]
                 next_full_state, rew, done, info = self.env.step(action_remap)
-                display_frame(next_full_state['raw_state'])
+                # display_frame(next_full_state['raw_state'])
                 # if self.env.discrete_actions: self.data.full_state.factored_state.Action = [action_remap] # reassign the action to correspond to the current action taken
                 self.data.full_state.factored_state.Action = [self.data.true_action]
                 true_done, true_reward = done, rew
