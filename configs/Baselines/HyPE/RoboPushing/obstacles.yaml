@@ -52,7 +52,7 @@ critic_net:
 actor_net:
 network:
   hidden_sizes: 128 256 512 1024
-  net_type: mlp
+  net_type: pair
   activation_final: tanh
   activation: leakyrelu
   scale_final: 10

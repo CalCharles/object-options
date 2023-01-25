@@ -173,7 +173,7 @@ class HyPECollector():
                 # print(self.data.full_state, self.data.true_done)
                 changepoint_history_queue.append(next_full_state)
                 ext_term_chain = self.skill.terminate_chain(Batch(changepoint_history_queue), self.data.true_done[0], True, force=False)
-                use_done = (new_param and not first) or true_done or ext_term_chain[-1] if not self.use_true_reward else true_done
+                use_done = (new_param and not first) or true_done if not self.use_true_reward else true_done
                 self.skill.update(act, action_chain, ext_term_chain + [use_done], update_policy=True)
                 self.data.update(ext_terms = ext_term_chain, ext_term=ext_term_chain[-1], skill_resample=[new_param], done=use_done, truncated=[new_param])
                 first = False
@@ -270,9 +270,9 @@ class HyPECollector():
             else:
                 rewards, terminations = self.skill.reward_model.compute_reward(np.stack(asmt_dict['target_diff'], axis=0), np.stack(asmt_dict['target'], axis=0),
                                             np.stack(asmt_dict['parent_state'], axis=0), np.stack(asmt_dict['done'], axis=0), cached_rewards = crewards, cached_terminations = cterminations)
-                rewards = np.stack(rewards, axis=-1)
                 if self.merge_data:
                     crewards, cterminations = rewards, terminations
+                rewards = np.stack(rewards, axis=-1)
             count_at = 0
             assignment_reward[asmt] = 0
             # print(asmt, rewards.shape, len(terminations))
@@ -291,7 +291,7 @@ class HyPECollector():
                     asmt_dict["data"][count_at].full_reward = full_reward
                     asmt_dict["data"][count_at].terminate = term
                     # print(asmt_dict["data"][count_at].done, term)
-                    asmt_dict["data"][count_at].done = asmt_dict["data"][count_at].done or term
+                    asmt_dict["data"][count_at].done = asmt_dict["data"][count_at].done.squeeze() or term
                     asmt_dict["data"][count_at].info = asmt_dict["info"][ctr]
                     if np.sum(full_reward) > 0: print("assigning", asmt_dict["data"][count_at].target,asmt_dict["data"][count_at].target_diff, 
                                             asmt_dict["data"][count_at].parent_state, asmt_dict["data"][count_at].done, term, full_reward, 
