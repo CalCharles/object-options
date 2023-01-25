@@ -22,7 +22,7 @@ skill:
   # policy_iters_schedule: 15
   # num_repeats_schedule: 1
   obs_components: 1 1 1
-  num_iters: 2000
+  num_iters: 1500
   num_repeats: 1
   buffer_len: 200000
   epsilon_random: 0.01
@@ -35,7 +35,7 @@ skill:
   log_interval: 50
   merge_data: True
   learn:
-    grad_epoch: 100
+    grad_epoch: 50
     discount_factor: 0.99
     max_min_critic: -10 200
     tau: 3000
@@ -57,7 +57,7 @@ network:
   net_type: mlp
   activation_final: tanh
   activation: leakyrelu
-  scale_logits: 10
+  scale_logits: 1
   scale_final: 10
   init_form: xnorm
   optimizer:

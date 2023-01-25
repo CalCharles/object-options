@@ -78,7 +78,7 @@ class PrimitiveSkill(Skill): # primitive discrete actions
         # print("primitive", time.time() -start)
         return sq_param, chain, None, list() # chain is the action as an int, policy batch is None, state chain is a list, resampled is True
 
-    def terminate_chain(self, full_states, true_done=False, first=False):
+    def terminate_chain(self, full_states, true_done=False, first=False, force = True):
         return [True]
 
     def zero_below_grads(self, top=False):

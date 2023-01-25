@@ -46,6 +46,7 @@ hype_args = {
         "load_rollouts": "",
         "min_size": 10, # minimum size to be considered a valid mode
         "one_mode": False,# changes to a single mode version of the code
+        "true_reward": False,# uses the true reward
     },
     "skill": {
         "temporal_extend": 5, # the max timestep for an action before a new one is sampled

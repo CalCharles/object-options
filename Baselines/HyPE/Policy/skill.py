@@ -208,7 +208,7 @@ class Skill():
             new_act, rem_chain, pol_batch, rem_state, last_resmp = self.next_option.extended_action_sample(batch, state_chain, ext_terms[-1], ext_terms[:-1], random=random)
             result_tuple = (act, rem_chain + [chain[-1]], policy_batch, rem_state + [state[-1]] if state is not None else None)
             batch.update(assignment=param,obs=obs)
-        return (*result_tuple, needs_sample)
+        return (*result_tuple, needs_sample)        
 
     def sample_action_chain(self, batch, state_chain, random=False, action=None): # TODO: change this to match the TS parameter format, in particular, make sure that forward returns the desired components in RLOutput
         '''
@@ -227,7 +227,7 @@ class Skill():
             act = self.sample_action(random=True)
             state, policy_batch = None, Batch()
         else:
-            if self.assignment_mode: policy = self.policies[batch.assignment.squeeze()]
+            if self.assignment_mode: policy = self.policies[int(batch.assignment.squeeze())]
             else: policy = self.policy
             # print(self.train_epsilon, self.policy.epsilon)
             policy_batch = policy.forward(batch, state_chain[-1] if state_chain is not None else None)
@@ -269,15 +269,16 @@ class Skill():
             # else:
             #     self.new_policy = False
 
-    def terminate_chain(self, full_states, true_done=False, first=False):
+    def terminate_chain(self, full_states, true_done=False, first=False, force=False):
         # full states is the last k states, plus the next full state
         # returns the termination chain AFTER the current termination
         # recursively get all of the dones and rewards
-        if self.next_option is not None: # lower levels should have masks the same as the active mask( fully trained)
-            last_terminations = self.next_option.terminate_chain(full_states, true_done=true_done, first=False)
+        last_terminations = self.next_option.terminate_chain(full_states, true_done=true_done, first=False, force=force)
         if first:
             return last_terminations
         else:
+            if force:
+                return last_terminations + [True]
             parent, target, target_diff = self.extractor.get_parent(full_states)[1:], self.extractor.get_target(full_states)[1:], self.extractor.get_diff(full_states[:-1], full_states[1:])
             _, terminations = self.reward_model.compute_reward(target_diff, target, parent, true_done) # TODO: true_inter = ?
             cutoff = self.temporal_extension_manager.is_cutoff()

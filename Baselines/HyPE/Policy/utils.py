@@ -98,7 +98,7 @@ def _init_critic(args, NetType, action_shape, input_shape, final_layer, device, 
     critic_optim = torch.optim.Adam(critic.parameters(), lr=args.optimizer.lr)
     nets_optims += [critic, critic_optim]
 
-def init_networks(args, input_shape, action_shape):
+def init_networks(args, input_shape, action_shape, pair_args=None):
     '''
     input_shape is the dimension of the input
     action_shape is the integer number of dimensions for the action
@@ -108,6 +108,11 @@ def init_networks(args, input_shape, action_shape):
     nets_optims = list()
 
     # initialize actor
+    if args.critic_net.net_type == "pair":
+        args.critic_net.pair.first_obj_dim, args.critic_net.pair.object_dim = pair_args
+        args.critic_net.pair.aggregate_final, args.critic_net.pair.post_dim = True, 0 
+        args.actor_net.pair.first_obj_dim, args.actor_net.pair.object_dim = pair_args
+        args.actor_net.pair.aggregate_final, args.actor_net.pair.post_dim = True, 0 
     needs_actor = args.skill.learning_type in ["ppo", "cmaes"]
     needs_optim = args.skill.learning_type in ["ppo"]
     final_layer = args.skill.learning_type in ["ppo", "cmaes"]

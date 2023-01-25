@@ -55,7 +55,9 @@ class ChangepointDetectionReward():
         if self.one_mode: reward_choice = np.ones(target_states.shape[:-1]) * self.reward_base # if one mode, will just reassign the same reward vector for each desired mode
         for desired_mode in self.desired_modes:
             if not self.one_mode: reward_choice = np.ones(target_states.shape[:-1]) * self.reward_base
-            if hasattr(self, "changepoint_reward"): reward_choice[assignments != -1] = self.changepoint_reward
+            if hasattr(self, "changepoint_reward") and self.changepoint_reward != 0: # TODO: dangerous line because CP reward could be assigned to 0 
+                for m in self.desired_modes:
+                    reward_choice[assignments == m] = self.changepoint_reward
             reward_choice[assignments == desired_mode] = self.param_reward
             rewards.append(reward_choice)
         if self.one_mode: rewards = [reward_choice]
