@@ -14,5 +14,5 @@ metaparam:
   num_trials: 1
   cycle_gpu: 4
 record:
-  save_dir: /nfs/data/calebc/hype/breakout/cmaes3/ballrun1/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun3/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun3/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun4/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun5/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun6/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun7/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun8/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun9/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun10/
+  save_dir: /nfs/data/calebc/hype/breakout/cmaes3/ballrun1/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun2/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun3/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun4/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun5/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun6/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun7/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun8/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun9/,/nfs/data/calebc/hype/breakout/cmaes3/ballrun10/
 ...

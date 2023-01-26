@@ -1,0 +1,20 @@
+---
+metaparam: 
+  multi_filename: ball_cmaes_tests_
+  log_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_logs/ball_cmaes_tests/test/
+  yaml_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_yamls/ball_cmaes_tests/test/
+  save_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_cmaes_tests/test/
+  graph_endpoint: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam_graphs/ball_cmaes_tests/test/
+  bash_path: ball_cmaes_tests.sh
+  base_config: configs/Baselines/HyPE/Breakout/paddle_ball_test.yaml
+  runfile: train_baselines.py
+  gpu: 0
+  match: 2
+  simul_run: 12
+  num_trials: 1
+  cycle_gpu: 4
+record:
+  load_dir: /nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_cmaes_trains3/test/ball_cmaes_trains3_0_trial_0/,/nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_cmaes_trains3/test/ball_cmaes_trains3_1_trial_0/,/nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_cmaes_trains3/test/ball_cmaes_trains3_2_trial_0/,/nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_cmaes_trains3/test/ball_cmaes_trains3_3_trial_0/,/nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_cmaes_trains3/test/ball_cmaes_trains3_4_trial_0/,/nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_cmaes_trains3/test/ball_cmaes_trains3_5_trial_0/,/nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_cmaes_trains3/test/ball_cmaes_trains3_6_trial_0/,/nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_cmaes_trains3/test/ball_cmaes_trains3_7_trial_0/,/nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_cmaes_trains3/test/ball_cmaes_trains3_8_trial_0/,/nfs/data/calebc/object_data/hype/hyperparam/hyperparam/ball_cmaes_trains3/test/ball_cmaes_trains3_9_trial_0/
+environment:
+  variant: big_block,single_block,negative_rand_row,center_medium,harden_single,proximity
+...

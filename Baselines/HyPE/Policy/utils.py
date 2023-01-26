@@ -40,8 +40,11 @@ def _assign_device(algo_policy, algo_name, discrete_actions, device):
     if algo_name == "cmaes":
         for model in algo_policy.models:
             model.device = device
+            model.last.device = device
         algo_policy.best.device = device
+        algo_policy.best.last.device = device
         algo_policy.mean.device = device
+        algo_policy.best.last.device = device
     if hasattr(algo_policy, "actor"):
         if not discrete_actions and algo_name in _rand_actor:
             algo_policy.actor.mu.device = device
