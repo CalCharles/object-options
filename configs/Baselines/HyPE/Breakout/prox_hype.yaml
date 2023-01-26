@@ -8,7 +8,6 @@ record:
 environment:
   env: Breakout
   variant: proximity
-  render: True
 arg_dict: hype
 train_mode: skill # either reward or policy
 train_edge: Ball Reward
@@ -17,11 +16,11 @@ reward:
   true_reward: True
 skill:
   temporal_extend: 50
-  policy_iters: 100
+  policy_iters: 1
   # policy_iters_schedule: 15
   # num_repeats_schedule: 1
   num_iters: 10000
-  num_repeats: 1
+  num_repeats: 15
   buffer_len: 50000
   epsilon_random: 0.03
   epsilon_schedule: 100

@@ -16,12 +16,12 @@ reward:
   true_reward: True
 skill:
   temporal_extend: 50
-  policy_iters: 100
+  policy_iters: 1
   # policy_iters_schedule: 15
   # num_repeats_schedule: 1
   obs_components: 1 1 1
   num_iters: 5000
-  num_repeats: 1
+  num_repeats: 15
   buffer_len: 50000
   epsilon_random: 0.03
   epsilon_schedule: 100
