@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torch.distributions as dist
 import numpy as np
 import tianshou as ts
 import copy
@@ -38,7 +39,8 @@ def get_gradient(model, loss, grad_variables=[]):
 
 def cuda_string(device):
     if device < 0: device = "cpu"
-    else: device = "cuda:" + str(device) 
+    else: device = "cuda:" + str(device)
+    return device
 
 
 class pytorch_model():
@@ -112,6 +114,26 @@ class ConstantNorm(NormalizationFunctions):
 def identity(x):
     return x
 
+class InplaceOperator(nn.Module):
+    def __init__(self, activation):
+        super().__init__()
+        self.activation = activation
+
+    def forward(self, x):
+        return self.activation(x)
+
+
+def get_inplace_acti(acti):
+    if acti == "relu": return nn.ReLU(inplace=True)
+    elif acti == "leakyrelu": return nn.LeakyReLU(inplace=True)
+    elif acti == "sin": return InplaceOperator(torch.sin)
+    elif acti == "sinc": return InplaceOperator(torch.sinc)
+    elif acti == "sigmoid": return nn.Sigmoid()
+    elif acti == "tanh": return InplaceOperator(torch.tanh)
+    elif acti == "softmax": return nn.SoftMax(-1)(x)
+    elif acti == "cos": return InplaceOperator(torch.cos)
+    elif acti == "none": return nn.Identity()
+
 def get_acti(acti):
     if acti == "relu": return F.relu
     elif acti == "leakyrelu": return F.leaky_relu
@@ -123,12 +145,27 @@ def get_acti(acti):
     elif acti == "cos": return torch.cos
     elif acti == "none": return identity
 
-def reduce_function(red, x):
-    if red == "sum": x = torch.sum(x, dim=2)
-    elif red == "prod": x = torch.prod(x, dim=2)
-    elif red == "max": x = torch.max(x, 2, keepdim=True)[0]
-    elif red == "mean": x = torch.mean(x, dim=2)
+def reduce_function(red, x, dim=2):
+    if red == "sum": x = torch.sum(x, dim=dim)
+    elif red == "prod": x = torch.prod(x, dim=dim)
+    elif red == "max": x = torch.max(x, dim, keepdim=True)[0]
+    elif red == "mean": x = torch.mean(x, dim=dim)
+    elif red == "cat": ## remove the dimension and replace the subsequent dimension with -1
+        new_shape = list(x.shape)
+        new_shape.pop(dim)
+        new_shape[dim] = -1
+        x = x.view(*new_shape)
     return x
+
+def assign_distribution(assign_dist):
+    if assign_dist == "Gaussian": return torch.distributions.normal.Normal
+    elif assign_dist == "Identity": return None
+    elif assign_dist == "RelaxedBernoulli": return dist.relaxed_bernoulli.RelaxedBernoulli
+    elif assign_dist == "Bernoulli": return dist.bernoulli.Bernoulli
+    elif assign_dist == "RelaxedHot": return dist.relaxed_categorical.RelaxedOneHotCategorical
+    elif assign_dist == "Categorical": return dist.categorical.Categorical
+    elif assign_dist == "CategoricalHot": return dist.one_hot_categorical.OneHotCategorical
+    else: raise NotImplementedError
 
 def reset_linconv(layer, init_form):
     if init_form == "orth":

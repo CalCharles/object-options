@@ -1,0 +1,19 @@
+---
+metaparam: 
+  multi_filename: cond_base_opt_
+  log_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_logs/conditional/base_tests/test/
+  yaml_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_yamls/conditional/base_tests/test/
+  save_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam/conditional/base_tests/test/
+  graph_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_graphs/conditional/base_tests/test/
+  bash_path: bashes/cond_base_full_runs.sh
+  base_config: configs/full_training/RandomDistribution/conditional/full_random_conditional_relaxed.yaml
+  runfile: train_full_interaction.py
+  gpu: 1
+  match: 1
+  simul_run: 8
+  num_trials: 2
+  cycle_gpu: 4
+full_inter:
+  mixed_interaction: relaxed,mixed,hard,weighting
+  soft_distribution: RelaxedBernoulli,Identity,Identity,Identity
+...

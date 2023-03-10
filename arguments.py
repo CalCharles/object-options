@@ -110,6 +110,8 @@ def get_command_args():
     parser.add_argument('--interaction-pretrain', type=int, default=0,
                         help='number of interaction-only trace training steps to run')
     # combined training args
+    parser.add_argument('--active-steps', type=int, default=0,
+                        help='number of active updates to take in a given iteration')
     parser.add_argument('--weighting', type=float, nargs='+', default=[0,0,-1,0],
                         help='4-tuple of weighting values: passive_error_cutoff, passive_error_upper, weighting_ratio, weighting schedule (default: weighting[2] = -1 for no weighting)')
     parser.add_argument('--active-log-interval', type=int, default=100,

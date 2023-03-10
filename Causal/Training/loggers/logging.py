@@ -13,5 +13,5 @@ def print_errors(full_model, rollouts, object_rollouts=None, error_types=[0], sa
 		print("error total", error_names[error_type], np.mean(err_vals, axis=0), np.sum(err_vals, axis=0), err_vals.shape)
 		sample_list.append(err_vals[:sample_num])
 	np.set_printoptions(threshold=100000, linewidth=300, precision=4, suppress=True)
-	print("error values", "Inter", "Next Target", [error_names[et] for et in error_types], np.concatenate(sample_list, axis=-1))
+	# print("error values", "Inter", "Next Target", [error_names[et] for et in error_types], np.concatenate(sample_list, axis=-1))
 	np.set_printoptions(threshold=3000, linewidth=120, precision=4, suppress=True)

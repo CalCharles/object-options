@@ -1,0 +1,19 @@
+---
+metaparam: 
+  multi_filename: exp_attn_cond_opt_
+  log_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_logs/exp_attn_cond_tests/
+  yaml_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_yamls/exp_attn_cond_tests/
+  save_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam/exp_attn_cond_tests/
+  graph_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_graphs/exp_attn_cond_tests/
+  bash_path: bashes/exp_attn_cond_full_runs.sh
+  base_config: configs/full_training/RandomDistribution/expert/conditional/exp_attn_conditional.yaml
+  runfile: train_full_interaction.py
+  gpu: 2
+  match: 1
+  simul_run: 8
+  num_trials: 2
+  cycle_gpu: 4
+full_inter:
+  mixed_interaction: relaxed,mixed,hard,weighting
+  soft_distribution: RelaxedBernoulli,Identity,Identity,Identity
+...

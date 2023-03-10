@@ -61,5 +61,6 @@ def construct_namespace(data):
         if key.find("_net") != -1: # _net 
             vargs = add_data(ObjDict(), data[key], args.network)
             args[key] = vargs
+            args[key].gpu = args.torch.gpu
     print(args)
-    return add_data(args, data, expected_args)
+    return args

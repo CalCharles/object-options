@@ -27,7 +27,7 @@
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 10000
+      passive_iters: 100
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
@@ -41,7 +41,7 @@
       intrain_passive: True
   full_inter:
     object_id: True
-    lasso_lambda: 1 0.25 0 100 1000
+    lasso_lambda: 5 0.0 0.5 100 1000
     mixed_interaction: mixed
     soft_distribution: Identity
   interaction_net:

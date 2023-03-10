@@ -17,7 +17,7 @@ from Causal.Training.loggers.interaction_logger import interaction_logger
 def train_interaction(full_model, rollouts, args, trace, interaction_optimizer, weights):
     outputs = list()
     inter_loss = nn.BCELoss()
-    inter_logger = interaction_logger("interaction", args.inter.active.active_log_interval, full_model)
+    inter_logger = interaction_logger("interaction", args.record.record_graphs, args.inter.active.active_log_interval, full_model)
     if args.inter.interaction.interaction_pretrain > 0:
         # in the multi-instanced case, if ANY interaction occurs, we want to upweight that state
         # trw encodes binaries of where interactions occur, which are converted into normalized weights

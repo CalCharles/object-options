@@ -41,19 +41,20 @@
       # weighting: 0 200000 100 100000
   full_inter:
     object_id: True
-    lasso_lambda: 1 0.5 0 100 1000
+    lasso_lambda: 5 0.5 0 100 1000
     use_active_as_passive: True
   interaction_net:
-    hidden_sizes: 512 256 256
+    # hidden_sizes: 512 256 256
     net_type: maskattn
-    init_form: xnorm
+    init_form: xuni
     pair:
-      final_layers: 256 256
+      final_layers: 1024
+      repeat_layers: True
+    # embed_inputs: 32
     mask_attn:
-      model_dim: 256
-      embed_dim: 512
+      model_dim: 64
       num_heads: 16
-      num_layers: 2
+      num_layers: 5
       cluster: False
       num_clusters: 0
       attention_dropout: 0.1

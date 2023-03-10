@@ -60,6 +60,7 @@ def get_params(model, full_args, is_pair, multi_instanced, total_inter_size, tot
     interaction_model_args = copy.deepcopy(full_args.interaction_net)
     interaction_model_args.num_inputs = total_inter_size
     interaction_model_args.num_outputs = 1
+    interaction_model_args.softmax_output = False
 
     if interaction_model_args.net_type in ["inexp"]:
         passive_model_args.input_expand.include_relative = False

@@ -8,7 +8,7 @@
   environment:
     env: RandomDistribution
     variant: conditional
-    load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional/
+    load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional_long/
   torch:
     gpu: 1
     no_cuda: False
@@ -16,7 +16,7 @@
     train: True
     num_frames: 100000
     train_test_order: time
-    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional/
+    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional_long/
     num_iters: 10000
     batch_size: 256
   inter:
@@ -47,9 +47,12 @@
     use_active_as_passive: True
     soft_distribution: Identity
   interaction_net:
-    hidden_sizes: 512 512 512 512 512
+    hidden_sizes: 512 256 128 128 128
     net_type: keypair
     init_form: xnorm
+    pair:
+      reduce_fn: sum
+    embed_inputs: 128
     optimizer:
       lr: .0001
       alt_lr: .000001

@@ -10,15 +10,13 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
     factored_state = data[0]
     last_done = [0.0] # dones are shifted one back because we want to zero out the invalid frame (with the next state as the first state of the next episode)
     for i, next_factored_state in enumerate(data[1:]):
-        print("adding", i)
-
         # assign general components
         use_done = next_factored_state["Done"]#factored_state["Done"].squeeze() if predict_dynamics else last_done
         act = next_factored_state["Action"][-1] if environment.discrete_actions else next_factored_state["Action"]
         factored_state["Action"] = next_factored_state["Action"]
         full_state = args.inter_select(factored_state)
         rew = factored_state["Reward"]
-        print(i, use_done, last_done, predict_dynamics)
+        # print(i, use_done, last_done, predict_dynamics)
         full_traces = environment.get_full_trace(factored_state, act)
         for name in environment.object_names:
             denorm_target = full_model.target_selectors[name](factored_state)
@@ -39,7 +37,7 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
                 rew=0, done=use_done, policy_mask = np.ones(environment.instance_length), param_mask=np.ones(args.pad_size),
                 terminate=False, mapped_act=np.ones(args.pad_size), inter=inter, info=dict(), policy=dict(), 
                 trace=full_trace, proximity=proximity, weight_binary=0))
-            print(name, full_trace, target_diff, full_model.target_selectors[name](next_factored_state), full_model.target_selectors[name](factored_state))
+            # print(name, full_trace, target_diff, full_model.target_selectors[name](next_factored_state), full_model.target_selectors[name](factored_state))
             
         # assign selections of the state
         obs = norm(full_state, form="inter")

@@ -51,9 +51,9 @@
     init_form: xnorm
     pair:
       final_layers: 256 256
+    embed_inputs: 512
     mask_attn:
       model_dim: 256
-      embed_dim: 512
       num_heads: 16
       num_layers: 2
       cluster: False

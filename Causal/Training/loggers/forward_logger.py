@@ -17,10 +17,11 @@ class forward_logger(Logger):
 #     likelihood weighted with true values
 #     l1 average error per element
 
-    def __init__(self, net_type, log_interval, full_model, filename="", denorm=False):
+    def __init__(self, net_type, record_graphs, log_interval, full_model, filename="", denorm=False):
         super().__init__(filename)
-        if len(filename) != 0:
-            full_logdir = create_directory(os.path.join(os.path.split(filename)[0], "graphs"))
+        self.record_graphs = record_graphs
+        if len(record_graphs) != 0:
+            full_logdir = os.path.join(create_directory(record_graphs+ "/logs"))
             self.tensorboard_logger = SummaryWriter(log_dir=full_logdir)
         self.maxlen = 1000
         self.log_interval = log_interval
@@ -52,7 +53,7 @@ class forward_logger(Logger):
 
     def log(self, i, loss, raw_likelihood, weighted_likelihood, 
                     raw_likelihood_expanded, trace, weight_rate, dones,
-                    params, targets, interaction_likelihoods, full_model):
+                    params, targets, interaction_likelihoods, full_model, no_print=False):
         self.loss.append(pytorch_model.unwrap(loss))
         if raw_likelihood is not None: self.raw_likelihood.append(pytorch_model.unwrap(raw_likelihood))
         if weighted_likelihood is not None: self.weighted_likelihood.append(pytorch_model.unwrap(weighted_likelihood))
@@ -77,7 +78,7 @@ class forward_logger(Logger):
             unwrapped_likelihoods = pytorch_model.unwrap(interaction_likelihoods)
             self.l1_average_weighted_error.append(np.sum(l1_error_element * unwrapped_likelihoods, axis=0) / np.sum(unwrapped_likelihoods) )
 
-        if i % self.log_interval == 0:
+        if i % self.log_interval == 0 and not no_print:
             name = full_model.name
             logging_str = "================\n"
             logging_str = self.type + f' at {i}, mean loss: {np.mean(self.loss)}, '
@@ -97,17 +98,17 @@ class forward_logger(Logger):
             logging_str += f"variance: {var}"
             logging.info(logging_str)
             print(logging_str)
-            if len(self.filename) != 0:
+            if len(self.record_graphs) != 0:
                 # adds to the tensorboard logger for graphing
                 # self.tensorboard_logger.add_scalar("Return/"+self.name, np.sum(self.reward)/np.sum(self.current_episodes), i)
                 # self.tensorboard_logger.add_scalar("Success/"+self.name, np.sum(self.success)/np.sum(self.current_term), i)
                 # self.tensorboard_logger.add_scalar("Success/"+self.name + "_h/m", np.sum(self.success)/miss_hit, i)
-                self.tensorboard_logger.add_scalar("Weighted_likelihood/"+self.type, np.mean(self.true_weighted_likelihood), i)
+                self.tensorboard_logger.add_scalar("Weighted_likelihood/" +self.type, np.mean(self.true_weighted_likelihood), i)
                 # log the loss values
                 print(self.testing_log)
 
                 for k in self.testing_log.keys():
                     print(k, np.mean(self.testing_log[k]))
-                    self.tensorboard_logger.add_scalar("Loss/" +self.type+"/" + k, np.mean(self.testing_log[k]), i)
+                    self.tensorboard_logger.add_scalar("Loss/"  +self.type+ "/"  + k, np.mean(self.testing_log[k]), i)
                 self.tensorboard_logger.flush()
             self.reset()

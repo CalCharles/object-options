@@ -31,7 +31,7 @@ def proximity_binary(full_model, rollouts,object_rollouts=None, full=False):
     # non_proximal_weights = non_proximal.squeeze() / np.sum(non_proximal) if np.sum(non_proximal) != 0 else np.ones(non_proximal.shape) / len(non_proximal)
     return non_proximal, proximal
 
-def separate_weights(weighting, full_model, rollouts, proximity, trace, object_rollouts=None):
+def separate_weights(weighting, full_model, rollouts, proximity, trace=None, object_rollouts=None):
     passive_error_cutoff, passive_error_upper, weighting_ratio, weighting_schedule = weighting
     if weighting_ratio >= 0:
         passive_error =  - get_error(full_model, rollouts, object_rollouts, error_type = error_types.PASSIVE_LIKELIHOOD).astype(int)

@@ -14,19 +14,27 @@ network_args = {
         "reduce_function": "max",
         "post_dim": -1,
         "difference_first": False,
-        "final_layers": [256],
-        "num_pair_layers": 0,
+        "final_layers": [],
+        "num_pair_layers": 1,
+        "repeat_layers": False,
+    },
+    "embed_inputs": 0, # embeds the inputs, used as the embed_dim in transformers, keypair and pair networks
+    "cluster": {
+        "cluster_mode": False,
+        "inter_pair_layers": 1,
+        "num_clusters": 0, # overloaded: for expert models, this is the number of clusters. For interaction selection models, this is the number of interaction masks
+        "cluster_inter_hidden": [],
+    },
+    "comb_embed": {
+        "max_hash": -1, # TODO: not implemented
     },
     "mask_attn": {
         "model_dim": 0,
-        "embed_dim": 0,
-        "cluster": False,
-        "num_clusters": 0,
-        "cluster_inter_hidden": [128],
         "num_heads": 0,
-        "num_layers": 0,
+        "num_layers": 1,
         "attention_dropout": 0.0,
         "needs_encoding": True, # should be set in init, default value here
+        "merge_function": "cat", # the function for merging together the heads
     },
     "input_expand": {
         "include_relative": False,
@@ -96,15 +104,22 @@ full_args = {
         "num_steps": 0,
     },
     "full_inter": {
-        "object_id": False,
-        "lasso_lambda": [1, 0, 0, -1, -1],
+        "object_id": True, # appends a 1 hot identifier of the object class to the object
+        "lasso_lambda": [1, 0, 0, -1, -1], # lasso_lambda, open mask forcing, 0.5 mask forcing, one mask schedule, masking schedule
         "lasso_order": 1,
+        "entropy_lambda": [0,0], # penalizes the individual values of the binary mask for having high entropy (close to 0.5)
         "soft_distribution": "Identity",
-        "dist_temperature": 1,
+        "dist_temperature": 1, # distribution temperature for relaxed distributions on the interaction mask
+        "selection_temperature": 1, # distribution temperature for relaxed distributions on the selection network
         "mixed_interaction": "weighting",
         "use_active_as_passive": False,
         "proximal_weights": False,
         "log_gradients": False,
+        "train_full_only": False,
+        "lightweight_passive": True,
+        "train_names": [], # for debugging, only trains certain names
+        "load_forward_only": "", # loads only the forward models
+        "selection_mask": False, # uses a selection mask network
     },
     "inter": {
         "predict_dynamics": False,
@@ -123,6 +138,7 @@ full_args = {
             "interaction_pretrain": 0,
         },
         "active": {
+            "active_steps": 1,
             "no_interaction": 0,
             "weighting": [0,0,-1,0], # must be length 4
             "active_log_interval": 100,

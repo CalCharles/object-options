@@ -9,13 +9,17 @@ from tianshou.data import Batch
 error_names = [# an enumerator for different error types
     "PASSIVE",# mean of passive subtracted with target,
     "ACTIVE",# mean of active subtracted with target
+    "ACTIVE_OPEN",# mean of active open (all 1 inter) subtracted with target, only for full_interaction_model
     "PASSIVE_VAR",# variance of passive,
     "ACTIVE_VAR",# variance of active
+    "ACTIVE_OPEN_VAR",# variance of active open (all 1 inter) subtracted with target, only for full_interaction_model
     "PASSIVE_RAW",# mean of passive values,
     "ACTIVE_RAW",# mean of active values,
+    "ACTIVE_OPEN_RAW",# mean of active open (all 1 inter), only for full_interaction_model
     "LIKELIHOOD",# weighted likelihood, multiplying active output with the interaction, if is_full, this is the OPEN likelihood
     "PASSIVE_LIKELIHOOD", # likelihood under the passive model
     "ACTIVE_LIKELIHOOD", # likelihood of data under the active model
+    "ACTIVE_OPEN_LIKELIHOOD", # likelihood of data under the open (all 1 inter) active model, only for full_interaction_model
     "INTERACTION", #interaction values from the network after thresholding
     "INTERACTION_RAW", # interaction values directly output by the network
     "INTERACTION_HOT", # get the expert assignment for interaction
@@ -29,7 +33,7 @@ error_names = [# an enumerator for different error types
 
 error_types = ObjDict({error_names[i]: i for i in range(len(error_names))})
 
-outputs = lambda x: x > error_types.ACTIVE_LIKELIHOOD 
+outputs = lambda x: x > error_types.ACTIVE_OPEN_LIKELIHOOD 
 
 def check_proximity(full_model, parent_state, target, normalized=False):
     num_batch = parent_state.shape[0] if len(parent_state.shape) > 1 else 1
@@ -84,11 +88,15 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
         output = pytorch_model.unwrap(full_model.passive_likelihoods(use_part)[0][0])
     elif error_type == error_types.ACTIVE or error_type == error_types.ACTIVE_RAW:
         output = pytorch_model.unwrap(full_model.active_likelihoods(use_part)[0][0])
+    elif error_type == error_types.ACTIVE_OPEN or error_type == error_types.ACTIVE_OPEN_RAW:
+        output = pytorch_model.unwrap(full_model.active_open_likelihoods(use_part)[0][0])
     if error_type == error_types.PASSIVE_VAR:
         output = pytorch_model.unwrap(full_model.passive_likelihoods(use_part)[0][1])
     elif error_type == error_types.ACTIVE_VAR:
         output = pytorch_model.unwrap(full_model.active_likelihoods(use_part)[0][1])
-    if error_type <= error_types.ACTIVE:
+    elif error_type == error_types.ACTIVE_OPEN_VAR:
+        output = pytorch_model.unwrap(full_model.active_open_likelihoods(use_part)[0][1])
+    if error_type <= error_types.ACTIVE_OPEN:
         if reduced:
             if not normalized: # this can only be the case for PASSIVE and ACTIVE
                 return np.expand_dims(np.linalg.norm(rv(pytorch_model.unwrap(output)) - rv(target), ord=1, axis=-1), axis=-1)
@@ -96,21 +104,23 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
         else:
             if not normalized: return np.abs(rv(pytorch_model.unwrap(output)) - rv(target))
             return np.abs(pytorch_model.unwrap(output) - target)
-    if error_type <= error_types.ACTIVE_VAR:
+    if error_type <= error_types.ACTIVE_OPEN_VAR:
         if not normalized: return rv_var(np.stack(pytorch_model.unwrap(output)))
-    if error_type <= error_types.ACTIVE_RAW:
+    if error_type <= error_types.ACTIVE_OPEN_RAW:
         if not normalized: return rv(np.stack(pytorch_model.unwrap(output)))
         return np.stack(pytorch_model.unwrap(output))
 
     # likelihood type error computation
     if error_type == error_types.LIKELIHOOD:
-        if is_full: output = pytorch_model.unwrap(full_model.active_open_likelihood(use_part)[-1])
+        if is_full: output = pytorch_model.unwrap(full_model.active_open_likelihoods(use_part)[-1])
         else: output = pytorch_model.unwrap(full_model.weighted_likelihoods(use_part)[-1])
     elif error_type == error_types.PASSIVE_LIKELIHOOD:
         output = pytorch_model.unwrap(full_model.passive_likelihoods(use_part)[-1])
     elif error_type == error_types.ACTIVE_LIKELIHOOD:
         output = pytorch_model.unwrap(full_model.active_likelihoods(use_part)[-1])
-    if error_type <= error_types.ACTIVE_LIKELIHOOD:
+    elif error_type == error_types.ACTIVE_OPEN_LIKELIHOOD:
+        output = pytorch_model.unwrap(full_model.active_open_likelihoods(use_part)[-1])
+    if error_type <= error_types.ACTIVE_OPEN_LIKELIHOOD:
         if reduced: output = - compute_likelihood(full_model, num_batch, - output, is_full=is_full)
         return output
 
@@ -165,9 +175,10 @@ def get_error(full_model, rollouts, object_rollout=None, error_type=0, reduced=T
         obj_batch = None if object_rollout is None else (object_rollout.sample(0)[0] if len(object_rollout) != object_rollout.maxsize else object_rollout)
 
     model_error = []
-    for i in range(int(np.ceil(len(batch) / min(500,len(batch))))): # run 500 at a time, so that we don't overload the GPU
-        part = batch[i*500:(i+1)*500]
-        obj_part = None if obj_batch is None else object_rollout[i*500:(i+1)*500]
+    CUTSIZE = 500
+    for i in range(int(np.ceil(len(batch) / min(CUTSIZE,len(batch))))): # run CUTSIZE at a time, so that we don't overload the GPU
+        part = batch[i*CUTSIZE:(i+1)*CUTSIZE]
+        obj_part = None if obj_batch is None else object_rollout[i*CUTSIZE:(i+1)*CUTSIZE]
         done_flags = np.expand_dims((1-part.done).squeeze(), -1)
         values = compute_error(full_model, error_type, part, obj_part, normalized=normalized, reduced=reduced, prenormalize=prenormalize, object_names = object_names)
         if not outputs(error_type): values = values * done_flags

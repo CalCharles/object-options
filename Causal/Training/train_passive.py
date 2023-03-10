@@ -12,8 +12,8 @@ from Causal.Utils.instance_handling import compute_likelihood
 from Network.network_utils import pytorch_model, run_optimizer
 
 def train_passive(full_model, rollouts, args, active_optimizer, passive_optimizer, weights=None):
-    logger = forward_logger("passive", args.inter.passive.passive_log_interval, full_model, filename=args.record.log_filename)
-    active_logger = forward_logger("active", args.inter.passive.passive_log_interval, full_model)
+    logger = forward_logger("passive", args.record.record_graphs, args.inter.passive.passive_log_interval, full_model, filename=args.record.log_filename)
+    active_logger = forward_logger("active", args.record.record_graphs, args.inter.passive.passive_log_interval, full_model)
 
     outputs = list()
     for i in range(args.inter.passive.passive_iters):

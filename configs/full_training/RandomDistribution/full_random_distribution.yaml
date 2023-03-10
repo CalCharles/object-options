@@ -22,12 +22,12 @@
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    # load_intermediate: /hdd/datasets/object_data/full/randomdist/temp/
-    save_intermediate: /hdd/datasets/object_data/full/randomdist/temp/
+    load_intermediate: /hdd/datasets/object_data/full/randomdist/temp2/
+    # save_intermediate: /hdd/datasets/object_data/full/randomdist/temp2/
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 10000
+      # passive_iters: 1000
       # passive_iters: 1000
       passive_log_interval: 100
       pretrain_active: True
@@ -40,7 +40,9 @@
       # weighting: 0 200000 100 100000
   full_inter:
     object_id: True
-    lasso_lambda: 1 0.25 100 1000
+    lasso_lambda: 5 0.25 0 100 1000
+    mixed_interaction: mixed
+    soft_distribution: Identity
     # use_active_as_passive: True
   interaction_net:
     hidden_sizes: 512 256 256 128 128

@@ -9,7 +9,7 @@ import torch.optim as optim
 from collections import Counter
 from Causal.Utils.get_error import get_error, error_types
 from Causal.Utils.weighting import separate_weights, get_weights
-from Causal.FullInteraction.Training.full_train_passive import train_passive
+from Causal.FullInteraction.Training.full_train_passive import train_passive, get_passive_weights
 from Causal.FullInteraction.Training.full_train_trace import train_interaction
 from Causal.FullInteraction.Training.full_train_combined import train_combined
 from Causal.Training.train_full import load_intermediate
@@ -20,11 +20,16 @@ def initialize_optimizer(model, args, lr):
 
 def run_train_passive(full_model, rollouts, object_rollout, test_rollout, test_object_rollout, args, environment):
     # initialize the optimizers
-    active_optimizer = initialize_optimizer(full_model.active_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
+    if full_model.cluster_mode: # the active optimizer does NOT optimize the interaction weights
+        active_optimizer = optim.Adam(list(full_model.active_model.key_encoding.parameters()) + list(full_model.active_model.query_encoding.parameters()) 
+                                        + list(full_model.active_model.means.parameters()) + list(full_model.active_model.stds.parameters()), 
+                                        args.interaction_net.optimizer.lr, eps=args.interaction_net.optimizer.eps, betas=args.interaction_net.optimizer.betas, weight_decay=args.interaction_net.optimizer.weight_decay)
+    else:
+        active_optimizer = initialize_optimizer(full_model.active_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
     passive_optimizer = None if full_model.use_active_as_passive else initialize_optimizer(full_model.passive_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
-    interaction_optimizer = initialize_optimizer(full_model.interaction_model, args.interaction_net.optimizer, args.interaction_net.optimizer.alt_lr)
 
-    outputs, passive_weights = train_passive(full_model, args, rollouts, object_rollout, active_optimizer, passive_optimizer)
+    passive_weights = get_passive_weights(args, full_model, object_rollout)
+    outputs, passive_weights = train_passive(full_model, args, rollouts, object_rollout, passive_weights, active_optimizer, passive_optimizer)
 
     # saving the intermediate model in the case of crashing during subsequent phases
     if len(args.inter.save_intermediate) > 0 and args.inter.passive.passive_iters > 0:
@@ -34,10 +39,30 @@ def run_train_passive(full_model, rollouts, object_rollout, test_rollout, test_o
         full_model.cuda()
     del active_optimizer
     del passive_optimizer
-    del interaction_optimizer
     return outputs, passive_weights
 
-def train_full(full_model, rollouts, object_rollout, test_rollout, test_object_rollout, passive_weights, args, environment):
+def run_train_interaction(full_model, rollouts, object_rollout, test_rollout, test_object_rollout, args, environment):
+    # initialize the optimizers
+    if full_model.cluster_mode:
+        interaction_optimizer = optim.Adam(list(full_model.active_model.inter_models.parameters()) + list(full_model.interaction_model.parameters()),
+                                            args.interaction_net.optimizer.alt_lr, eps=args.interaction_net.optimizer.eps, betas=args.interaction_net.optimizer.betas, weight_decay=args.interaction_net.optimizer.weight_decay)
+    else:
+        interaction_optimizer = initialize_optimizer(full_model.interaction_model, args.interaction_net.optimizer, args.interaction_net.optimizer.alt_lr)
+
+    # get weights based on interacting states
+    passive_error, active_weights, binaries = separate_weights(args.inter.active.weighting, full_model, rollouts, None, object_rollouts=object_rollout) # trace=trace, object_rollouts=object_rollout)
+
+    outputs, inter_weights = train_interaction(full_model, rollouts, object_rollout, args, interaction_optimizer)
+
+    # saving the intermediate model in the case of crashing during subsequent phases
+    if len(args.inter.save_intermediate) > 0 and args.inter.interaction.interaction_pretrain > 0:
+        full_model.cpu()
+        torch.save(full_model.interaction_model, os.path.join(create_directory(args.inter.save_intermediate), environment.name + "_" + full_model.name + "_interaction_model.pt"))
+        full_model.cuda()
+    del interaction_optimizer
+    return outputs, inter_weights
+
+def train_full(full_model, rollouts, object_rollout, test_rollout, test_object_rollout, args, environment):
     '''
     Train the passive model, interaction model and active model
     @param control is the name of the object that we have control over
@@ -48,14 +73,23 @@ def train_full(full_model, rollouts, object_rollout, test_rollout, test_object_r
     # train_interaction(full_model, rollouts, args, interaction_optimizer)
     # if args.inter.save_intermediate and args.inter.interaction.interaction_pretrain > 0:
     #     torch.save(full_model.interaction_model, os.path.join(args.inter.save_intermediate, environment.name + "_" + full_model.name + "_interaction_model.pt"))
-    active_optimizer = initialize_optimizer(full_model.active_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
-    passive_optimizer = None if full_model.use_active_as_passive else initialize_optimizer(full_model.passive_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
-    interaction_optimizer = initialize_optimizer(full_model.interaction_model, args.interaction_net.optimizer, args.interaction_net.optimizer.alt_lr)
+    if full_model.cluster_mode:
+        active_optimizer = optim.Adam(list(full_model.active_model.key_encoding.parameters()) + list(full_model.active_model.query_encoding.parameters()) 
+                                        + list(full_model.active_model.means.parameters()) + list(full_model.active_model.stds.parameters()), 
+                                        args.interaction_net.optimizer.lr, eps=args.interaction_net.optimizer.eps, betas=args.interaction_net.optimizer.betas, weight_decay=args.interaction_net.optimizer.weight_decay)
+        passive_optimizer = None if full_model.use_active_as_passive else initialize_optimizer(full_model.passive_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
+        interaction_optimizer = optim.Adam(list(full_model.active_model.inter_models.parameters()) + list(full_model.interaction_model.parameters()),
+                                            args.interaction_net.optimizer.alt_lr, eps=args.interaction_net.optimizer.eps, betas=args.interaction_net.optimizer.betas, weight_decay=args.interaction_net.optimizer.weight_decay)
+    else:
+        active_optimizer = initialize_optimizer(full_model.active_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
+        passive_optimizer = None if full_model.use_active_as_passive else initialize_optimizer(full_model.passive_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
+        interaction_optimizer = active_optimizer if full_model.attention_mode else initialize_optimizer(full_model.interaction_model, args.interaction_net.optimizer, args.interaction_net.optimizer.alt_lr)
 
     # if len(args.inter.load_intermediate) > 0: full_model.passive_model, full_model.active_model, full_model.interaction_model, active_optimizer, passive_optimizer, interaction_optimizer = load_intermediate(args, full_model, environment)
     # sampling weights, either wit hthe passive error or if we can upweight the true interactions
+    passive_weights = get_passive_weights(args, full_model, object_rollout)
     proximal = get_error(full_model, rollouts, object_rollout, error_type=error_types.PROXIMITY_FULL, normalized = True)
-    passive_error, active_weights, binaries = separate_weights(args.inter.active.weighting, full_model, rollouts, proximal, trace if args.inter.interaction.interaction_pretrain > 0 else None, object_rollouts=object_rollout)
+    passive_error, active_weights, binaries = separate_weights(args.inter.active.weighting, full_model, rollouts, proximal, None, object_rollouts=object_rollout)
     # print(passive_error, binaries)
     # error
     interaction_weights = get_weights(args.inter.active.weighting[2], object_rollout.weight_binary)

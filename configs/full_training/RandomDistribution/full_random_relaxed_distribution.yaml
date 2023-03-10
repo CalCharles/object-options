@@ -27,12 +27,12 @@
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 10000
+      passive_iters: 1000
       # passive_iters: 100
-      passive_log_interval: 100
+      passive_log_interval: 25
       pretrain_active: True
     active:
-      active_log_interval: 100
+      active_log_interval: 25
       # inline_iters: 10 0 5000
       inline_iters: 1 0 0
       interaction_weighting: 100 -1
@@ -41,17 +41,21 @@
       # weighting: 0 200000 100 100000
   full_inter:
     object_id: True
-    lasso_lambda: 3 0.25 0 100 1000
-    dist_temperature: 5
+    lasso_lambda: 5 0.25 0 100 1000
+    dist_temperature: 2
     mixed_interaction: relaxed
     soft_distribution: RelaxedBernoulli
+    use_active_as_passive: True
   interaction_net:
-    hidden_sizes: 512 256 256 128 128
+    hidden_sizes: 256 512
     net_type: keypair
     init_form: xnorm
+    embed_inputs: 128
+    pair:
+      reduce_form: sum
     optimizer:
       lr: .0001
-      alt_lr: .0001
+      alt_lr: .00001
       eps: .00001
       alpha: 0.99
       betas: 0.9 0.999

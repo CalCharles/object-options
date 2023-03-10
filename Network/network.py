@@ -1,9 +1,10 @@
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
-from Network.network_utils import get_acti, reset_linconv, reset_parameters, count_layers
+from Network.network_utils import get_acti,get_inplace_acti, reset_linconv, reset_parameters, count_layers
 
 ## end of normalization functions
 class Network(nn.Module):
@@ -14,13 +15,16 @@ class Network(nn.Module):
         self.hs = [int(h) for h in args.hidden_sizes]
         self.init_form = args.init_form
         self.model = []
-        self.acti = get_acti(args.activation)
-        self.activation_final = get_acti(args.activation_final)
-        self.iscuda = False
+        self.acti = get_inplace_acti(args.activation)
+        self.activation_final = get_inplace_acti(args.activation_final)
+        self.activation_final_name = args.activation_final
+        self.iscuda = False # this means we have to run .cuda() to get it on the GPU
+        self.gpu = args.gpu
 
     def cuda(self, gpu=None):
         super().cuda()
         self.iscuda = True
+        if gpu is not None: self.gpu = gpu
         for m in self.model:
             if issubclass(type(m), Network): m.cuda(gpu=gpu)
         return self
@@ -53,4 +57,5 @@ from Network.General.pair import PairNetwork
 from Network.General.key_pair import KeyPairNetwork
 from Network.General.mask_attention import MaskedAttentionNetwork
 from Network.General.input_expand import InputExpandNetwork
-network_type = {"mlp": MLPNetwork, "pair": PairNetwork, "keypair": KeyPairNetwork, "maskattn": MaskedAttentionNetwork, "inexp": InputExpandNetwork}
+from Network.General.raw_attention import RawAttentionNetwork
+network_type = {"mlp": MLPNetwork, "pair": PairNetwork, "keypair": KeyPairNetwork, "maskattn": MaskedAttentionNetwork, "rawattn": RawAttentionNetwork, "inexp": InputExpandNetwork}

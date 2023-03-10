@@ -164,7 +164,7 @@ def write_multi_config(multi_pth):
             trial_configs.append(tconfig)
             trial_names.append(tname)
             use_gpu += 1
-        return trial_names, trial_configs
+        return trial_names, trial_configs, use_gpu
     
     # get corresponding config dicts and names for the files
     all_args = list()
@@ -172,10 +172,9 @@ def write_multi_config(multi_pth):
     print(comb_array)
     use_gpu = gpu # cycles through GPUs if activated
     for i, combination in enumerate(comb_array):
-        names, configs = create_config(base_config, combination, num_trials, i, use_gpu % cycle_gpu if cycle_gpu > 0 else gpu)
+        names, configs, use_gpu = create_config(base_config, combination, num_trials, i, use_gpu % cycle_gpu if cycle_gpu > 0 else gpu)
         all_args += configs
         all_names += names
-        use_gpu += 1
 
     # write the config files to locations
     config_names = list()

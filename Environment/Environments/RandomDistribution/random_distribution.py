@@ -40,7 +40,7 @@ class conditional_add_func():
 
     def __call__(self, ps, ts):
         inter, _ = self.interaction_dynamics(ps, ts)
-        print("target, inter", self.target, inter)
+        # print("target, inter", self.target, inter)
         if inter:
             return inter, self.add_dynamics(ps, ts)[1]
         else:
@@ -91,7 +91,7 @@ class add_func():
         sum_val = (np.matmul(self.parent_weight_matrix, ps - self.parent_bias) * self.scale + self.target_weights * ts + self.target_bias)[...,0]
         if self.conditional:
             return np.sum(sum_val, axis=-1) > self.conditional_weight, None
-        print(ts, "sumval", sum_val, "parent effect", np.matmul(self.parent_weight_matrix, ps - self.parent_bias) * self.scale, "taret_effect", self.target_weights * ts + self.target_bias)
+        # print(ts, "sumval", sum_val, "parent effect", np.matmul(self.parent_weight_matrix, ps - self.parent_bias) * self.scale, "taret_effect", self.target_weights * ts + self.target_bias)
         return True, sum_val
 
 class rel_func():
@@ -126,7 +126,7 @@ class rel_func():
         # print(ts, ps, np.matmul(self.target_weight_matrix, ts),self.parent_bias, np.matmul(self.parent_weight_matrix, ps - np.matmul(self.target_weight_matrix, ts) - self.parent_bias))
         rel_val = np.matmul(self.parent_weight_matrix, ps - np.matmul(self.target_weight_matrix, ts) - self.parent_bias)[...,0]
         if self.conditional:
-            print("cond weight", np.sum(rel_val, axis=-1))
+            # print("cond weight", np.sum(rel_val, axis=-1))
             return np.sum(rel_val, axis=-1) > self.conditional_weight, None
         return True, rel_val
 
@@ -194,8 +194,8 @@ class RandomDistribution(Environment):
         self.object_names = ["Action"] + [get_random_string(np.random.randint(7) + 3) for i in range(self.num_objects)] + ["Reward", "Done"] # must be initialized, a list of names that controls the ordering of things
         self.object_instanced = {name: np.random.randint(1, self.multi_instanced + 1) for name in self.object_names} # name of object to max number of objects of that type
         self.object_instanced["Action"], self.object_instanced["Reward"], self.object_instanced["Done"] = 1, 1, 1
-        make_name = lambda x: x + str(i) if self.object_instanced[x] > 1 else x
-        self.all_names = sum([[make_name(name) for i in range(self.object_instanced[name])] for name in self.object_names], start = list()) # must be initialized, the names of all the objects including multi-instanced ones
+        make_name = lambda x,i: x + str(i) if self.object_instanced[x] > 1 else x
+        self.all_names = sum([[make_name(name, i) for i in range(self.object_instanced[name])] for name in self.object_names], start = list()) # must be initialized, the names of all the objects including multi-instanced ones
         self.object_sizes = {name: np.random.randint(2,OBJECT_MAX_DIM+1) for name in self.object_names} # must be initialized, a dictionary of name to length of the state
         self.object_sizes["Reward"], self.object_sizes["Done"] = 1,1
         self.object_range = {n: (- np.ones(self.object_sizes[n]), np.ones(self.object_sizes[n])) for n in self.object_names}
@@ -215,6 +215,7 @@ class RandomDistribution(Environment):
         controllable = ["Action"]
         self.object_relational_sets, self.object_relational_functions = list(), list()
         print(self.object_sizes, self.object_instanced)
+        self.internal_statistics = dict()
         
         self.passive_functions = dict()
         for name in self.object_names[1:-2]: # not actions or done/reward
@@ -260,9 +261,12 @@ class RandomDistribution(Environment):
                             conditional=False)
             print(orf.parents, orf.target, orf.params)
             self.object_relational_functions.append(orf)
+            self.internal_statistics[(" ".join(orf.parents), orf.target)] = 0
         for target in unused:
             if self.require_passive:
                 self.object_relational_functions.append(self.passive_functions[target])
+                self.internal_statistics[(" ".join(orf.parents), orf.target)] = 0
+        print(self.internal_statistics)
         # error
 
     def reset(self):
@@ -329,6 +333,7 @@ class RandomDistribution(Environment):
                 inter, nds = orf(ps, ts)
                 if inter:
                     self.object_name_dict[orf.target].interaction_trace += orf.parents 
+                self.internal_statistics[ (" ".join(orf.parents), orf.target)] += int(inter)
                 # print(orf.target, nds)
                 if self.relate_dynamics: 
                     self.object_name_dict[orf.target].next_state += np.clip(nds, -DYNAMICS_STEP, DYNAMICS_STEP)
@@ -343,7 +348,10 @@ class RandomDistribution(Environment):
                     # print(obj.name, obj.next_state)
                 if hasattr(obj, "step_state"): obj.step_state()
         self.itr += 1
-        print(self.get_state()["factored_state"])
+        # print(self.get_state()["factored_state"])
+        if self.itr % 1000 == 0:
+            for k in self.internal_statistics.keys():
+                print(k, self.internal_statistics[k] / self.itr)
         if self.itr % 50 == 0:
             self.reset()
             self.done.attribute = True
@@ -359,3 +367,49 @@ class RandomDistribution(Environment):
         for n in factored_state.keys():
             if n in self.object_name_dict:
                 self.object_name_dict[n].state = copy.deepcopy(factored_state[n])
+
+class SimpleConditionalEnvironment():
+    def __init__(self, frameskip = 1, variant="default", fixed_limits=False):
+        # generates "objects" as conditional distributions of each other
+        self.variant = "default"
+        self.fixed_limits = False
+        
+        self.set_objects()
+        self.num_actions = -1 # this must be defined, -1 for continuous. Only needed for primitive actions
+        self.name = "SimpleConditional" # required for an environment 
+        self.discrete_actions = False
+        self.frameskip = frameskip # no frameskip
+        self.transpose = False # transposes the visual domain
+
+        # spaces
+        self.object_sizes = {"Action": 2, "B": 2, "C": 2, "D": 2, "Reward": 1, "Done": 1,}
+        self.object_ranges = {"Action": (-np.ones(2), np.ones(2)), "B": (-np.ones(2), np.ones(2)), "C": (-np.ones(2), np.ones(2)), "D": (-np.ones(2), np.ones(2)), "Reward": (-1, 1), "Done": (0, 1),}
+        self.object_names = ["Action", "B", "C", "D", "Reward", "Done",]
+        self.object_instanced = {name: 1 for name in self.object_names} # edit for multi-objects
+        make_name = lambda x, i: x + str(i) if self.object_instanced[x] > 1 else x
+        self.all_names = sum([[make_name(name, i) for i in range(self.object_instanced[name])] for name in self.object_names], start = list()) # must be initialized, the names of all the objects including multi-instanced ones
+        self.object_dynamics = {"Action": (-1.0 * np.ones(2), 1.0 * np.ones(2)), "B": (-0.05 * np.ones(2), 0.05 * np.ones(2)), "C": (-0.02 * np.ones(2), 0.02 * np.ones(2)), "D": (-0.02 * np.ones(2), 0.02 * np.ones(2)), "Reward": (-1.0, 1.0), "Done": (0, 1),}
+        self.object_proximal = {n: True for n in self.object_names}
+        self.instance_length = len(self.all_names)
+        self.object_range_true = self.object_ranges
+        self.object_dynamics_true = self.object_dynamics
+        self.action_shape = (self.object_sizes["Action"], ) # should be set in the environment, (1,) is for discrete action environments
+        self.action_space = spaces.Box(low=np.ones(self.object_sizes["Action"]) * -1, high=np.ones(self.object_sizes["Action"])) # gym.spaces
+        self.observation_space = spaces.Box(low=np.concatenate([self.object_range[name][0] for name in self.object_names], axis=-1),
+                                            high=np.concatenate([self.object_range[name][1] for name in self.object_names], axis=-1)) # raw space, gym.spaces
+        self.pos_size = 1 # the dimensionality of position, set to 1 to allow more relationships
+
+        # state components
+        self.frame = None # the image generated by the environment
+        self.reward = Reward()
+        self.done = Done()
+        self.action = Action(self.discrete_actions, self.num_actions if self.discrete_actions else self.object_sizes["Action"])
+
+        # running values
+        self.itr = 0
+
+
+        # proximity state components
+        self.position_masks = dict()
+
+        self.extracted_state = self.reset()
