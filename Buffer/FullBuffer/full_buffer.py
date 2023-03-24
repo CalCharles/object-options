@@ -6,7 +6,9 @@ from tianshou.data import Batch, ReplayBuffer, PrioritizedReplayBuffer
 
 class FullReplayBuffer(ReplayBuffer):
     # obs, obs_next contain the flattened full state from the environment
-    _reserved_keys = ("obs", "act", "rew", "done", "obs_next", "info", "policy", "true_reward", "true_done", "time","option_choice", "option_resample")
+    _all_keys = ("obs", "act", "rew", "done", "terminated", "truncated", "obs_next", "info", "policy", "true_reward", "true_done", "time","option_choice", "option_resample")
+    _reserved_keys = _all_keys
+    _input_keys = _all_keys
 
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
         """Return a data batch: self[index].
@@ -32,6 +34,8 @@ class FullReplayBuffer(ReplayBuffer):
             act=self.act[indice],
             rew=self.rew[indice],
             done=self.done[indice],
+            terminated=self.terminated[indice],
+            truncated=self.truncated[indice],
             obs_next=obs_next,
             info=self.get(indice, "info", Batch()),
             policy=self.get(indice, "policy", Batch()),
@@ -89,9 +93,11 @@ class FullReplayBuffer(ReplayBuffer):
         return self[indices], indices
 
 class ObjectReplayBuffer(ParamPrioWeightedReplayBuffer): # not using double inheritance so exactly the same as above.
-    _reserved_keys = ("obs", "act", "rew", "done", "obs_next", "info", "policy",# the following obs, obs_next, correspond to target, next_target, act corresponds to param
+    _all_keys = ("obs", "act", "rew", "done", "terminated", "truncated", "obs_next", "info", "policy",# the following obs, obs_next, correspond to target, next_target, act corresponds to param
         "param", "policy_mask", "param_mask", "target_diff", "terminate", "mapped_act", "inter", "trace",
         "proximity", "weight_binary")
+    _reserved_keys = _all_keys
+    _input_keys = _all_keys
 
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
         """Return a data batch: self[index].
@@ -117,6 +123,8 @@ class ObjectReplayBuffer(ParamPrioWeightedReplayBuffer): # not using double inhe
             act=self.act[indice],
             rew=self.rew[indice],
             done=self.done[indice],
+            terminated=self.terminated[indice],
+            truncated=self.truncated[indice],
             obs_next=obs_next,
             info=self.get(indice, "info", Batch()),
             policy=self.get(indice, "policy", Batch()),

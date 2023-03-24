@@ -157,8 +157,10 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
         # print([passive_log_probs_act.shape, active_hard_log_probs.shape, active_full_log_probs.shape, soft_interaction_mask.shape, batch.trace.shape])
         print(i, "combined_vals",np.concatenate([uw(passive_log_probs_act.sum(dim=-1).unsqueeze(-1)), uw(active_hard_log_probs.sum(dim=-1).unsqueeze(-1)),
                             uw(active_full_log_probs.sum(dim=-1).unsqueeze(-1)),
+                            # uw(hot_likelihood),
                             uw(interaction_likelihood),
-                            uw(soft_interaction_mask), batch.trace], axis=-1)[:4])
+                            uw(soft_interaction_mask),
+                            batch.trace], axis=-1)[:1])
 
         if i % args.inter.active.active_log_interval == 0:
             print(i, "speed", (args.inter.active.active_log_interval * i) / (time.time() - start))
@@ -171,9 +173,9 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             lasso_lambda = lasso_schedule(i)
             inline_iters = inline_iter_schedule(i)
             active_weighting_lambda = active_weighting_schedule(i)
-            print(active_weighting_lambda)
+            # print(active_weighting_lambda)
             active_weights = get_weights(active_weighting_lambda, object_rollouts.weight_binary[:len(rollouts)].squeeze())
-            print(active_weights)
+            # print(active_weights)
             inter_weighting_lambda = interaction_weighting_schedule(i)
 
             check_error = error_types.INTERACTION_HOT if full_model.cluster_mode else error_types.INTERACTION_RAW
@@ -188,10 +190,10 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             if args.full_inter.log_gradients:
                 grad_variables = get_masking_gradients(full_model, args, rollouts, object_rollouts, lasso_oneloss_lambda,
                     lasso_halfloss_lambda, lasso_lambda, entropy_lambda, interaction_weights, inter_loss, normalize=normalize)
-            if i % (args.inter.active.active_log_interval * 2) == 0:
-                print("log testing")
-                test_dict = test_full(full_model, test_rollout, test_object_rollout, args, None)
-                logger.log_testing(test_dict)
+            # if i % (args.inter.active.active_log_interval * 2) == 0:
+            #     print("log testing")
+            #     test_dict = test_full(full_model, test_rollout, test_object_rollout, args, None)
+            #     logger.log_testing(test_dict)
             # print(object_rollouts.weight_binary[:100], mask_binary.squeeze()[:100], inter_weighting_lambda)
             # print(interaction_weights[:100], interaction_weights[100:200],interaction_weights[200:300],interaction_weights[300:400],
             #     interaction_weights[400:500],interaction_weights[500:600],interaction_weights[600:700],interaction_weights[700:800],

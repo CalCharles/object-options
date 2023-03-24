@@ -248,6 +248,7 @@ class MaskedAttentionNetwork(Network):
         self.first_obj_dim = args.pair.first_obj_dim # this should include all the instances of the object, should be divisible by self.object_dim
         self.aggregate_final = args.pair.aggregate_final
         self.reduce_fn = args.pair.reduce_function
+        self.query_aggregate = args.embedpair.query_aggregate
 
         self.model_dim = args.mask_attn.model_dim
         self.embed_dim = args.embed_inputs
@@ -381,6 +382,7 @@ class MaskedAttentionNetwork(Network):
             # print(x.shape)
             x = self.final_layer(x)
         else:
+            print(x.shape)
             x = self.final_layer(x)
             x = x.transpose(2,1)
             x = x.reshape(batch_size, -1)

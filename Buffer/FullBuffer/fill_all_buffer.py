@@ -21,7 +21,7 @@ def fill_all_buffer(full_model, environment, data, args, object_names, norm, pre
         # print(i, use_done, last_done, predict_dynamics)
         # "inter", "obs_diff", "trace", "proximity", "weight_binary"
         inter = np.ones((environment.instance_length, environment.instance_length)) # n x n matrix of interactions
-        obs_diff = {name: norm(full_model.target_selectors[name](next_factored_state) - full_model.target_selectors[name](factored_state), name=name, form="dyn") for name in environment.all_names}
+        obs_diff = args.inter_select({name: norm(full_model.target_selectors[name](next_factored_state) - full_model.target_selectors[name](factored_state), name=name, form="dyn") for name in environment.all_names})
         
         full_traces = environment.get_full_trace(factored_state, act)
         trace = np.stack([full_traces[name] for name in environment.all_names], axis=0)
@@ -30,6 +30,9 @@ def fill_all_buffer(full_model, environment, data, args, object_names, norm, pre
 
         # assign selections of the state
         obs = norm(full_state, form="inter")
+        target = args.all_target_select(factored_state)
+        next_target = args.all_target_select(next_factored_state)
+        target_diff = args.all_target_select({name: full_model.target_selectors[name](next_factored_state) - full_model.target_selectors[name](factored_state) for name in environment.all_names})
         obs_next = norm(args.inter_select(next_factored_state), form="inter")
         info, policy, time, option_choice, option_resample = dict(), dict(), i, 0, False
         buffer.add(Batch(obs = obs, obs_next=obs_next, act=act, done=use_done, true_done=use_done, rew=rew, true_reward=rew,

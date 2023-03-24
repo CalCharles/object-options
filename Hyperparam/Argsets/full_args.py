@@ -17,6 +17,11 @@ network_args = {
         "final_layers": [],
         "num_pair_layers": 1,
         "repeat_layers": False,
+        "preencode": False,
+    },
+    "embedpair": {
+        "query_aggregate": True, # in keypair networks, aggregates the queries (for prediction)
+        "preembed_dim": 64, # the embedding size for the internal pair network
     },
     "embed_inputs": 0, # embeds the inputs, used as the embed_dim in transformers, keypair and pair networks
     "cluster": {
@@ -120,6 +125,7 @@ full_args = {
         "train_names": [], # for debugging, only trains certain names
         "load_forward_only": "", # loads only the forward models
         "selection_mask": False, # uses a selection mask network
+        "selection_train": "",
     },
     "inter": {
         "predict_dynamics": False,
@@ -136,6 +142,7 @@ full_args = {
         },
         "interaction": {
             "interaction_pretrain": 0,
+            "subset_training": 0,
         },
         "active": {
             "active_steps": 1,

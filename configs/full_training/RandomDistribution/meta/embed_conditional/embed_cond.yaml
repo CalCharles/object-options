@@ -1,0 +1,19 @@
+---
+  metaparam: 
+    multi_filename: cond_embed_opt_
+    log_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_logs/embed/cond/
+    yaml_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_yamls/embed/cond/
+    save_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam/embed/cond/
+    graph_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_graphs/embed/cond/
+    bash_path: bashes/embed_cond_runs.sh
+    base_config: configs/full_training/RandomDistribution/conditional/embed/embed_cond.yaml
+    runfile: train_full_interaction.py
+    gpu: 1
+    match: 1
+    simul_run: 4
+    num_trials: 1
+    cycle_gpu: 4
+  full_inter:
+    mixed_interaction: relaxed,mixed,hard,weighting
+    soft_distribution: RelaxedBernoulli,Identity,Identity,Identity
+...

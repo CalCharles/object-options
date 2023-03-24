@@ -48,6 +48,10 @@ def run_train_interaction(full_model, rollouts, object_rollout, test_rollout, te
                                             args.interaction_net.optimizer.alt_lr, eps=args.interaction_net.optimizer.eps, betas=args.interaction_net.optimizer.betas, weight_decay=args.interaction_net.optimizer.weight_decay)
     else:
         interaction_optimizer = initialize_optimizer(full_model.interaction_model, args.interaction_net.optimizer, args.interaction_net.optimizer.alt_lr)
+    if args.full_inter.selection_train == "separate": # only works with the selection-interaction model right now
+        if not full_model.cluster_mode:
+            interaction_optimizer = optim.Adam(full_model.interaction_model.selection_network.parameters(),
+                                                args.interaction_net.optimizer.alt_lr, eps=args.interaction_net.optimizer.eps, betas=args.interaction_net.optimizer.betas, weight_decay=args.interaction_net.optimizer.weight_decay)
 
     # get weights based on interacting states
     passive_error, active_weights, binaries = separate_weights(args.inter.active.weighting, full_model, rollouts, None, object_rollouts=object_rollout) # trace=trace, object_rollouts=object_rollout)
@@ -84,6 +88,12 @@ def train_full(full_model, rollouts, object_rollout, test_rollout, test_object_r
         active_optimizer = initialize_optimizer(full_model.active_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
         passive_optimizer = None if full_model.use_active_as_passive else initialize_optimizer(full_model.passive_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
         interaction_optimizer = active_optimizer if full_model.attention_mode else initialize_optimizer(full_model.interaction_model, args.interaction_net.optimizer, args.interaction_net.optimizer.alt_lr)
+    if args.full_inter.selection_train == "separate": # only works with the selection-interaction model right now
+        if not full_model.cluster_mode:
+            active_optimizer = optim.Adam(list(full_model.active_model.parameters()) + list(full_model.interaction_model.inter_models.parameters()), 
+                                            args.interaction_net.optimizer.lr, eps=args.interaction_net.optimizer.eps, betas=args.interaction_net.optimizer.betas, weight_decay=args.interaction_net.optimizer.weight_decay)
+            interaction_optimizer = optim.Adam(full_model.interaction_model.selection_model,
+                                                args.interaction_net.optimizer.alt_lr, eps=args.interaction_net.optimizer.eps, betas=args.interaction_net.optimizer.betas, weight_decay=args.interaction_net.optimizer.weight_decay)
 
     # if len(args.inter.load_intermediate) > 0: full_model.passive_model, full_model.active_model, full_model.interaction_model, active_optimizer, passive_optimizer, interaction_optimizer = load_intermediate(args, full_model, environment)
     # sampling weights, either wit hthe passive error or if we can upweight the true interactions

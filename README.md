@@ -1,4 +1,4 @@
-Implementation of HOOD
+Implementation of HIntS
 
 # Installation creating conda environment 
 conda create -n obj python=3.8

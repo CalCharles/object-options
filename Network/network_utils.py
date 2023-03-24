@@ -28,12 +28,10 @@ def get_gradient(model, loss, grad_variables=[]):
     #     gradients.append(torch.autograd.grad(loss.mean(), gv, retain_graph= True))
     # return gradients
     for gv in grad_variables:
-        print(gv.requires_grad)
         gv.retain_grad()
     (loss.mean()).backward(retain_graph=True)
     torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
     grad_variables = [copy.deepcopy(gv.grad) for gv in grad_variables]  # stores the gradient of variables
-    print(grad_variables[0].shape)
     return grad_variables
 
 
@@ -133,6 +131,7 @@ def get_inplace_acti(acti):
     elif acti == "softmax": return nn.SoftMax(-1)(x)
     elif acti == "cos": return InplaceOperator(torch.cos)
     elif acti == "none": return nn.Identity()
+    elif acti == "prelu": return nn.PReLU()
 
 def get_acti(acti):
     if acti == "relu": return F.relu
@@ -144,6 +143,7 @@ def get_acti(acti):
     elif acti == "softmax": return nn.SoftMax(-1)(x)
     elif acti == "cos": return torch.cos
     elif acti == "none": return identity
+    elif acti == "prelu": return lambda x: F.prelu(x, 0.2) # should not use a not-inplace prelu
 
 def reduce_function(red, x, dim=2):
     if red == "sum": x = torch.sum(x, dim=dim)

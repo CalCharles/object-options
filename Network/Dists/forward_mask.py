@@ -22,6 +22,7 @@ class DiagGaussianForwardMaskNetwork(Network):
         std_args = copy.deepcopy(args)
         std_args.activation_final = "none"
         self.std = network_type[args.net_type](std_args)
+        self.needs_expand_mask = args.needs_expand_mask
         self.model = [self.mean, self.std]
         self.base_variance = .01 # hardcoded based on normalized values, base variance 1% of the average variance
 
@@ -61,6 +62,7 @@ class DiagGaussianForwardPadMaskNetwork(Network):
         self.base_variance = .01 # hardcoded based on normalized values, base variance 1% of the average variance
         self.cluster_mode = args.cluster.cluster_mode
         self.attention_mode = args.attention_mode
+        self.keyembed_mode = args.net_type in ["keyembed"]
         self.num_clusters = args.cluster.num_clusters
         self.maskattn = args.net_type in ["maskattn", "rawattn"] # currently only one kind of mask attention net
         self.mask_dim = args.pair.total_instances # does not handle arbitary number of instances
@@ -81,7 +83,8 @@ class DiagGaussianForwardPadMaskNetwork(Network):
         # keyword hyperparameters are used only for consistency with the mixture of experts model
         # start = time.time()
         x = pytorch_model.wrap(x, cuda=self.iscuda)
-        if not (self.cluster_mode or self.maskattn or self.attention_mode): m = expand_mask(m, x.shape[0], self.embed_dim) # self.object_dim
+        if not (self.cluster_mode or self.maskattn or self.attention_mode or self.keyembed_mode): m = expand_mask(m, x.shape[0], self.embed_dim) # self.object_dim
+        else: m = expand_mask(m, x.shape[0], 1)
         # print("mask",time.time() - start)
         if self.attention_mode:
             mean, m1 = self.mean(x, m, hard = not soft)

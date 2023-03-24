@@ -71,6 +71,22 @@ class ParamPriorityReplayBuffer(PrioritizedReplayBuffer): # not using double inh
         "mask", "target", "next_target", "target_diff", "terminate", "true_reward", "true_done", "option_resample", 
         "mapped_act", "inter", "trace", "inst_trace", "proximity", "proximity_inst", "inter_state", "parent_state", "additional_state", "time", "weight_binary")
 
+    def sample(self, batch_size: int, no_prio=False) -> Tuple[Batch, np.ndarray]:
+        """Replace Tianshou Sample to add no-prio parameter
+        """
+        indices = self.sample_indices(batch_size, no_prio=no_prio)
+        return self[indices], indices
+
+
+    def sample_indices(self, batch_size: int, no_prio=False) -> np.ndarray:
+        # added no-prio logic
+        if batch_size > 0 and len(self) > 0 and not no_prio:
+            scalar = np.random.rand(batch_size) * self.weight.reduce()
+            return self.weight.get_prefix_sum_idx(scalar)  # type: ignore
+        else:
+            return super().sample_indices(batch_size)
+
+
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
         """Return a data batch: self[index].
 

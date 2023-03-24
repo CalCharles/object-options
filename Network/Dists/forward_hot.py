@@ -9,7 +9,7 @@ from Network.General.mlp import MLPNetwork
 from Network.General.conv import ConvNetwork
 from Network.General.pair import PairNetwork
 import copy, time
-from Network.Dists.mask_utils import expand_mask, apply_probabilistic_mask
+from Network.Dists.mask_utils import expand_mask, apply_probabilistic_mask, count_keys_queries
 
 
 MASK_ATTENTION_TYPES = ["maskattn"] # currently only one kind of mask attention net
@@ -81,8 +81,6 @@ class DiagGaussianForwardPadHotNetwork(Network):
         self.means = nn.ModuleList([network_type[args.net_type](forward_args) for i in range(self.num_clusters)])
         self.stds = nn.ModuleList([network_type[args.net_type](forward_args) for i in range(self.num_clusters)])
 
-        self.passive_mask = args.passive_mask.astype(np.float32)
-
         layers = [self.key_encoding, self.query_encoding, self.means, self.stds, self.inter_models]
         self.model = layers
         self.base_variance = .01 # hardcoded based on normalized values, base variance 1% of the average variance
@@ -93,9 +91,10 @@ class DiagGaussianForwardPadHotNetwork(Network):
         self.train()
         self.reset_network_parameters()
 
-    def reset_environment(self, passive_mask, first_obj_dim):
+    def reset_environment(self, class_index, num_objects, first_obj_dim):
         self.first_obj_dim = first_obj_dim
-        self.passive_mask = passive_mask.astype(np.float32)
+        self.class_index = class_index
+        self.num_objects = num_objects
 
     def slice_input(self, x):
         keys = torch.stack([x[...,i * self.single_obj_dim: (i+1) * self.single_obj_dim] for i in range(int(self.first_obj_dim // self.single_obj_dim))], dim=-2) # [batch size, num keys, single object dim]
@@ -105,46 +104,22 @@ class DiagGaussianForwardPadHotNetwork(Network):
         return keys, queries
 
     def count_keys_queries(self, x):
-        return self.first_obj_dim // self.single_obj_dim, int((x.shape[-1] - self.first_obj_dim) // self.object_dim)
-
+        return count_keys_queries(self.first_obj_dim, self.single_obj_dim, self.object_dim, x)
 
     def get_hot_passive_mask(self, batch_size, num_keys, num_queries): # if called with a numpy input, needs to be unwrapped
-        if batch_size <= 0:
-            hot_passive = pytorch_model.wrap(torch.zeros(num_keys, self.num_clusters), cuda=self.iscuda)
-            hot_passive[...,0] = 1
-            return hot_passive 
-        hot_passive = pytorch_model.wrap(torch.zeros(batch_size, num_keys, self.num_clusters), cuda=self.iscuda)
-        hot_passive[...,0] = 1
-        return hot_passive 
+        return get_hot_mask(self.num_clusters, batch_size, num_keys, num_queries, 0, self.iscuda)
 
     def get_hot_full_mask(self, batch_size, num_keys, num_queries):
-        if batch_size <= 0:
-            hot_active = pytorch_model.wrap(torch.zeros(num_keys, self.num_clusters), cuda=self.iscuda)
-            hot_active[...,1] = 1
-            return hot_active 
-        hot_active = pytorch_model.wrap(torch.zeros(batch_size, num_keys, self.num_clusters), cuda=self.iscuda)
-        hot_active[...,1] = 1
-        # print("hot_active", hot_active.shape, hot_active)
-        return hot_active
+        return get_hot_mask(self.num_clusters, batch_size, num_keys, num_queries, 1, self.iscuda)
 
     def get_all_mask(self, batch_size, num_keys, num_queries):
-        if batch_size <= 0:
-            hot_active = pytorch_model.wrap(torch.ones(num_keys, self.num_clusters), cuda=self.iscuda)
-            hot_active = hot_active / float(self.num_clusters)
-            return hot_active 
-        hot_active = pytorch_model.wrap(torch.ones(batch_size, num_keys, self.num_clusters), cuda=self.iscuda)
-        hot_active = hot_active / float(self.num_clusters)
-        # print("hot_active", hot_active.shape, hot_active)
-        return hot_active
-
+        return get_hot_mask(self.num_clusters, batch_size, num_keys, num_queries, -1, self.iscuda)
 
     def get_passive_mask(self, batch_size, num_keys, num_queries):
-        if batch_size <= 0: return pytorch_model.wrap(torch.ones(num_keys, 1) * self.passive_mask, cuda=self.iscuda)
-        return pytorch_model.wrap(torch.ones(batch_size, num_keys, 1) * self.passive_mask, cuda=self.iscuda)
+        return get_passive_mask(batch_size, num_keys, num_queries, self.num_objects, self.class_index, self.iscuda)
 
     def get_active_mask(self, batch_size, num_keys, num_queries):
-        if batch_size <= 0: return pytorch_model.wrap(torch.ones(num_keys, num_queries), cuda=self.iscuda)
-        return pytorch_model.wrap(torch.ones(batch_size, num_keys, num_queries), cuda=self.iscuda)
+        return get_active_mask(batch_size, num_keys, num_queries, self.iscuda)
 
     def get_inter_mask(self, i, x, num_keys, soft, mixed, flat):
         inter = self.inter_models[i](x).reshape(x.shape[0], num_keys, -1)

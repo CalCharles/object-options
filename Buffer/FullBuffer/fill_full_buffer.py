@@ -35,7 +35,7 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
             proximity = get_full_proximity(full_model, full_state, denorm_target, normalized=False)
             object_buffers[name].add(Batch(obs=target, obs_next=next_target, target_diff=target_diff, act=target, param=target,
                 rew=0, done=use_done, policy_mask = np.ones(environment.instance_length), param_mask=np.ones(args.pad_size),
-                terminate=False, mapped_act=np.ones(args.pad_size), inter=inter, info=dict(), policy=dict(), 
+                terminate=False, terminated=False, truncated=use_done, mapped_act=np.ones(args.pad_size), inter=inter, info=dict(), policy=dict(), 
                 trace=full_trace, proximity=proximity, weight_binary=0))
             # print(name, full_trace, target_diff, full_model.target_selectors[name](next_factored_state), full_model.target_selectors[name](factored_state))
             
@@ -44,8 +44,7 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
         obs_next = norm(args.inter_select(next_factored_state), form="inter")
         info, policy, time, option_choice, option_resample = dict(), dict(), i, 0, False
         buffer.add(Batch(obs = obs, obs_next=obs_next, act=act, done=use_done, true_done=use_done, rew=rew, true_reward=rew,
-            info = info, policy=policy, time = time, option_choice=option_choice, option_resample=option_resample))
-        # print(buffer.done.shape, factored_state["Done"])
+            info = info, policy=policy, time = time, terminated=False, truncated=use_done, option_choice=option_choice, option_resample=option_resample))
         last_done = factored_state["Done"]
         factored_state = next_factored_state
     return buffer, object_buffers

@@ -8,7 +8,7 @@ class AllReplayBuffer(ReplayBuffer):
     _reserved_keys = ("obs", "act", "rew", "done", "obs_next", 
             "info", "policy", "true_reward", "true_done", 
             "time","option_choice", "option_resample",
-            "inter", "obs_diff", "trace", "proximity", "weight_binary")
+            "target", "inter", "obs_diff", "trace", "proximity", "weight_binary")
 
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
         """Return a data batch: self[index].
@@ -42,6 +42,7 @@ class AllReplayBuffer(ReplayBuffer):
             time = self.time[indice],
             option_choice = self.option_choice[indice],
             option_resample = self.option_resample[indice], # when the option being run is resampled
+            target = self.target[indice], # the state without one-hots for object identity
             inter = self.inter[indice], 
             obs_diff = self.obs_diff[indice], 
             trace = self.trace[indice], 

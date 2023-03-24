@@ -22,19 +22,31 @@ class PairNetwork(Network):
         self.reduce_fn = args.pair.reduce_function
         self.difference_first = args.pair.difference_first
         self.num_layers = args.pair.num_pair_layers
-        self.conv_object_dim = args.pair.object_dim + max(0, self.first_obj_dim * int(not self.drop_first)) + args.pair.object_dim * int(args.pair.difference_first)
+        encode_obj_dim = args.pair.object_dim if not args.pair.preencode else self.first_obj_dim
+        self.conv_object_dim = encode_obj_dim + max(0, self.first_obj_dim * int(not self.drop_first)) + encode_obj_dim * int(args.pair.difference_first)
         self.conv_dim = self.hs[-1] + max(0, self.post_dim) if args.pair.aggregate_final and len(self.hs) > 0 else args.num_outputs
         no_nets = args.pair.no_nets if 'no_nets' in args.pair else False
-        
+        self.preencode = args.pair.preencode
 
         layers = list()
-        self.layer_conv_dim = self.hs[-1] if args.pair.aggregate_final and len(self.hs) > 0 else args.num_outputs
+        self.layer_conv_dim = self.hs[-1] if len(self.hs) > 0 else args.num_outputs
         if not no_nets:
+            if args.pair.preencode: # pre-encodes the queries to the same shape as the first_obj_dim
+                preencode_layer_args = copy.deepcopy(args)
+                preencode_layer_args.object_dim = self.object_dim
+                preencode_layer_args.include_last = False
+                preencode_layer_args.hidden_sizes = list()
+                preencode_layer_args.output_dim = self.first_obj_dim
+                preencode_layer_args.activation_final = "none"
+                self.preencode_layer = ConvNetwork(preencode_layer_args)
+                layers += [self.preencode_layer]
             if len(self.hs) != 0:
+
                 encode_layer_args = copy.deepcopy(args)
                 encode_layer_args.object_dim = self.conv_object_dim
                 encode_layer_args.include_last = False
                 encode_layer_args.output_dim = self.layer_conv_dim
+                encode_layer_args.activation_final = "none"
                 encode_layer_args.hidden_sizes = list()
                 self.encode_layer = ConvNetwork(encode_layer_args)
                 layers += [self.encode_layer]
@@ -91,6 +103,7 @@ class PairNetwork(Network):
         # input of shape: [batch size, ..., flattened state shape]
         batch_size = x.shape[0] if len(x.shape) > 1 else 1
         output_shape = x.shape[-1] - self.first_obj_dim  - self.post_dim
+        # print(x.shape)
         if self.post_dim > 0:
             # cut out the "post" component, which is sent through a different channel
             px = torch.cat([x[...,:self.first_obj_dim], x[..., x.shape[-1]-self.post_dim:]], dim=-1)
@@ -105,7 +118,9 @@ class PairNetwork(Network):
         # reshape the object components
         # print(self.object_dim, x.shape[-1])
         nobj = x.shape[-1] // self.object_dim
+        # print(x.shape, self.object_dim, self.first_obj_dim, nobj)
         x = x.view(-1, nobj, self.object_dim)
+        if self.preencode: x = self.preencode_layer(x.transpose(1,2)).transpose(2,1)
         if self.first_obj_dim > 0 and not self.drop_first:
             # append the pre components to every object and reshape
             broadcast_fx = torch.stack([fx.clone() for i in range(nobj)], dim=len(fx.shape) - 1)
@@ -128,6 +143,7 @@ class PairNetwork(Network):
                 x = c_layer(x)
                 # print("layer", x[0])
         # print("pair", x.shape, self.aggregate_final, self.num_outputs, self.decode_layer)
+        # print(x.shape)
         x = self.decode_layer(x)
         # print("pair", x.shape, self.aggregate_final, self.num_outputs)
         if self.aggregate_final:

@@ -58,4 +58,5 @@ from Network.General.key_pair import KeyPairNetwork
 from Network.General.mask_attention import MaskedAttentionNetwork
 from Network.General.input_expand import InputExpandNetwork
 from Network.General.raw_attention import RawAttentionNetwork
-network_type = {"mlp": MLPNetwork, "pair": PairNetwork, "keypair": KeyPairNetwork, "maskattn": MaskedAttentionNetwork, "rawattn": RawAttentionNetwork, "inexp": InputExpandNetwork}
+from Network.General.key_embed import EmbedPairNetwork
+network_type = {"mlp": MLPNetwork, "pair": PairNetwork, "keypair": KeyPairNetwork, "keyembed": EmbedPairNetwork, "maskattn": MaskedAttentionNetwork, "rawattn": RawAttentionNetwork, "inexp": InputExpandNetwork}
