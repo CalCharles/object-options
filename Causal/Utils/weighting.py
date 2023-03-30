@@ -22,16 +22,19 @@ def passive_binary(passive_error, weighting, proximity, done):
     binaries = (binaries.astype(int) * proximity.astype(int)).astype(np.float128).squeeze()
     return binaries
 
-def proximity_binary(full_model, rollouts,object_rollouts=None, full=False):
+def proximity_binary(full_model, rollouts,object_rollouts=None, full=False, pall=False):
     # construct proximity batches if necessary
-    proximal = get_error(full_model, rollouts, object_rollouts, error_type=error_types.PROXIMITY).astype(int)
-    proximal_inst = get_error(full_model, rollouts, object_rollouts, error_type=error_types.PROXIMITY, reduced=False).astype(int) # the same as above if not multiinstanced
-    non_proximal = (proximal != True).astype(int)
-    non_proximal_inst = (proximal_inst != True).astype(int)
+    etype = error_types.PROXIMITY_FULL if full else (error_types.PROXIMITY_ALL if pall else error_types.PROXIMITY)
+    proximal = get_error(full_model, rollouts, object_rollouts, error_type=etype).astype(int)
+    proximal_inst = get_error(full_model, rollouts, object_rollouts, error_type=etype, reduced=False).astype(int) # the same as above if not multiinstanced
+    non_proximal = (proximal != 1).astype(int)
+    non_proximal_inst = (proximal_inst != 1).astype(int)
     # non_proximal_weights = non_proximal.squeeze() / np.sum(non_proximal) if np.sum(non_proximal) != 0 else np.ones(non_proximal.shape) / len(non_proximal)
-    return non_proximal, proximal
+    np_binaries = non_proximal.sum(axis=-1).astype(bool).astype(int)
+    p_binaries = proximal.sum(axis=-1).astype(bool).astype(int)
+    return np_binaries, p_binaries, non_proximal, proximal
 
-def separate_weights(weighting, full_model, rollouts, proximity, trace=None, object_rollouts=None):
+def separate_weights(weighting, full_model, rollouts, proximity, trace=None, object_rollouts=None): # this should work for all cases because passive_likelihood reduces, the only difference is the passive error threshold
     passive_error_cutoff, passive_error_upper, weighting_ratio, weighting_schedule = weighting
     if weighting_ratio >= 0:
         passive_error =  - get_error(full_model, rollouts, object_rollouts, error_type = error_types.PASSIVE_LIKELIHOOD).astype(int)

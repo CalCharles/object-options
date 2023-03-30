@@ -29,7 +29,8 @@ class DiagGaussianForwardPadHotNetwork(Network):
         self.single_obj_dim = args.pair.single_obj_dim
         self.first_obj_dim = args.pair.first_obj_dim # this should include all the instances of the object, should be divisible by self.single_obj_dim
         self.model_dim = args.mask_attn.model_dim
-        
+        self.symmetric_key_query = args.symmetric_key_query # if these are the same, then we need to cat x to itself to fit key-query expectations
+
         # distributional parameters
         self.inter_dist = args.mask_attn.inter_dist
         self.relaxed_inter_dist = args.mask_attn.relaxed_inter_dist
@@ -95,6 +96,14 @@ class DiagGaussianForwardPadHotNetwork(Network):
         self.first_obj_dim = first_obj_dim
         self.class_index = class_index
         self.num_objects = num_objects
+        if hasattr(self.inter_models[0], "reset_environment"): 
+            for im in self.inter_models:
+                im.reset_environment(class_index, num_objects, first_obj_dim)
+        if hasattr(self.means[0], "reset_environment"): 
+            for m in self.means:
+                m.reset_environment(class_index, num_objects, first_obj_dim)
+            for s in self.stds:
+                s.reset_environment(class_index, num_objects, first_obj_dim)
 
     def slice_input(self, x):
         keys = torch.stack([x[...,i * self.single_obj_dim: (i+1) * self.single_obj_dim] for i in range(int(self.first_obj_dim // self.single_obj_dim))], dim=-2) # [batch size, num keys, single object dim]
@@ -178,6 +187,7 @@ class DiagGaussianForwardPadHotNetwork(Network):
         # m: batch size, num_keys * num_clusters
         # print("soft, mixed, flat, full", soft, mixed, flat, full)
         x = pytorch_model.wrap(x, cuda=self.iscuda)
+        x = apply_symmetric(self.symmetric_key_query, x)
         keys, queries = self.slice_input(x) # [batch size, object dim, num queries], [batch size, single object dim, num keys]
         keys = self.key_encoding(keys) # [batch size, embed dim, num keys]
         queries = self.query_encoding(queries) # [batch size, embed dim, num queries]

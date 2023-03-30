@@ -28,7 +28,6 @@ class EmbedPairNetwork(Network):
         self.expand_dim = args.pair.expand_dim
         self.embed_dim = args.embed_inputs
         self.total_instances = args.pair.total_instances
-        self.total_targets = args.pair.total_targets
         self.return_mask = args.mask_attn.return_mask
 
         if True: # args.pair.needs_embed:
@@ -74,11 +73,9 @@ class EmbedPairNetwork(Network):
         self.reset_network_parameters()
         print("agf", args.pair.aggregate_final)
 
-    def set_instancing(self, total_instances, total_obj_dim, total_targets):
-        assert self.expand_dim * total_instances == total_obj_dim
-        self.total_obj_dim = total_obj_dim
-        self.total_instances = total_instances
-        self.total_targets = total_targets
+    def reset_environment(self, class_index, num_objects, first_obj_dim):
+        self.first_obj_dim = first_obj_dim
+        self.total_instances = num_objects
 
     def slice_mask_input(self, x, i, m):
         key = x[...,i * self.single_obj_dim: (i+1) * self.single_obj_dim]

@@ -44,6 +44,7 @@ class CausalPadExtractor():
 		self.object_names = object_names
 		self.inter_selector = PadSelector(object_sizes, object_instanced, object_names, {n: np.ones(object_sizes[n]).astype(bool) for n in object_names}, append_id=append_id)
 		self.target_selectors = {n: construct_object_selector([n], environment, pad=True, append_id=False) for n in self.names} # don't append ID for target state
+		self.target_select = construct_object_selector(self.names, environment, pad=True, append_id=False)
 		self.full_object_sizes = [int(object_instanced[n] * object_sizes[n]) for n in self.object_names]
 		self.complete_instances = [int(object_instanced[n]) for n in self.object_names]
 		self.num_instances = [int(environment.object_instanced[n]) for n in self.names]

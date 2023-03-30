@@ -8,13 +8,13 @@ import torch.nn.functional as F
 import torch.optim as optim
 from collections import Counter
 from Causal.Training.loggers.forward_logger import forward_logger
-from Causal.Utils.instance_handling import compute_likelihood
+from Causal.Utils.instance_handling import compute_likelihood, get_batch
 from Causal.Utils.weighting import proximity_binary, get_weights
 from Network.network_utils import pytorch_model, run_optimizer
 
 def get_passive_weights(args, full_model, object_rollout):
     if args.full_inter.proximal_weights:
-        binaries, proximal = proximity_binary(full_model, object_rollout, full=True)
+        binaries, _, _, proximal = proximity_binary(full_model, object_rollout, full=True) # binaries are the states with NO proximity in all_models
     else:
         binaries = np.ones(len(object_rollout))
     weights = get_weights(-1, binaries)
@@ -29,16 +29,11 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
     for i in range(args.inter.passive.passive_iters):
         start = time.time()
         # get input-output values
-        batch, idxes = object_rollout.sample(args.train.batch_size, weights=weights)
-        full_batch = rollouts[idxes]
-        batch.inter_state = full_batch.obs
-        batch.tarinter_state = np.concatenate([batch.obs, full_batch.obs], axis=-1)
+        full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollout, weights)
         # print (batch.inter_state.shape, full_model.norm.reverse(batch.inter_state[0], form = "inter"))
         weight_rate = np.sum(weights[idxes]) / len(idxes) if weights is not None else 1.0
 
         # the values to be predicted, values in the buffer are pre-normalized
-        target = batch.target_diff if args.inter.predict_dynamics else batch.obs_next
-        target = pytorch_model.wrap(target, cuda=full_model.iscuda)
         done_flags = np.expand_dims(1-full_batch.done.squeeze(), -1)
         # print("batching", time.time() - start)
         # passtim = time.time()
@@ -46,7 +41,7 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
 
         # compute network values
         # passive_prediction_params = full_model.passive_model(pytorch_model.wrap(batch.obs, cuda=full_model.iscuda)) # batch.target != target
-        target, passive_prediction_params, passive_dist, passive_log_probs = full_model.passive_likelihoods(batch)
+        passive_prediction_params, passive_mask, target, passive_dist, passive_log_probs, passive_input = full_model.passive_likelihoods(batch)
         passive_log_probs = - passive_log_probs
         # print("passive run", time.time() - passtim)
         # optim = time.time()
@@ -77,13 +72,14 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
             # active_likelihood_full = - active_log_probs
             # print("active run", time.time() - active)
             # aoptim = time.time()
-            active_hard_params, active_soft_params, active_full, passive_params, \
-                interaction_likelihood, soft_interaction_mask, hard_interaction_mask, hot_likelihood,\
-                target, active_hard_dist, active_soft_dist, active_full_dist, passive_dist, \
-                active_hard_log_probs, active_soft_log_probs, active_full_log_probs, passive_log_probs_act, \
-                active_hard_inputs, active_soft_inputs, active_full_inputs = full_model.likelihoods(batch, 
-                                                    mixed=args.full_inter.mixed_interaction,
-                                                    input_grad = True, soft_eval = True, skip_dists=1)
+            # active_hard_params, active_soft_params, active_full, passive_params, \
+            #     interaction_likelihood, soft_interaction_mask, hard_interaction_mask, hot_likelihood,\
+            #     target, active_hard_dist, active_soft_dist, active_full_dist, passive_dist, \
+            #     active_hard_log_probs, active_soft_log_probs, active_full_log_probs, passive_log_probs_act, \
+            #     active_hard_inputs, active_soft_inputs, active_full_inputs = full_model.likelihoods(batch, 
+            #                                         mixed=args.full_inter.mixed_interaction,
+            #                                         input_grad = True, soft_eval = True, skip_dists=1)
+            active_full, inter, hot_mask, full_mask, target, _, active_full_log_probs, _ = full_model.active_open_likelihoods(batch)
             active_likelihood_full, active_prediction_params = - active_full_log_probs, active_full if not full_model.cluster_mode else (active_full[0][...,target.shape[-1]:target.shape[-1] * 2], active_full[1][...,target.shape[-1]:target.shape[-1] * 2])
             active_loss = compute_likelihood(full_model, args.train.batch_size, active_likelihood_full, done_flags=done_flags, is_full = True)
             # print(pytorch_model.unwrap(active_loss.mean(0)),

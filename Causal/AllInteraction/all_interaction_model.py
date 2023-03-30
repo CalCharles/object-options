@@ -18,6 +18,7 @@ from Causal.Utils.interaction_selectors import CausalExtractor
 from Causal.active_mask import ActiveMasking
 from Causal.interaction_model import get_params
 from Causal.FullInteraction.full_interaction_testing import InteractionMaskTesting
+from Causal.interaction_base_model import NeuralInteractionForwardModel, regenerate, KEYNETS, PAIR, MASKING_FORMS
 from Environment.Normalization.norm import NormalizationModule
 from Environment.Normalization.full_norm import FullNormalizationModule
 from Environment.Normalization.pad_norm import PadNormalizationModule
@@ -30,6 +31,7 @@ def get_params_all(model, full_args, is_pair, multi_instanced, total_inter_size,
     full_args.interaction_net.attention_mode = full_args.interaction_net.net_type == "rawattn"
     full_args.interaction_net.pair.total_instances = np.sum(model.extractor.complete_instances)
     full_args.interaction_net.selection_temperature = full_args.full_inter.selection_temperature
+    full_args.interaction_net.symmetric_key_query = True # this will be true since we need class-ided keys and queries
     
     active_model_args = copy.deepcopy(full_args.interaction_net)
     active_model_args.num_inputs = total_inter_size
@@ -49,8 +51,8 @@ def get_params_all(model, full_args, is_pair, multi_instanced, total_inter_size,
     if is_pair:
         pair = copy.deepcopy(full_args.interaction_net.pair)
         pair.object_dim = model.obj_dim
-        pair.first_obj_dim = 0 # TODO: not sure if pair supports this
-        pair.single_obj_dim = model.single_obj_dim
+        pair.first_obj_dim = model.first_obj_dim
+        pair.single_obj_dim = model.obj_dim # the "single objects" are symmetric with the objcts
         pair.post_dim = -1
         # parameters specific to key-pair/transformer networks 
         pair.expand_dim = model.extractor.expand_dim
@@ -58,37 +60,32 @@ def get_params_all(model, full_args, is_pair, multi_instanced, total_inter_size,
         pair.aggregate_final = False # we are multi-instanced in outputs
         active_model_args.pair, passive_model_args.pair, interaction_model_args.pair = copy.deepcopy(pair), copy.deepcopy(pair), copy.deepcopy(pair)
         if interaction_model_args.cluster.cluster_mode:
-            interaction_model_args.num_outputs = interaction_model_args.cluster.num_clusters
+            interaction_model_args.num_outputs = interaction_model_args.cluster.num_clusters 
             interaction_model_args.cluster.cluster_mode = False # the interaction model does not take cluster mode
             # interaction_model_args.pair.aggregate_final = True
             interaction_model_args.softmax_output = True
             interaction_model_args.pair.total_instances = interaction_model_args.cluster.num_clusters # interaction models use this as a replacement for num_outputs
 
         if full_args.full_inter.lightweight_passive:
-            if not model.multi_instanced: # passive model won't be a pairnet TODO: add additional to passive model
-                passive_model_args.net_type = "conv" # TODO: defaults to MLP
-            if model.multi_instanced and interaction_model_args.net_type in KEYNETS: # in keypair situations, the passive model is a pairnet
-                passive_model_args.net_type = "pair"
-                passive_model_args.pair.object_dim = model.single_obj_dim
-            passive_model_args.pair.first_obj_dim = 0
+            passive_model_args.net_type = "conv"
             passive_model_args.pair.difference_first = False # difference first cannot be true since there is no first, at least for now
     return active_model_args, passive_model_args, interaction_model_args
 
 
 class AllNeuralInteractionForwardModel(NeuralInteractionForwardModel):
     def __init__(self, args, target, environment, causal_extractor, normalization):
-        super().__init__(args, target, environment, causal_extractor, normalization, get_params_all)
-        # set input and output
-        self.form = "all"
-        self.name = "all"
+        super().__init__(args, "all", environment, causal_extractor, normalization, get_params_all, "all")
 
     def regenerate(self, extractor, norm, environment):
         super().regenerate(extractor, norm, environment)
-        self.target_select = extractor.target_select() # target prediction without identity components
+        self.obj_dim, self.first_obj_dim = self.extractor.get_base_dim()
+        self.target_select = extractor.target_select # target prediction without identity components
+        if hasattr(self, "passive_model") and hasattr(self.active_model, "reset_environment"):
+            self.passive_model.reset_environment(0, self.num_inter, self.first_obj_dim)
         if hasattr(self, "active_model") and hasattr(self.active_model, "reset_environment"):
-            self.active_model.reset_environment(self.num_inter)
+            self.active_model.reset_environment(0, self.num_inter, self.first_obj_dim)
         if hasattr(self, "interaction_model") and hasattr(self.interaction_model, "reset_environment"):
-            self.interaction_model.reset_environment(self.num_inter)
+            self.interaction_model.reset_environment(0, self.num_inter, self.first_obj_dim)
 
     def _wrap_state(self, state):
         # takes in a state, either a full state (factored state dict (name to ndarray)), or tuple of (inter_state, target_state) 

@@ -58,3 +58,16 @@ def decide_multioption():
     self.first_obj_dim = np.sum([self.parent_selectors[p].output_size() for p in self.names.parents]) # the first object dim is the combined length of the parents
     self.obj_dim = self.target_select.output_size() # the selector gets the size of a single instance
     self.additional_dim = environment.object_sizes[self.names.additional[0]] if len(self.names.additional) > 0 else 0# all additional objects must have the same dimension
+
+def get_batch(batch_size, all, rollouts, object_rollouts, weights):
+    if all:
+        full_batch, idxes = rollouts.sample(batch_size, weights=weights)
+        batch = full_batch
+        batch.tarinter_state = full_batch.obs
+        batch.inter_state = full_batch.obs            
+    else:
+        full_batch, idxes = rollouts.sample(batch_size, weights=weights)
+        batch = object_rollouts[idxes]
+        batch.tarinter_state = np.concatenate([batch.obs, full_batch.obs], axis=-1)
+        batch.inter_state = full_batch.obs
+    return full_batch, batch, idxes

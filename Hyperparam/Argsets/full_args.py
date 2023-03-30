@@ -40,6 +40,7 @@ network_args = {
         "attention_dropout": 0.0,
         "needs_encoding": True, # should be set in init, default value here
         "merge_function": "cat", # the function for merging together the heads
+        "append_keys": False, # appends the keys to the values
     },
     "input_expand": {
         "include_relative": False,

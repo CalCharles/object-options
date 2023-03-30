@@ -47,7 +47,6 @@
     mixed_interaction: mixed
     soft_distribution: Identity
     # use_active_as_passive: True
-    train_names: phpt
     log_gradients: True
     # train_full_only: True
     train_names: phpt

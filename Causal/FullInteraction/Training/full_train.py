@@ -28,7 +28,7 @@ def run_train_passive(full_model, rollouts, object_rollout, test_rollout, test_o
         active_optimizer = initialize_optimizer(full_model.active_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
     passive_optimizer = None if full_model.use_active_as_passive else initialize_optimizer(full_model.passive_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
 
-    passive_weights = get_passive_weights(args, full_model, object_rollout)
+    passive_weights = get_passive_weights(args, full_model, object_rollout if full_model.name != "all" else rollouts)
     outputs, passive_weights = train_passive(full_model, args, rollouts, object_rollout, passive_weights, active_optimizer, passive_optimizer)
 
     # saving the intermediate model in the case of crashing during subsequent phases

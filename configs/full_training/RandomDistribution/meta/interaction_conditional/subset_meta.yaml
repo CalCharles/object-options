@@ -1,0 +1,18 @@
+---
+  metaparam: 
+    multi_filename: pretrain_inter_opt_
+    log_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_logs/pretrain_inter_tests/
+    yaml_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_yamls/pretrain_inter_tests/
+    save_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam/pretrain_inter_tests/
+    graph_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_graphs/pretrain_inter_tests/
+    bash_path: bashes/pretrain_inter_full_runs.sh
+    base_config: configs/full_training/RandomDistribution/conditional/interaction/subset_pretraining.yaml
+    runfile: train_full_interaction.py
+    gpu: 2
+    match: 0
+    simul_run: 8
+    num_trials: 4
+    cycle_gpu: 4
+  full_inter:
+    selection_train: softened,random_error,random_ones,gradient
+  ...

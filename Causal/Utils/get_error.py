@@ -27,6 +27,7 @@ error_names = [# an enumerator for different error types
     "PROXIMITY",# measures if two objects are close together
     "PROXIMITY_FLAT", # gets the flattened proximity between two states given in names
     "PROXIMITY_FULL", # gets the full proximity (all other objects) for one object
+    "PROXIMITY_ALL", # gets the proximity (all other objects) with all other objects
     "TRACE",# just sends back the trace values
     "DONE", # just sends back the done values
 ]
@@ -146,6 +147,16 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
         full_state = full_model.norm.reverse(part.obs, form="inter")
         target_state = full_model.norm.reverse(obj_part.target, name=full_model.name)
         return get_full_proximity(full_model, full_state, target_state, normalized=normalized)
+    if error_type == error_types.PROXIMITY_ALL:
+        full_state = full_model.norm.reverse(part.obs, form="inter")
+        target_states = flattened_state.reshape(flattened_state.shape[:-1] + (flattened_state.shape[-1] // full_model.pad_size, full_model.pad_size)) 
+        if len(flattened_state.shape) != 1: target_states = target_states.transpose(1,0,2) # not sure why transposing is necessary
+        proxes = list()
+        for i in int(flattened_state.shape[-1] // full_model.pad_size):
+            target_state = target_states[:,i]
+            proxes.append(get_full_proximity(full_model, full_state, target_state, normalized=normalized))
+        return np.concatenate(proxes, axis=-1)
+
 
     if error_type == error_types.TRACE: return use_part.trace
     if error_type == error_types.DONE: return part.done

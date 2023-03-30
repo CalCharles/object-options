@@ -148,13 +148,14 @@ def get_acti(acti):
 def reduce_function(red, x, dim=2):
     if red == "sum": x = torch.sum(x, dim=dim)
     elif red == "prod": x = torch.prod(x, dim=dim)
-    elif red == "max": x = torch.max(x, dim, keepdim=True)[0]
+    elif red == "max": x = torch.max(x, dim)[0]
     elif red == "mean": x = torch.mean(x, dim=dim)
     elif red == "cat": ## remove the dimension and replace the subsequent dimension with -1
         new_shape = list(x.shape)
         new_shape.pop(dim)
         new_shape[dim] = -1
-        x = x.view(*new_shape)
+        x = x.reshape(*new_shape)
+    elif red == "none": pass # no change
     return x
 
 def assign_distribution(assign_dist):

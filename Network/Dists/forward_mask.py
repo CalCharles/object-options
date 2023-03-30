@@ -8,7 +8,7 @@ from Network.network_utils import pytorch_model, get_acti
 from Network.General.mlp import MLPNetwork
 from Network.General.conv import ConvNetwork
 from Network.General.pair import PairNetwork
-from Network.Dists.mask_utils import expand_mask
+from Network.Dists.mask_utils import expand_mask, apply_symmetric
 import copy, time
 
 
@@ -66,12 +66,22 @@ class DiagGaussianForwardPadMaskNetwork(Network):
         self.num_clusters = args.cluster.num_clusters
         self.maskattn = args.net_type in ["maskattn", "rawattn"] # currently only one kind of mask attention net
         self.mask_dim = args.pair.total_instances # does not handle arbitary number of instances
+        self.symmetric_key_query = args.symmetric_key_query # if these are the same, then we need to cat x to itself to fit key-query expectations
 
         self.object_dim = args.object_dim
         self.embed_dim = args.embed_inputs * max(1, args.mask_attn.num_heads * int(self.maskattn) )
 
         self.train()
         self.reset_network_parameters()
+
+    def reset_environment(self, class_index, num_objects, first_obj_dim):
+        self.first_obj_dim = first_obj_dim
+        self.class_index = class_index
+        self.num_objects = num_objects
+        if hasattr(self.mean, "reset_environment"): 
+            self.mean.reset_environment(class_index, num_objects, first_obj_dim)
+            self.std.reset_environment(class_index, num_objects, first_obj_dim)
+
 
     def get_masks(self):
         if self.maskattn:
@@ -83,6 +93,7 @@ class DiagGaussianForwardPadMaskNetwork(Network):
         # keyword hyperparameters are used only for consistency with the mixture of experts model
         # start = time.time()
         x = pytorch_model.wrap(x, cuda=self.iscuda)
+        x = apply_symmetric(self.symmetric_key_query, x)
         if not (self.cluster_mode or self.maskattn or self.attention_mode or self.keyembed_mode): m = expand_mask(m, x.shape[0], self.embed_dim) # self.object_dim
         else: m = expand_mask(m, x.shape[0], 1)
         # print("mask",time.time() - start)

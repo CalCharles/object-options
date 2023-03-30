@@ -12,7 +12,7 @@
     no_cuda: False
   train:
     train: True
-    num_frames: 1000
+    num_frames: 10000
     train_test_order: time
     load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional_long/
     num_iters: 5000
@@ -26,7 +26,7 @@
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 100
+      passive_iters: 1000
       # passive_iters: 2000
       passive_log_interval: 100
       pretrain_active: True
@@ -49,9 +49,9 @@
     train_names: phpt
     mixed_interaction: mixed
     soft_distribution: Identity
-    selection_train: softened
+    selection_train: softened # softened,random_error,random_ones,gradient
   interaction_net:
-    hidden_sizes: 256 256 512 
+    hidden_sizes: 256 256 512
     net_type: keypair
     init_form: xnorm
     embed_inputs: 128

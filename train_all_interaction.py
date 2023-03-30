@@ -3,9 +3,9 @@ from arguments import get_args
 from Record.file_management import read_obj_dumps, load_from_pickle, save_to_pickle, create_directory
 from State.object_dict import ObjDict
 from Buffer.train_test_buffers import generate_buffers
-from Causal.AllInteraction.full_interaction_model import FullNeuralInteractionForwardModel, regenerate
-from Causal.AllInteraction.Training.full_train import train_full, run_train_passive, run_train_interaction
-from Causal.AllInteraction.Training.full_test import test_full
+from Causal.AllInteraction.all_interaction_model import AllNeuralInteractionForwardModel, regenerate
+from Causal.FullInteraction.Training.full_train import train_full, run_train_passive, run_train_interaction
+from Causal.FullInteraction.Training.full_test import test_full # TODO: all interaction might want a separate one
 # from Causal.Training.full_test import test_full, test_full_train
 
 from Environment.Environments.initialize_environment import initialize_environment
@@ -45,15 +45,16 @@ if __name__ == '__main__':
             all_model.cpu().cuda(device = args.torch.gpu)
         passive_weights = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_weights.pkl"))
     # training the passive models
-    if args.train.train and args.inter.passive.passive_iters > 0: outputs, passive_weights = run_train_passive(full_model train_full_buffer, test_full_buffer, args, environment)
+    if args.train.train and args.inter.passive.passive_iters > 0: outputs, passive_weights = run_train_passive(full_model, train_full_buffer, None, test_full_buffer, None, args, environment)
     # saving the passive models and weights
     if len(args.inter.save_intermediate) > 0:
         save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_inter_model.pkl"), full_model)
         save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name +  "_passive_weights.pkl"), passive_weights)
     # pretraining with the true traces, not used for the main algorithm
-    if args.train.train and args.inter.interaction.interaction_pretrain > 0: run_train_interaction(full_model, train_full_buffer, test_full_buffer, args, environment)
+    if args.train.train and args.inter.interaction.interaction_pretrain > 0: run_train_interaction(full_model, train_full_buffer, None, test_full_buffer, None, args, environment)
     
     # training the active and interaction models
     full_model.regenerate(extractor, normalization, environment)
-    if args.train.train: train_full(full_model, train_full_buffer, test_full_buffer, passive_weights, args, environment)
+    
+    if args.train.train: train_full(full_model, train_full_buffer, None, test_full_buffer, None, args, environment)
     test_full(full_model, test_full_buffer, args, environment)
