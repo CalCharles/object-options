@@ -2,9 +2,9 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /nfs/data/calebc/object_data/full/randomdist/default/relaxed/log/gradient/inter.log
-    # load_dir: /nfs/data/calebc/object_data/full/breakout/relaxed/testrun/
-    save_dir: /nfs/data/calebc/object_data/full/randomdist/relaxed/gradient/
+    log_filename: /nfs/data/calebc/object_data/full/randomdist/default/embed/log/inter.log
+    # load_dir: /nfs/data/calebc/object_data/full/breakout/embed/testrun/
+    save_dir: /nfs/data/calebc/object_data/full/randomdist/embed/default/
   environment:
     env: RandomDistribution
     load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional_long/
@@ -13,21 +13,21 @@
     no_cuda: False
   train:
     train: True
-    num_frames: 100000
+    num_frames: 200000
     train_test_order: time
     load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional_long/
-    num_iters: 50000
-    batch_size: 256
+    num_iters: 30000
+    batch_size: 128
   inter:
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    # load_intermediate: /hdd/datasets/object_data/full/randomdist/relaxed/gradient/temp/
-    # save_intermediate: /hdd/datasets/object_data/full/randomdist/relaxed/gradient/temp/
+    # load_intermediate: /hdd/datasets/object_data/full/randomdist/embed/gradient/temp/
+    save_intermediate: /hdd/datasets/object_data/full/randomdist/embed/gradient/temp/
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 5000
+      passive_iters: 10000
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
@@ -51,15 +51,28 @@
     # train_full_only: True
     train_names: phpt
   interaction_net:
-    hidden_sizes: 256 256
-    embed_inputs: 512
-    net_type: keypair
-    init_form: xnorm
+    # hidden_sizes: 128
+    net_type: maskattn
+    init_form: xnorm # -1 dim is num_queries
+    pair:
+      final_layers: 256 256 256
+      repeat_layers: True
+    mask_attn:
+      # model_dim: 5 # 128
+      # num_heads: 6 # 16
+      model_dim: 128
+      num_heads: 16
+      num_layers: 3
+      cluster: False
+      num_clusters: 0
+      attention_dropout: 0.1
+      merge_function: max
+      append_keys: True
     optimizer:
       lr: .00001
       alt_lr: .00001
       eps: .00001
       alpha: 0.99
       betas: 0.9 0.999
-      weight_decay: 0.00
+      weight_decay: 0.000
 ...

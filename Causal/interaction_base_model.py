@@ -303,7 +303,7 @@ class NeuralInteractionForwardModel(nn.Module):
 
         # print("interactions", use_binary, self.cluster_mode, self.attention_mode)
         if use_binary:
-            _, _, inter, inter_mask, _, _, _, active_log_probs, passive_log_probs = self.reduced_likelihoods(bat, masking = "full")
+            _, _, inter, inter_mask, _, _, _, active_log_probs, passive_log_probs = self.reduced_likelihoods(bat, masking = ["full"])
             binary = self.test.compute_binary(- active_log_probs.sum(dim=-1),
                                                 - passive_log_probs.sum(dim=-1)).unsqueeze(-1)
             return binary

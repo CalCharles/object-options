@@ -93,7 +93,8 @@ def get_masking_gradients(full_model, args, rollouts, object_rollout, onemask_la
                     # grad_variable_revalue[1],
                     
                     # np.sum(grad_variable_revalue[0].reshape(512, interaction_likelihood.shape[-1], -1), axis=-1)), axis=-1)[:10])
-                    np.sum(grad_variable_revalue[1].reshape(512, interaction_likelihood.shape[-1], -1), axis=-1)), axis=-1)[:10])
+                    np.mean(grad_variable_revalue[1].reshape(512, interaction_likelihood.shape[-1], -1), axis=-1),
+                    np.max(grad_variable_revalue[1].reshape(512, interaction_likelihood.shape[-1], -1), axis=-1)), axis=-1)[:10])
                     # , axis=-1)[:3], grad_variable_revalue[1].reshape(512, interaction_likelihood.shape[-1], -1)[:3])
     # print(grad_variable_revalue[1].reshape(512, interaction_likelihood.shape[-1], -1).shape, interaction_likelihood.shape)
     # print("grad il variance", interaction_likelihood)
