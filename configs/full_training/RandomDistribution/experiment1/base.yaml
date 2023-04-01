@@ -2,12 +2,12 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /nfs/data/calebc/object_data/full/randomdist/default/relaxed/log/gradient/inter.log
+    log_filename: /nfs/data/calebc/object_data/full/randomdist/default/log/experiment1/inter.log
     # load_dir: /nfs/data/calebc/object_data/full/breakout/relaxed/testrun/
-    save_dir: /nfs/data/calebc/object_data/full/randomdist/relaxed/gradient/
+    save_dir: /nfs/data/calebc/object_data/full/randomdist/experiment1/
   environment:
     env: RandomDistribution
-    load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional_long/
+    load_environment: /hdd/datasets/object_data/RandomDistribution/random/
   torch:
     gpu: 0
     no_cuda: False
@@ -15,7 +15,7 @@
     train: True
     num_frames: 200000
     train_test_order: time
-    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional_long/
+    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random/
     num_iters: 30000
     batch_size: 256
   inter:

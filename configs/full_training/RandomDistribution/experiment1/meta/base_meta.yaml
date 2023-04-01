@@ -1,0 +1,20 @@
+---
+  metaparam: 
+    multi_filename: exp1_opt_
+    log_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_logs/exp1/
+    yaml_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_yamls/exp1/
+    save_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam/exp1/
+    graph_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_graphs/exp1/
+    bash_path: bashes/exp1_base_runs.sh
+    base_config: configs/full_training/RandomDistribution/experiment1/base.yaml
+    runfile: train_full_interaction.py
+    gpu: 0
+    match: 1
+    simul_run: 4
+    num_trials: 1
+    cycle_gpu: 4
+  environment:
+    load_environment: /hdd/datasets/object_data/RandomDistribution/random/,/hdd/datasets/object_data/RandomDistribution/random/random_conditional,/hdd/datasets/object_data/RandomDistribution/random/random_conditional_passive,/hdd/datasets/object_data/RandomDistribution/random/random_conditional_rare,/hdd/datasets/object_data/RandomDistribution/random/random_conditional_common,/hdd/datasets/object_data/RandomDistribution/random/random_cp_many,/hdd/datasets/object_data/RandomDistribution/random/random_cp_multi,/hdd/datasets/object_data/RandomDistribution/random/random_cp_multi_small
+  train:
+    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random/,/hdd/datasets/object_data/RandomDistribution/random/random_conditional,/hdd/datasets/object_data/RandomDistribution/random/random_conditional_passive,/hdd/datasets/object_data/RandomDistribution/random/random_conditional_rare,/hdd/datasets/object_data/RandomDistribution/random/random_conditional_common,/hdd/datasets/object_data/RandomDistribution/random/random_cp_many,/hdd/datasets/object_data/RandomDistribution/random/random_cp_multi,/hdd/datasets/object_data/RandomDistribution/random/random_cp_multi_small
+...
