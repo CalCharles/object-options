@@ -1,20 +1,28 @@
 ---
   metaparam: 
     multi_filename: exp1_opt_
-    log_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_logs/exp1/
-    yaml_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_yamls/exp1/
-    save_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam/exp1/
-    graph_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_graphs/exp1/
+    log_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_logs/exp1/base/
+    yaml_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_yamls/exp1/base/
+    save_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam/exp1/base/
+    graph_endpoint: /nfs/data/calebc/object_data/full/hyperparam/hyperparam_graphs/exp1/base/
     bash_path: bashes/exp1_base_runs.sh
     base_config: configs/full_training/RandomDistribution/experiment1/base.yaml
     runfile: train_full_interaction.py
     gpu: 0
     match: 1
-    simul_run: 4
+    simul_run: 2
     num_trials: 1
     cycle_gpu: 4
   environment:
-    load_environment: /hdd/datasets/object_data/RandomDistribution/random/,/hdd/datasets/object_data/RandomDistribution/random/random_conditional,/hdd/datasets/object_data/RandomDistribution/random/random_conditional_passive,/hdd/datasets/object_data/RandomDistribution/random/random_conditional_rare,/hdd/datasets/object_data/RandomDistribution/random/random_conditional_common,/hdd/datasets/object_data/RandomDistribution/random/random_cp_many,/hdd/datasets/object_data/RandomDistribution/random/random_cp_multi,/hdd/datasets/object_data/RandomDistribution/random/random_cp_multi_small
+    # load_environment: /hdd/datasets/object_data/RandomDistribution/random,/hdd/datasets/object_data/RandomDistribution/random_conditional,
+    load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional2,/hdd/datasets/object_data/RandomDistribution/random_conditional_passive
+    # ,/hdd/datasets/object_data/RandomDistribution/random_conditional_rare,/hdd/datasets/object_data/RandomDistribution/random_conditional_common,/hdd/datasets/object_data/RandomDistribution/random_cp_many,/hdd/datasets/object_data/RandomDistribution/random_cp_multi,/hdd/datasets/object_data/RandomDistribution/random_cp_multi_small
   train:
-    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random/,/hdd/datasets/object_data/RandomDistribution/random/random_conditional,/hdd/datasets/object_data/RandomDistribution/random/random_conditional_passive,/hdd/datasets/object_data/RandomDistribution/random/random_conditional_rare,/hdd/datasets/object_data/RandomDistribution/random/random_conditional_common,/hdd/datasets/object_data/RandomDistribution/random/random_cp_many,/hdd/datasets/object_data/RandomDistribution/random/random_cp_multi,/hdd/datasets/object_data/RandomDistribution/random/random_cp_multi_small
+    # load_rollouts: /hdd/datasets/object_data/RandomDistribution/random,/hdd/datasets/object_data/RandomDistribution/random_conditional,
+    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional2,/hdd/datasets/object_data/RandomDistribution/random_conditional_passive
+    # ,/hdd/datasets/object_data/RandomDistribution/random_conditional_rare,/hdd/datasets/object_data/RandomDistribution/random_conditional_common,/hdd/datasets/object_data/RandomDistribution/random_cp_many,/hdd/datasets/object_data/RandomDistribution/random_cp_multi,/hdd/datasets/object_data/RandomDistribution/random_cp_multi_small
+  inter:
+    # save_intermediate: /hdd/datasets/object_data/full/randomdist/base/temp/,/hdd/datasets/object_data/full/randomdist/base_conditional/temp/,
+    save_intermediate: /hdd/datasets/object_data/full/randomdist/base_conditional2/temp/,/hdd/datasets/object_data/full/randomdist/base_conditional_passive/temp/
+    # ,/hdd/datasets/object_data/full/randomdist/base_conditional_rare/temp/,/hdd/datasets/object_data/full/randomdist/base_conditional_common/temp/,/hdd/datasets/object_data/full/randomdist/base_cp_many/temp/,/hdd/datasets/object_data/full/randomdist/base_cp_multi/temp/,/hdd/datasets/object_data/full/randomdist/base_cp_multi_small/temp/
 ...

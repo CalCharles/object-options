@@ -9,6 +9,7 @@ MINVAR = 1E-6
 def create_dict(value_dict, pad_object_length, append_length):
 	completed_dict = dict()
 	lim_dict = dict()
+	all_vals = []
 	for n in value_dict.keys():
 		pad_length = pad_object_length - value_dict[n][1].shape[0]
 		mean = (value_dict[n][1] + value_dict[n][0])/2
@@ -25,8 +26,10 @@ def create_dict(value_dict, pad_object_length, append_length):
 	return completed_dict, lim_dict
 
 class PadNormalizationModule(): # TODO: FULL REWRITE TO HANDLE INSTANCED-COUNTED STATE
-	def __init__(self, lim_dict, true_lim_dict, dynamics_dict, object_counts, object_names, pad_object_length, append_length):
+	def __init__(self, lim_dict, true_lim_dict, dynamics_dict, object_counts, object_names, pad_object_length, append_length, all=False):
 		# @param inter_names is the ordering of the names for the interaction state
+		# pad length is the amount of padding to make sure all the objects are in the same space
+		# @param append_length is the amount to append to include object 1-hot "positional class" embeddings
 		self.lim_dict = lim_dict # the bounds of positions for where an object can be
 		self.true_lim_dict = true_lim_dict
 		self.dynamics_dict = dynamics_dict # the bounds for the amount an object can change in a single timestep
@@ -37,6 +40,9 @@ class PadNormalizationModule(): # TODO: FULL REWRITE TO HANDLE INSTANCED-COUNTED
 		self.dynamics_norm_dict, self.pad_dynamics_dict = create_dict(self.dynamics_dict, self.pad_size, 0)
 		self.difference_norm, self.difference_lim = {n: (np.zeros(self.norm_dict[n][0].shape), self.norm_dict[n][1] * 2) for n in object_names}, \
 							{n: (self.pad_lim_dict[n][0] - self.pad_lim_dict[n][1], self.pad_lim_dict[n][0] + self.pad_lim_dict[n][1]) for n in object_names}
+		self.norm_dict["all"], self.pad_lim_dict["all"] = generate_multiobject_norm(self.norm_dict, object_names, object_counts), generate_multiobject_norm(self.pad_lim_dict, object_names, object_counts)
+		self.dynamics_norm_dict["all"], self.pad_dynamics_dict["all"] = generate_multiobject_norm(self.dynamics_norm_dict, object_names, object_counts), generate_multiobject_norm(self.pad_dynamics_dict, object_names, object_counts)
+		self.difference_norm["all"], self.difference_lim["all"] = generate_multiobject_norm(self.difference_norm, object_names, object_counts), generate_multiobject_norm(self.difference_lim, object_names, object_counts)
 		self.multi_names = set(["target", "dyn", "diff"])
 		self.inter_names = object_names
 		self.object_counts = object_counts # environment object counts 
@@ -46,8 +52,10 @@ class PadNormalizationModule(): # TODO: FULL REWRITE TO HANDLE INSTANCED-COUNTED
 		# interaction state norm
 		self.append_norm_dict, self.append_lim_dict = create_dict(self.lim_dict, self.pad_size, append_length)
 		inter_names = copy.deepcopy(self.inter_names)
-		for n in ["Reward", "Done"]:
-			inter_names.remove(n)
+		
+		if not all: 
+			for n in ["Reward", "Done"]:
+				inter_names.remove(n)
 		self.inter_norm, self.inter_lim = generate_multiobject_norm(self.append_norm_dict, inter_names, object_counts), generate_multiobject_norm(self.append_lim_dict, self.inter_names, object_counts)
 		self.rel_norm, self.rel_lim = (np.zeros(self.inter_norm[0].shape), self.inter_norm[1] * 2), \
 							(self.inter_lim[0] - self.inter_lim[1], self.inter_lim[0] + self.inter_lim[1])

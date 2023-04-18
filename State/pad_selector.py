@@ -45,6 +45,23 @@ class PadSelector():
             else:
                 flattened.append(add_pad(states, name, self.pad_size, id_append, self.num_objects))
         return np.concatenate(flattened, axis=-1)
+    
+    def get_padding(self, state):
+        '''
+        states are dict[name] -> ndarray: [batchlen, object state + zero padding]
+        returns [batchlen, padding binaries], where the padding binary is 1 where padding is used
+        does not mask out append padding, if used
+        '''
+        pad_vector = list()
+        for name in self.names:
+            pad = self.pad_size - states[name].shape[-1]
+            if self.append_id: pv = np.zeros(*state.shape[:-1], self.append_pad_size)
+            else: pv = np.zeros(*state.shape[:-1], self.pad_size)
+            pv[...,states[name].shape[-1]:states[name].shape[-1] + pad] = 1
+            pad_vector.append(pv)
+        return np.concatenate(pad_vector, axis=-1)
+
+
 
     def get_entity(self):
         return self.names

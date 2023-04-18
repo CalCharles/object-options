@@ -92,7 +92,7 @@ def train_interaction(full_model, rollouts, object_rollout, args, interaction_op
 
         # get the network outputs
         # outputs the binary over all instances, in order of names, instance number
-        if separate: # get the selection output
+        if args.full_inter.selection_train == "separate": # get the selection output
             interaction_likelihood = full_model.interaction_model.selection_network(pytorch_model.wrap(batch.tarinter_state, cuda=full_model.iscuda))
         else:
             interaction_likelihood = full_model.interaction(batch)

@@ -86,6 +86,7 @@ class forward_logger(Logger):
             if len(self.weighted_likelihood) > 0: logging_str += f'weighted: {np.mean(self.weighted_likelihood)}, '
             if len(self.true_weighted_likelihood) > 0: logging_str += f'true: {np.mean(true_weighted_likelihood)}'
             if len(self.raw_likelihood_expanded) > 0: logging_str += f'\nexpanded: {np.mean(self.raw_likelihood_expanded, axis=0)}'
+            # if len(self.raw_likelihood_expanded) > 0: logging_str += f'\nexpanded: {full_model.extractor.reverse_extract(np.mean(self.raw_likelihood_expanded, axis=0))}'
             if len(self.l1_average_error) > 0: logging_str += f'\nl1 error: {np.mean(self.l1_average_error, axis=0)}'
             if len(self.l1_average_weighted_error) > 0: logging_str += f'\nl1 weighted: {np.mean(self.l1_average_weighted_error, axis=0)}'
             if len(self.l1_average_true_error) > 0: logging_str += f'\nl1 true: {np.mean(self.l1_average_true_error, axis=0)}'

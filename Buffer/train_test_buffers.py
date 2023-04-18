@@ -6,6 +6,7 @@ from Buffer.buffer import InterWeightedReplayBuffer
 from Buffer.FullBuffer.full_buffer import FullReplayBuffer, ObjectReplayBuffer
 from Buffer.FullBuffer.fill_full_buffer import fill_full_buffer
 from Buffer.FullBuffer.fill_all_buffer import fill_all_buffer
+from Buffer.FullBuffer.all_buffer import AllReplayBuffer
 
 def set_batch(buffer, batch):
     # sets a batch and also sets internal variables of the buffer (TODO: breaks TS abstraction boundary, but that's because of TS improper design)
@@ -42,10 +43,10 @@ def generate_buffers(environment, args, object_names, full_model, train=True, fu
         if args.inter.save_intermediate: save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name + "_mask_rollouts.pkl"), buffer)
         # fill buffers for the train set
         alpha, beta = (1e-10, 0) if len(args.collect.prioritized_replay) == 0 else args.collect.prioritized_replay
-        train_buffer = FullReplayBuffer(len(train_indices), stack_num=1)
+        train_buffer = AllReplayBuffer(len(train_indices), stack_num=1)
         set_batch(train_buffer, buffer[train_indices])
         # fill buffers for the test set
-        test_buffer = FullReplayBuffer(len(test_indices), stack_num=1)
+        test_buffer = AllReplayBuffer(len(test_indices), stack_num=1)
         set_batch(test_buffer, buffer[test_indices])
         del buffer
         return train_buffer, test_buffer

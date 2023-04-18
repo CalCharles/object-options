@@ -2,6 +2,7 @@ import numpy as np
 from Network.network_utils import pytorch_model, run_optimizer, get_gradient
 from Causal.Utils.instance_handling import compute_likelihood, get_batch
 import torch
+import torch.nn.functional as F
 
 def evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda, active_params, interaction_likelihood, interaction_mask, active_log_probs, done_flags, proximity):
     active_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - active_log_probs, done_flags=done_flags, reduced=False, is_full = True)
@@ -121,6 +122,7 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, onem
 
     # combine the cost function (extend possible interaction losses here)
     # print((active_hard_log_probs * done_flags).mean(), (active_soft_log_probs * done_flags).mean(), (active_full_log_probs * done_flags), (passive_log_probs * done_flags).mean())
+    # lasso_lambda = F.sigmoid(lasso_lambda) * 10
     interaction_loss = evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda,
                         active_soft_params, interaction_likelihood, soft_interaction_mask, active_soft_log_probs, done_flags, batch.proximity) \
                         if not full_model.cluster_mode else evaluate_active_interaction_expert(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda,

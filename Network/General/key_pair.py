@@ -113,7 +113,7 @@ class KeyPairNetwork(Network):
             # print(x[0], xi[0])
         else:
             total_obj_dim  = self.embed_dim * self.total_instances
-            # print(x.shape, total_obj_dim, self.single_obj_dim, self.first_obj_dim, m.shape, i)
+            # print(x.shape, total_obj_dim, self.embed_dim, self.total_instances, key.shape, queries.shape, m.shape, i)
             # print((queries * m[...,i * total_obj_dim:(i+1) * total_obj_dim])[0:10])
             xi = torch.cat([key, queries * m[...,i * total_obj_dim:(i+1) * total_obj_dim]], dim=-1)
         return xi

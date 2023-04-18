@@ -39,7 +39,7 @@ def compute_likelihood(full_model, batch_size, likelihood_full, done_flags=None,
 
 def compute_l1(full_model, batch_size, params, targets, is_full = False):
     # computes either the multi-instanced likelihood, or the normal summed likelihood, regulated by the done flags
-    obj_dim = full_model.single_obj_dim if is_full else full_model.obj_dim
+    obj_dim = full_model.single_obj_dim if is_full or full_model.form == "all" else full_model.obj_dim
     if full_model.multi_instanced:
         l1_error_element =np.abs(pytorch_model.unwrap(params[0].reshape(batch_size, -1, obj_dim) - targets.reshape(batch_size, -1, obj_dim))) 
         l1_error = np.max(l1_error_element, axis=1)
@@ -64,10 +64,12 @@ def get_batch(batch_size, all, rollouts, object_rollouts, weights):
         full_batch, idxes = rollouts.sample(batch_size, weights=weights)
         batch = full_batch
         batch.tarinter_state = full_batch.obs
-        batch.inter_state = full_batch.obs            
+        batch.inter_state = full_batch.obs
+        batch.next_inter_state = full_batch.obs_next          
     else:
         full_batch, idxes = rollouts.sample(batch_size, weights=weights)
         batch = object_rollouts[idxes]
         batch.tarinter_state = np.concatenate([batch.obs, full_batch.obs], axis=-1)
         batch.inter_state = full_batch.obs
+        batch.next_inter_state = full_batch.obs_next          
     return full_batch, batch, idxes

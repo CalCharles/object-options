@@ -98,5 +98,6 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
         if i % args.inter.passive.passive_log_interval == 0:
             print("trace values", np.mean(batch.trace, axis=0))
             print(full_model.name,batch.tarinter_state[0]  ,  full_model.norm.reverse(full_batch.obs[0], form="inter", name=full_model.name), target[0], full_model.norm.reverse(target[0], name=full_model.name, form="dyn" if full_model.predict_dynamics else "target"))
+            print(full_model.extractor.reverse_extract(full_model.norm.reverse(target[0], name=full_model.name, form="dyn" if full_model.predict_dynamics else "target")))
         # print("passive", time.time()- start)
     return outputs, weights

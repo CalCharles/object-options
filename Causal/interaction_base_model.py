@@ -45,13 +45,13 @@ MASKING_FORMS = {
     "hard": 3,
 }
 
-def regenerate(append_id, environment):
-    extractor = CausalPadExtractor(environment, append_id)
+def regenerate(append_id, environment, all=False):
+    extractor = CausalPadExtractor(environment, append_id, no_objects=not all)
     # norm = FullNormalizationModule(environment.object_range, environment.object_dynamics, name, environment.object_instanced, environment.object_names)
     pad_size = extractor.pad_dim
     append_size = extractor.append_dim
     environment.object_range_true = environment.object_range
-    norm = PadNormalizationModule(environment.object_range, environment.object_range_true, environment.object_dynamics, environment.object_instanced, environment.object_names, pad_size, append_size)
+    norm = PadNormalizationModule(environment.object_range, environment.object_range_true, environment.object_dynamics, environment.object_instanced, environment.object_names, pad_size, append_size, all=all)
     return extractor, norm
 
 def load_interaction(pth, name, device=-1):
@@ -85,6 +85,7 @@ class NeuralInteractionForwardModel(nn.Module):
         
         # construct the active model
         args.interaction_net.object_dim = self.obj_dim
+        self.nextstate_interaction = args.full_inter.nextstate_interaction
         self.multi_instanced = environment.object_instanced[self.name] > 1 if form != "all" else True # an object CANNOT go from instanced to multi instanced
         self.active_model_args, self.passive_model_args, self.interaction_model_args = get_params(self, args, args.interaction_net.net_type in PAIR, self.multi_instanced, self.extractor.total_inter_size, self.extractor.single_object_size)
         self.cluster_mode = self.active_model_args.cluster.cluster_mode # uses a mixture of experts implementation, which shoudl return different interaction masks
@@ -229,8 +230,28 @@ class NeuralInteractionForwardModel(nn.Module):
             inp_state, tar_state = self._wrap_state(state)
             return self._compute_passive(inp_state, tar_state)
 
+    def _wrap_inter(self, state, tensor=True, use_next=False):
+        # takes in a state, either a full state (factored state dict (name to ndarray)), or tuple of (inter_state, target_state) 
+        if state is None:
+            return None, None
+        if type(state) == tuple:
+            inter_state, tar_state = state
+            if tensor:
+                inp_state = pytorch_model.wrap(inter_state, cuda=self.iscuda) # concatenates the tarinter state
+                tar_state = pytorch_model.wrap(tar_state, cuda=self.iscuda)
+        else: # assumes that state is a batch or dict
+            if (type(state) == Batch or type(state) == dict) and ('factored_state' in state): state = state['factored_state'] # use gamma on the factored state
+            if (type(state) == Batch or type(state) == dict) and ('next_factored_state' in state) and use_next: state = state['next_factored_state'] # use gamma on the factored state
+            
+            print(state)
+            tar_state = self.norm(self.target_select(state))
+            inp_state = self.norm(self.inter_select(state), form="inter")
+            if tensor:
+                tar_state = pytorch_model.wrap(tar_state, cuda=self.iscuda)
+                inp_state = pytorch_model.wrap(inp_state, cuda=self.iscuda)
+        return inp_state, tar_state            
 
-    def predict_next_state(self, state, normalized=False, difference=False):
+    def predict_next_state(self, state, next_state=None, normalized=False, difference=False):
         # returns the interaction value and the predicted next state (if interaction is low there is more error risk)
         # state is either a single flattened state, or batch x state size, or factored_state with sufficient keys
         # @param difference returns the dynamics prediction instead of the active prediction, not used if the full model is not a dynamics predictor
@@ -238,7 +259,8 @@ class NeuralInteractionForwardModel(nn.Module):
 
         rv = self.norm.reverse
         if self.attention_mode:
-            inter = pytorch_model.unwrap(self.interaction_model(inp_state))
+            inter_inp_state = self.get_interaction_state(state, next_state)
+            inter = pytorch_model.unwrap(self.interaction_model(inter_inp_state))
             inter_mask = self.apply_mask(inter, flat=True, x = inp_state)
         else: inter, inter_mask = None, None
         # if predicting dynamics, add the mean of the model to the target state
@@ -265,14 +287,15 @@ class NeuralInteractionForwardModel(nn.Module):
         return inter, fpred
 
 
-    def hypothesize(self, state):
+    def hypothesize(self, state, next_state=None):
         # takes in a full state (dict with raw_state, factored_state) or tuple of ndarray of input_state, target_state 
         # computes the interaction value, the mean, var of forward model, the mean, var of the passive model
         inter_state, tar_state = self._wrap_state(state)
         rv = self.norm.reverse
         if self.attention_mode: inter, inter_mask = None, None
         else:
-            inter = self.interaction_model(inter_state)
+            inter_inp_state = self.get_interaction_state(state, next_state)
+            inter = self.interaction_model(inter_inp_state)
             inter_mask = self.apply_mask(inter, flat = True, x=inter_state)
         (mu_inter, var_inter), m = self.active_model(inter_state, inter_mask)
         inter = m if self.cluster_mode or self.attention_mode else inter
@@ -287,7 +310,7 @@ class NeuralInteractionForwardModel(nn.Module):
     def get_active_mask(self):
         return self.test.selection_binary
 
-    def interaction(self, val, target=None, next_target=None, target_diff=None, prenormalize=False, use_binary=False, return_hot=False): # val is either a batch, or a ndarray of inter_state. Does NOT unwrap, Does NOT normalize
+    def interaction(self, val, next_val=None, target=None, next_target=None, target_diff=None, prenormalize=False, use_binary=False, return_hot=False): # val is either a batch, or a ndarray of inter_state. Does NOT unwrap, Does NOT normalize
         if type(val) != Batch:
             bat = Batch()
             bat.inter_state = val # state from the full_rollout
@@ -295,6 +318,7 @@ class NeuralInteractionForwardModel(nn.Module):
             bat.tarinter_state = bat.inter_state if self.form == "all" else np.concatenate([bat.target, bat.inter_state], axis=-1)
             bat.next_target = next_target
             bat.target_diff = target_diff
+            bat.next_inter_state = next_val
         else:
             bat = val
         if type(val) != np.ndarray: val = val.inter_state # if not an array, assume it is a Batch
@@ -303,13 +327,21 @@ class NeuralInteractionForwardModel(nn.Module):
 
         # print("interactions", use_binary, self.cluster_mode, self.attention_mode)
         if use_binary:
-            _, _, inter, inter_mask, _, _, _, active_log_probs, passive_log_probs = self.reduced_likelihoods(bat, masking = ["full"])
+        # return (hard_params, soft_params, full_params, passive_params, target,
+        #  inter_mask, hot_mask, hard_mask, soft_mask, full_mask, passive_mask,
+        #  hard_dist, soft_dist, full_dist, passive_dist,
+        #  hard_log_probs, soft_log_probs, full_log_probs, passive_log_probs, 
+        #  hard_inputs, soft_inputs, full_inputs, passive_inputs)
+            _, _, _, inter, inter_mask, _, _, _, _, active_log_probs, passive_log_probs, hard_inputs, passive_inputs = self.reduced_likelihoods(bat, masking = ["hard", "passive"])
+
+
             binary = self.test.compute_binary(- active_log_probs.sum(dim=-1),
                                                 - passive_log_probs.sum(dim=-1)).unsqueeze(-1)
             return binary
         elif self.cluster_mode:
             val = bat.tarinter_state
-            inter_hot = self.interaction_model(pytorch_model.wrap(val, cuda=self.iscuda))
+            inter_inp_state = self.get_interaction_state(bat)
+            inter_hot = self.interaction_model(inter_inp_state)
             (mu_inter, var_inter), m = self.active_model(pytorch_model.wrap(val, cuda=self.iscuda), inter_hot)
             if return_hot: return inter_hot, m
             return m
@@ -320,8 +352,9 @@ class NeuralInteractionForwardModel(nn.Module):
             return m
         else:
             val = bat.tarinter_state
-            if return_hot: return None, self.interaction_model(pytorch_model.wrap(val, cuda=self.iscuda))
-            return self.interaction_model(pytorch_model.wrap(val, cuda=self.iscuda))
+            inter_inp_state = self.get_interaction_state(bat)
+            if return_hot: return None, self.interaction_model(inter_inp_state)
+            return self.interaction_model(inter_inp_state)
     
     def _target_dists(self, batch, params, skip=None):
         # start = time.time()
@@ -338,6 +371,7 @@ class NeuralInteractionForwardModel(nn.Module):
             dist = self.dist(*new_params)
             # print(target.shape, dist)
             # print("dist", time.time() - start)
+            # print(new_params[0].shape, target.shape)
             log_probs.append(dist.log_prob(target))
         log_probs = torch.cat(log_probs, dim=-1)
         # print("log_probs", time.time() - start)
@@ -345,6 +379,7 @@ class NeuralInteractionForwardModel(nn.Module):
 
     def normalize_batch(self, batch): # normalizes the components in the batch to be used for likelihoods, assumes the batch is an object batch
         batch.inter_state = self.norm(batch.inter_state, form="inter")
+        batch.next_inter_state = self.norm(batch.next_inter_state, form="inter")
         batch.obs = self.norm(batch.obs, name=self.name)
         batch.tarinter_state = batch.inter_state if self.form == "all" else np.concatenate([batch.target, batch.inter_state], axis=-1)
         batch.obs_next = self.norm(batch.obs_next, name=self.name)
@@ -440,7 +475,8 @@ class NeuralInteractionForwardModel(nn.Module):
         if use_active: # otherwise, the active model is not needed
             if self.cluster_mode:
                 # the "inter" here is the hot mask 
-                inter = self.interaction_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda))
+                inter_inp_state = self.get_interaction_state(batch, factored=False)
+                inter = self.interaction_model(inter_inp_state)
                 hot_mask = inter
                 if use_hard or use_soft:
                     # get the one-hot mask applies categorical or gumbel softmax
@@ -466,9 +502,10 @@ class NeuralInteractionForwardModel(nn.Module):
                 hot_mask = hard_inter_mask
                 inter = soft_inter_mask
             else:
-                if self.selection_mask: inter, hot_mask = self.interaction_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), return_selection=True)
+                inter_inp_state = self.get_interaction_state(batch, factored=False)
+                if self.selection_mask: inter, hot_mask = self.interaction_model(inter_inp_state, return_selection=True)
                 else:
-                    inter = self.interaction_model(pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda))
+                    inter = self.interaction_model(inter_inp_state)
                     hot_mask = inter # hot mask not used
                 if use_full:
                     full_mask = pytorch_model.wrap(torch.ones(len(self.all_names) * self.target_num), cuda = self.iscuda)

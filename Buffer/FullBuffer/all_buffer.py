@@ -5,10 +5,12 @@ from Buffer.buffer import ParamPrioWeightedReplayBuffer
 from tianshou.data import Batch, ReplayBuffer, PrioritizedReplayBuffer
 class AllReplayBuffer(ReplayBuffer):
     # obs, obs_next contain the flattened full state from the environment
-    _reserved_keys = ("obs", "act", "rew", "done", "obs_next", 
+    _all_keys = ("obs", "act", "rew", "done", "terminated", "truncated", "obs_next", 
             "info", "policy", "true_reward", "true_done", 
-            "time","option_choice", "option_resample",
-            "target", "inter", "obs_diff", "trace", "proximity", "weight_binary")
+            "time","option_choice", "option_resample", "terminate",
+            "target", "inter","next_target", "target_diff", "trace", "proximity", "weight_binary")
+    _reserved_keys = _all_keys
+    _input_keys = _all_keys
 
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
         """Return a data batch: self[index].
@@ -44,7 +46,8 @@ class AllReplayBuffer(ReplayBuffer):
             option_resample = self.option_resample[indice], # when the option being run is resampled
             target = self.target[indice], # the state without one-hots for object identity
             inter = self.inter[indice], 
-            obs_diff = self.obs_diff[indice], 
+            next_target = self.next_target[indice],
+            target_diff = self.target_diff[indice], 
             trace = self.trace[indice], 
             proximity = self.proximity[indice], 
             weight_binary = self.weight_binary[indice],

@@ -112,8 +112,10 @@ class FullNeuralInteractionForwardModel(NeuralInteractionForwardModel):
             print("resetting")
             self.interaction_model.reset_environment(self.name_index, self.num_inter, self.first_obj_dim)
 
-    def _wrap_state(self, state):
+    def _wrap_state(self, state, tensor=False, use_next = False):
         # takes in a state, either a full state (factored state dict (name to ndarray)), or tuple of (inter_state, target_state) 
+        if state is None:
+            return None, None
         if type(state) == tuple:
             inter_state, tar_state = state
             inp_state = pytorch_model.wrap(np.concatenate([tar_state, inter_state], axis=-1), cuda=self.iscuda) # concatenates the tarinter state
@@ -123,6 +125,24 @@ class FullNeuralInteractionForwardModel(NeuralInteractionForwardModel):
             tar_state = pytorch_model.wrap(self.norm(self.target_select(state)), cuda=self.iscuda)
             inp_state = torch.cat([tar_state, pytorch_model.wrap(self.norm(self.inter_select(state), form="inter"), cuda=self.iscuda)], dim=-1)
         return inp_state, tar_state
+
+    def get_interaction_state(self, state, next_state=None, factored=True):
+        # state is either a single flattened state, or batch x state size, or factored_state with sufficient keys
+        if factored:
+            inter_state, tar_state = self._wrap_inter(state, tensor=False) 
+            next_inter_state, next_tar_state = self._wrap_inter(next_state, tensor=False)
+        else:
+            inp_state, tar_state = state.inter_state, state.obs
+            next_inp_state, next_tar_state = state.next_inter_state, state.obs_next
+        if self.nextstate_interaction:
+            tar_dict = self.extractor.reverse_extract(tar_state, target=True)
+            next_tar_dict = self.extractor.reverse_extract(next_tar_state, target=True)
+            tar_dict = {n: np.concatenate([tar_dict[n], next_tar_dict[n]], axis=-1) for n in tar_dict.keys()}
+            inp_state = np.concatenate([self.target_select(tar_dict), inter_state], axis=-1)
+            return pytorch_model.wrap(inp_state, cuda=self.iscuda)
+        else:
+            inp_state, tar_state = self._wrap_state((inp_state, tar_state))
+            return inp_state
 
     def inter_passive(self, inter_mask):
         inter_mask = pytorch_model.unwrap(inter_mask)

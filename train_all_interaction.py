@@ -28,13 +28,14 @@ if __name__ == '__main__':
     args.controllable = None # this is filled in with controllable features of the target
 
     # initialize the all model
-    extractor, normalization = regenerate(args.full_inter.object_id, environment)
-    complete_model = CompleteNeuralInteractionForwardModel(args, environment, extractor, normalization)
+    extractor, normalization = regenerate(args.full_inter.object_id, environment, all=True)
+    all_model = AllNeuralInteractionForwardModel(args, "", environment, extractor, normalization)
     args.pad_size = extractor.object_size
+    args.target_select, args.inter_select = extractor.get_selectors(all=True)
 
     # get the train and test buffers
     if len(args.inter.load_intermediate) > 0: train_all_buffer, test_all_buffer = load_from_pickle(os.path.join(args.inter.load_intermediate,environment.name + "_traintest.pkl"))
-    else: train_all_buffer, test_all_buffer = generate_buffers(environment, args, environment.object_names, list(all_models.values())[0], full=2)
+    else: train_all_buffer, test_all_buffer = generate_buffers(environment, args, environment.object_names, all_model, full=2)
     if len(args.inter.save_intermediate) > 0: save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_traintest.pkl"), (train_all_buffer, test_all_buffer))
 
     passive_weights = dict()
@@ -45,16 +46,17 @@ if __name__ == '__main__':
             all_model.cpu().cuda(device = args.torch.gpu)
         passive_weights = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_weights.pkl"))
     # training the passive models
-    if args.train.train and args.inter.passive.passive_iters > 0: outputs, passive_weights = run_train_passive(full_model, train_full_buffer, None, test_full_buffer, None, args, environment)
+    if args.train.train and args.inter.passive.passive_iters > 0: outputs, passive_weights = run_train_passive(all_model, train_all_buffer, None, test_all_buffer, None, args, environment)
     # saving the passive models and weights
     if len(args.inter.save_intermediate) > 0:
-        save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_inter_model.pkl"), full_model)
+        save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_inter_model.pkl"), all_model)
         save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name +  "_passive_weights.pkl"), passive_weights)
     # pretraining with the true traces, not used for the main algorithm
-    if args.train.train and args.inter.interaction.interaction_pretrain > 0: run_train_interaction(full_model, train_full_buffer, None, test_full_buffer, None, args, environment)
+    if args.train.train and args.inter.interaction.interaction_pretrain > 0: run_train_interaction(all_model, train_all_buffer, None, test_all_buffer, None, args, environment)
     
     # training the active and interaction models
-    full_model.regenerate(extractor, normalization, environment)
+    extractor, normalization = regenerate(args.full_inter.object_id, environment, all=True)
+    all_model.regenerate(extractor, normalization, environment)
     
-    if args.train.train: train_full(full_model, train_full_buffer, None, test_full_buffer, None, args, environment)
-    test_full(full_model, test_full_buffer, args, environment)
+    if args.train.train: train_full(all_model, train_all_buffer, None, test_all_buffer, None, args, environment)
+    test_full(all_model, test_all_buffer, args, environment)

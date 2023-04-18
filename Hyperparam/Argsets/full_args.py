@@ -113,6 +113,7 @@ full_args = {
         "object_id": True, # appends a 1 hot identifier of the object class to the object
         "lasso_lambda": [1, 0, 0, -1, -1], # lasso_lambda, open mask forcing, 0.5 mask forcing, one mask schedule, masking schedule
         "lasso_order": 1,
+        "dual_lasso": [0,0],
         "entropy_lambda": [0,0], # penalizes the individual values of the binary mask for having high entropy (close to 0.5)
         "soft_distribution": "Identity",
         "dist_temperature": 1, # distribution temperature for relaxed distributions on the interaction mask
@@ -127,6 +128,7 @@ full_args = {
         "load_forward_only": "", # loads only the forward models
         "selection_mask": False, # uses a selection mask network
         "selection_train": "",
+        "nextstate_interaction": False, # uses the outcome for the interaction network
     },
     "inter": {
         "predict_dynamics": False,

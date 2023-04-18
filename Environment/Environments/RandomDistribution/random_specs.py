@@ -2,7 +2,7 @@ variants = {"default": (False, False, 3, 1, 2, True, False, 0.0, "Gaussian", 0.0
 			"small": (False, False, 1, 1, 1, True, False, 0.0, "Gaussian", 0.0005, False),
 			"passive_only": (False, False, 3, 1, 0, True, False, 0.0, "Gaussian", 0.000, True),
 			"passive_only_noise": (False, False, 3, 1, 0, True, False, 0.0, "Gaussian", 0.0005, False),
-			"conditional": (False, False, 3, 1, 2, 0, True, 0.0, "Gaussian", 0.0005, False),
+			"conditional": (False, False, 3, 1, 2, True, True, 0.0, "Gaussian", 0.0005, False),
 			"conditional_rare": (False, False, 3, 1, 2, True, True, 0.6, "Gaussian", 0.0005, True),
 			"conditional_common": (False, False, 3, 1, 2, True, True, -0.7, "Gaussian", 0.0005, True),
 			"conditional_passive": (False, False, 3, 1, 2, True, True, 0.0, "Gaussian", 0.0005, True),

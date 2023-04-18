@@ -160,6 +160,7 @@ class RandomDistribution(Environment):
         self.fixed_limits = fixed_limits
         self.discrete_actions, self.allow_uncontrollable, self.num_objects, self.multi_instanced, self.num_related, self.relate_dynamics, self.conditional, self.conditional_weight, self.distribution, self.noise_percentage, self.require_passive = variants[self.variant]
         
+        print(self.discrete_actions, self.allow_uncontrollable, self.num_objects, self.multi_instanced, self.num_related, self.relate_dynamics, self.conditional, self.conditional_weight, self.distribution, self.noise_percentage, self.require_passive, self.variant)
         self.set_objects()
         self.num_actions = self.discrete_actions # this must be defined, -1 for continuous. Only needed for primitive actions
         self.name = "RandomDistribution" # required for an environment 
@@ -370,7 +371,6 @@ class RandomDistribution(Environment):
                 # if self.noise_percentage > 0: # TODO: it appears taking random actions is correlated with the random noise, so we removed this impl
                 #     if self.distribution == "Gaussian":
                 #         obj.next_state = obj.next_state + np.random.normal(scale=self.noise_percentage, size=obj.next_state.shape)
-                    # print(obj.name, obj.next_state)
                 if hasattr(obj, "step_state"): obj.step_state()
         self.itr += 1
         # print(self.get_state()["factored_state"])
