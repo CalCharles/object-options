@@ -35,6 +35,9 @@ def proximity_binary(full_model, rollouts,object_rollouts=None, full=False, pall
     return np_binaries, p_binaries, non_proximal, proximal
 
 def separate_weights(weighting, full_model, rollouts, proximity, trace=None, object_rollouts=None): # this should work for all cases because passive_likelihood reduces, the only difference is the passive error threshold
+    '''
+    Generates weights either based on the passive error, the trace, or returns a single vector. This value is shared across the training computation
+    '''
     passive_error_cutoff, passive_error_upper, weighting_ratio, weighting_schedule = weighting
     if weighting_ratio >= 0:
         passive_error =  - get_error(full_model, rollouts, object_rollouts, error_type = error_types.PASSIVE_LIKELIHOOD).astype(int)
@@ -61,8 +64,14 @@ def separate_weights(weighting, full_model, rollouts, proximity, trace=None, obj
         weights = get_weights(weighting_ratio, binaries)
     else: # no special weighting on the samples
         passive_error, weights, binaries = uni_weights(rollouts)
-    if len(binaries.shape) == 1 and ((object_rollouts is not None and len(object_rollouts.weight_binary.shape) == 2) or
-                                 ("weight_binary" in rollouts and len(rollouts.weight_binary.shape) == 2)): binaries = np.expand_dims(binaries, -1)
+    print(passive_error.shape, weights.shape, binaries.shape, object_rollouts is not None,
+                                # rollouts.weight_binary.shape, len(rollouts.weight_binary.shape), 
+                                "weight_binary" in rollouts,
+                                  len(binaries.shape) == 1 and ((object_rollouts is not None and len(object_rollouts.weight_binary.shape) == 2) or
+                                 ("weight_binary" in rollouts and len(rollouts.weight_binary.shape) == 2)))
+    # if len(binaries.shape) == 1 and ((object_rollouts is not None and len(object_rollouts.weight_binary.shape) == 2) or
+    #                              ("weight_binary" in rollouts and len(rollouts.weight_binary.shape) == 2)): binaries = np.expand_dims(binaries, -1)
+    if len(binaries.shape) == 1: binaries = np.expand_dims(binaries, -1)
     if object_rollouts is None: rollouts.weight_binary[:len(rollouts)] = binaries
     else: object_rollouts.weight_binary[:len(rollouts)] = (np.sum(binaries, axis=-1) > 0).astype(int) if len(binaries.shape) > 1 else binaries
     return passive_error, weights, binaries
@@ -78,9 +87,12 @@ def get_weights(ratio_lambda, binaries):
     num_weighted = binaries.copy().astype(bool).astype(int)
 
     # passes through if we are using uniform weights
-    if ratio_lambda < 0:
+    if ratio_lambda <= 0:
+        if np.sum(weights) == 0:
+            weights = np.ones(weights.shape)
         weights = (weights.astype(np.float64) / np.sum(weights).astype(np.float64))
         weights[weights < 0] = 0
+        if len(weights.shape) == 2: weights = weights[:,0] # squeeze the last dimension
         return weights
 
     # generate a ratio based on the number of live versus dead
@@ -93,4 +105,5 @@ def get_weights(ratio_lambda, binaries):
     # print("live factor", ratio_lambda, np.sum((weights + 1)), total_dead, total_live, live_factor)
     weights = (weights * live_factor) + 1
     weights = (weights.astype(np.float64) / np.sum(weights).astype(np.float64))
+    if len(weights.shape) == 2: weights = weights[:,0] # squeeze the last dimension
     return weights

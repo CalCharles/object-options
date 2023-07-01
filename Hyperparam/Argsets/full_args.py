@@ -5,10 +5,15 @@ network_args = {
     "use_layer_norm": False,
     "hidden_sizes": list(), # TODO: must have values if used
     "init_form": "",
-    "activation": "relu",
+    "activation": "leakyrelu",
     "activation_final": "none",
     "scale_logits": -1,
     "scale_final": 1, # scales the final layer in MLPs
+    "multi": {
+        "num_masks": -1, # should be set outside of network_args
+        "embedding_sizes": list(), # number and shape of hidden layers
+        "embedding_output": 256,
+    },
     "pair": {
         "drop_first": False,
         "reduce_function": "max",
@@ -113,6 +118,7 @@ full_args = {
         "object_id": True, # appends a 1 hot identifier of the object class to the object
         "lasso_lambda": [1, 0, 0, -1, -1], # lasso_lambda, open mask forcing, 0.5 mask forcing, one mask schedule, masking schedule
         "lasso_order": 1,
+        "adaptive_lasso": -1, # adapts the lasso value according to the magnitude of the active interaction loss (multiplied by this hyperparameter)
         "dual_lasso": [0,0],
         "entropy_lambda": [0,0], # penalizes the individual values of the binary mask for having high entropy (close to 0.5)
         "soft_distribution": "Identity",
@@ -159,6 +165,15 @@ full_args = {
             "intrain_passive": 0,
             "error_binary_upweight": 1,
         },
+    },
+    "EMFAC": {
+        "full_train": "",
+        "num_masks": 1,
+        "is_EMFAC": False,
+        "E_step_iters": 1,
+        "M_step_iters": 1,
+        "refine_iters": 1,
+        "binary_cost": 1
     },
     "mask": {
         "min_sample_difference": 1,

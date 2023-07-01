@@ -39,7 +39,7 @@ def generate_buffers(environment, args, object_names, full_model, train=True, fu
     train_indices, test_indices = train_test_indices(args, buffer)
 
     # fill the train/test buffer
-    if full == 2:
+    if full == 2: # fill the buffer as an all-buffer
         if args.inter.save_intermediate: save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name + "_mask_rollouts.pkl"), buffer)
         # fill buffers for the train set
         alpha, beta = (1e-10, 0) if len(args.collect.prioritized_replay) == 0 else args.collect.prioritized_replay
@@ -50,7 +50,7 @@ def generate_buffers(environment, args, object_names, full_model, train=True, fu
         set_batch(test_buffer, buffer[test_indices])
         del buffer
         return train_buffer, test_buffer
-    elif full == 1:
+    elif full == 1: # fill the buffer as a full buffer
         if args.inter.save_intermediate: save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name + "_mask_rollouts.pkl"), buffer)
         # fill buffers for the train set
         alpha, beta = (1e-10, 0) if len(args.collect.prioritized_replay) == 0 else args.collect.prioritized_replay

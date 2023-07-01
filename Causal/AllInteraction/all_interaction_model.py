@@ -32,6 +32,7 @@ def get_params_all(model, full_args, is_pair, multi_instanced, total_inter_size,
     full_args.interaction_net.pair.total_instances = np.sum(model.extractor.num_instances)
     full_args.interaction_net.selection_temperature = full_args.full_inter.selection_temperature
     full_args.interaction_net.symmetric_key_query = True # this will be true since we need class-ided keys and queries
+    full_args.interaction_net.multi.num_masks = full_args.EMFAC.num_masks
     
     active_model_args = copy.deepcopy(full_args.interaction_net)
     active_model_args.num_inputs = total_inter_size
@@ -47,6 +48,7 @@ def get_params_all(model, full_args, is_pair, multi_instanced, total_inter_size,
     interaction_model_args.num_outputs = 1
     interaction_model_args.mask_attn.return_mask = False
     interaction_model_args.softmax_output = False
+    interaction_model_args.cluster.use_cluster = interaction_model_args.cluster.cluster_mode # cluster information passed here 
 
     if is_pair:
         pair = copy.deepcopy(full_args.interaction_net.pair)
@@ -104,8 +106,8 @@ class AllNeuralInteractionForwardModel(NeuralInteractionForwardModel):
             inp_state, tar_state = self._wrap_state(state, tensor=False) 
             next_inp_state, next_tar_state = self._wrap_state(next_state, tensor=False)
         else:
-            inp_state, tar_state = state.inter_state, state.obs
-            next_inp_state, next_tar_state = state.next_inter_state, state.obs_next
+            inp_state, tar_state = state.obs, state.target
+            next_inp_state, next_tar_state = state.obs_next, state.next_target
         if self.nextstate_interaction:
             obs_dict = self.extractor.reverse_extract(inp_state, target=False)
             next_obs_dict = self.extractor.reverse_extract(next_inp_state, target=False)

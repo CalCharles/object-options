@@ -75,6 +75,7 @@ class CausalPadExtractor():
 	def _get_dims(self, name):
 		if name is None or name == "all":
 			return self.object_size, self.single_object_size, self.object_size * np.sum(self.complete_instances)
+		print(self.total_target_sizes)
 		return self.object_size, self.single_object_size, self.total_target_sizes[name]
 
 	def get_selectors(self, all=False):

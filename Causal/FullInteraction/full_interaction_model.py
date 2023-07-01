@@ -37,6 +37,7 @@ def get_params(model, full_args, is_pair, multi_instanced, total_inter_size, tot
     full_args.interaction_net.pair.total_instances = np.sum(model.extractor.complete_instances)
     full_args.interaction_net.selection_temperature = full_args.full_inter.selection_temperature
     full_args.interaction_net.symmetric_key_query = False # this will be false since we have a separate model for every class
+    full_args.interaction_net.multi.num_masks = full_args.EMFAC.num_masks
 
 
     active_model_args = copy.deepcopy(full_args.interaction_net)
@@ -53,6 +54,7 @@ def get_params(model, full_args, is_pair, multi_instanced, total_inter_size, tot
     interaction_model_args.num_outputs = 1
     interaction_model_args.mask_attn.return_mask = False
     interaction_model_args.softmax_output = False
+    interaction_model_args.cluster.use_cluster = interaction_model_args.cluster.cluster_mode # cluster information passed here 
 
     if is_pair:
         pair = copy.deepcopy(full_args.interaction_net.pair)
@@ -71,14 +73,15 @@ def get_params(model, full_args, is_pair, multi_instanced, total_inter_size, tot
         else:
             pair.aggregate_final = False # we are multi-instanced, but outputting a single value
         active_model_args.pair, passive_model_args.pair, interaction_model_args.pair = copy.deepcopy(pair), copy.deepcopy(pair), copy.deepcopy(pair)
+        interaction_model_args.embedpair.query_aggregate = False # variable output based on the number of queries
         if interaction_model_args.cluster.cluster_mode:
             interaction_model_args.num_outputs = interaction_model_args.cluster.num_clusters
             interaction_model_args.cluster.cluster_mode = False # the interaction model does not take cluster mode
             # interaction_model_args.pair.aggregate_final = True
             interaction_model_args.softmax_output = True
             interaction_model_args.pair.total_instances = interaction_model_args.cluster.num_clusters # interaction models use this as a replacement for num_outputs
+            interaction_model_args.embedpair.query_aggregate = True # variable output based on the number of queries
         interaction_model_args.query_pair = True if interaction_model_args.net_type in ["keypair"] else False # a query pair means that the query network outputs pairwise
-        interaction_model_args.embedpair.query_aggregate = False # variable output based on the number of queries
 
         if full_args.full_inter.lightweight_passive:
             if not (model.multi_instanced): # passive model won't be a pairnet TODO: add additional to passive model
@@ -130,11 +133,13 @@ class FullNeuralInteractionForwardModel(NeuralInteractionForwardModel):
         # state is either a single flattened state, or batch x state size, or factored_state with sufficient keys
         if factored:
             inter_state, tar_state = self._wrap_inter(state, tensor=False) 
-            next_inter_state, next_tar_state = self._wrap_inter(next_state, tensor=False)
         else:
             inp_state, tar_state = state.inter_state, state.obs
-            next_inp_state, next_tar_state = state.next_inter_state, state.obs_next
         if self.nextstate_interaction:
+            if factored:
+                next_inter_state, next_tar_state = self._wrap_inter(next_state, tensor=False)
+            else:
+                next_inp_state, next_tar_state = state.next_inter_state, state.obs_next
             tar_dict = self.extractor.reverse_extract(tar_state, target=True)
             next_tar_dict = self.extractor.reverse_extract(next_tar_state, target=True)
             tar_dict = {n: np.concatenate([tar_dict[n], next_tar_dict[n]], axis=-1) for n in tar_dict.keys()}

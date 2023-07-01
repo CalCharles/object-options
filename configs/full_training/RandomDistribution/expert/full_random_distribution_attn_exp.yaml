@@ -19,7 +19,7 @@
     load_rollouts: /hdd/datasets/object_data/RandomDistribution/random/
     num_iters: 50
     # batch_size: 2
-    batch_size: 64
+    batch_size: 128
   inter:
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
@@ -56,15 +56,14 @@
     cluster:
       cluster_mode: True
       num_clusters: 3
-    embed_inputs: 128
+    embed_inputs: 80
     mask_attn:
-      # model_dim: 4 # 256
-      # embed_dim: 4 # 512
-      # num_heads: 2 # 8
-      # num_layers: 1 # 2
-      model_dim: 128
-      num_heads: 16
-      num_layers: 2
+      model_dim: 16 # 256
+      num_heads: 5 # 8
+      num_layers: 2 # 2
+      # model_dim: 128
+      # num_heads: 16
+      # num_layers: 2
       attention_dropout: 0.1
     optimizer:
       lr: .0001

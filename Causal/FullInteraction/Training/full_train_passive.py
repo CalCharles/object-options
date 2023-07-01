@@ -72,13 +72,14 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
             # active_likelihood_full = - active_log_probs
             # print("active run", time.time() - active)
             # aoptim = time.time()
-            # active_hard_params, active_soft_params, active_full, passive_params, \
-            #     interaction_likelihood, soft_interaction_mask, hard_interaction_mask, hot_likelihood,\
-            #     target, active_hard_dist, active_soft_dist, active_full_dist, passive_dist, \
-            #     active_hard_log_probs, active_soft_log_probs, active_full_log_probs, passive_log_probs_act, \
-            #     active_hard_inputs, active_soft_inputs, active_full_inputs = full_model.likelihoods(batch, 
-            #                                         mixed=args.full_inter.mixed_interaction,
-            #                                         input_grad = True, soft_eval = True, skip_dists=1)
+            # active_hard_params, active_soft_params, active_full, \
+            #     interaction_likelihood, hot_likelihood, hard_interaction_mask, soft_interaction_mask, full_interaction_mask, target, \
+            #     active_hard_dist, active_soft_dist, active_full_dist, \
+            #     active_hard_log_probs, active_soft_log_probs, active_full_log_probs, \
+            #     active_hard_inputs, active_soft_inputs, active_full_inputs = full_model.reduced_likelihoods(batch, 
+            #                                     normalize=False, mixed=args.full_inter.mixed_interaction,
+            #                                     input_grad = True, soft_eval = True, masking=["hard", "soft", "full"]) # TODO: the return signature has changed
+            
             active_full, inter, hot_mask, full_mask, target, _, active_full_log_probs, _ = full_model.active_open_likelihoods(batch)
             active_likelihood_full, active_prediction_params = - active_full_log_probs, active_full if not full_model.cluster_mode else (active_full[0][...,target.shape[-1]:target.shape[-1] * 2], active_full[1][...,target.shape[-1]:target.shape[-1] * 2])
             active_loss = compute_likelihood(full_model, args.train.batch_size, active_likelihood_full, done_flags=done_flags, is_full = True)

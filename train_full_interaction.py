@@ -26,6 +26,7 @@ if __name__ == '__main__':
 
     # build the selectors for the passive (target), interaction or active (parent + target), parent (just parent) states
     args.controllable = None # this is filled in with controllable features of the target
+    args.EMFAC.is_emfac = False # Not training in EM mode
 
     # initialize the full model
     extractor, normalization = regenerate(args.full_inter.object_id, environment)

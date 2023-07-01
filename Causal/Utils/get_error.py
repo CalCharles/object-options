@@ -3,6 +3,7 @@ from State.object_dict import ObjDict
 from Network.network_utils import pytorch_model
 import copy
 from Causal.Utils.instance_handling import compute_likelihood, split_instances
+from Causal.Utils.perturbation_analysis import all_gradient_eval
 from State.feature_selector import broadcast
 from tianshou.data import Batch
 
@@ -19,6 +20,7 @@ error_names = [# an enumerator for different error types
     "LIKELIHOOD",# weighted likelihood, multiplying active output with the interaction, if is_full, this is the OPEN likelihood
     "PASSIVE_LIKELIHOOD", # likelihood under the passive model
     "ACTIVE_LIKELIHOOD", # likelihood of data under the active model
+    "ACTIVE_GIVEN_LIKELIHOOD", # likelihood of data with a given mask
     "ACTIVE_OPEN_LIKELIHOOD", # likelihood of data under the open (all 1 inter) active model, only for full_interaction_model
     "INTERACTION", #interaction values from the network after thresholding
     "INTERACTION_RAW", # interaction values directly output by the network
@@ -30,13 +32,14 @@ error_names = [# an enumerator for different error types
     "PROXIMITY_ALL", # gets the proximity (all other objects) with all other objects
     "TRACE",# just sends back the trace values
     "DONE", # just sends back the done values
+    "LIKELIHOOD_GRADIENT", # sends back the input gradient for all the values
 ]
 
 error_types = ObjDict({error_names[i]: i for i in range(len(error_names))})
 
 outputs = lambda x: x > error_types.ACTIVE_OPEN_LIKELIHOOD 
 
-def check_proximity(full_model, parent_state, target, normalized=False):
+def check_proximity(full_model, parent_state, target, normalized=False, reduced=True):
     num_batch = parent_state.shape[0] if len(parent_state.shape) > 1 else 1
     parent_pos = np.where(full_model.position_masks[full_model.names.primary_parent])[0]
     target_pos = np.where(full_model.position_masks[full_model.names.target])[0]
@@ -54,7 +57,7 @@ def check_proximity(full_model, parent_state, target, normalized=False):
     return np.expand_dims(np.linalg.norm(parent-target, ord=1, axis=-1) < full_model.proximity_epsilon, -1) if full_model.proximity_epsilon > 0 else np.ones((num_batch, 1)).astype(bool) # returns binarized differences
 
 
-def compute_error(full_model, error_type, part, obj_part, normalized = False, reduced=True, prenormalize=False, object_names=None):
+def compute_error(full_model, error_type, part, obj_part, normalized = False, reduced=True, prenormalize=False, object_names=None, given_mask=None):
     # @param part is the segment of rollout data
     # @param normalized asked for normalized outputs and comparisons
     # @param reduced reduces along the final output, combining the features of object state
@@ -78,6 +81,8 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
         obj_part.inter_state = part.obs
         obj_part.tarinter_state = np.concatenate([obj_part.target, obj_part.inter_state], axis=-1)
     use_part = obj_part if is_full else part
+    if not is_full:
+        use_part.tarinter_state = use_part.obs
 
     # handles 3 different targets, predicting the trace, predicting the dynamics, or predicting the next target
     if error_type == error_types.INTERACTION: target = use_part.trace
@@ -113,14 +118,16 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
 
     # likelihood type error computation
     if error_type == error_types.LIKELIHOOD:
-        if is_full: output = pytorch_model.unwrap(full_model.active_open_likelihoods(use_part)[-1])
+        if full_model.form == "full" or full_model.form == "all": output = pytorch_model.unwrap(full_model.active_open_likelihoods(use_part)[-2])
         else: output = pytorch_model.unwrap(full_model.weighted_likelihoods(use_part)[-1])
     elif error_type == error_types.PASSIVE_LIKELIHOOD:
-        output = pytorch_model.unwrap(full_model.passive_likelihoods(use_part)[-1])
+        output = pytorch_model.unwrap(full_model.passive_likelihoods(use_part)[-2])
     elif error_type == error_types.ACTIVE_LIKELIHOOD:
-        output = pytorch_model.unwrap(full_model.active_likelihoods(use_part)[-1])
+        output = pytorch_model.unwrap(full_model.active_likelihoods(use_part)[-2])
+    elif error_type == error_types.ACTIVE_GIVEN_LIKELIHOOD:
+        output = pytorch_model.unwrap(full_model.given_likelihoods(use_part, given_mask)[-2])
     elif error_type == error_types.ACTIVE_OPEN_LIKELIHOOD:
-        output = pytorch_model.unwrap(full_model.active_open_likelihoods(use_part)[-1])
+        output = pytorch_model.unwrap(full_model.active_open_likelihoods(use_part)[-2])
     if error_type <= error_types.ACTIVE_OPEN_LIKELIHOOD:
         if reduced: output = - compute_likelihood(full_model, num_batch, - output, is_full=is_full)
         return output
@@ -143,24 +150,26 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
         factored_state = full_model.unflatten(part.obs)
         part.parent_state, part.target = full_model.get_object[object_names.parent], full_model.get_object[object_names.target]
         return check_proximity(full_model, part.parent_state, part.target)
-    if error_type == error_types.PROXIMITY_FULL: # only works with a padding extractor
+    if error_type == error_types.PROXIMITY_FULL: # only works with a padding extractor, should not be called by ALL models (see case below)
         full_state = full_model.norm.reverse(part.obs, form="inter")
         target_state = full_model.norm.reverse(obj_part.target, name=full_model.name)
         return get_full_proximity(full_model, full_state, target_state, normalized=normalized)
     if error_type == error_types.PROXIMITY_ALL:
         full_state = full_model.norm.reverse(part.obs, form="inter")
-        target_states = flattened_state.reshape(flattened_state.shape[:-1] + (flattened_state.shape[-1] // full_model.pad_size, full_model.pad_size)) 
-        if len(flattened_state.shape) != 1: target_states = target_states.transpose(1,0,2) # not sure why transposing is necessary
+        target_states = full_state.reshape(full_state.shape[:-1] + (full_state.shape[-1] // full_model.pad_size, full_model.pad_size)) 
+        if len(full_state.shape) != 1: target_states = target_states.transpose(1,0,2) # not sure why transposing is necessary
         proxes = list()
-        for i in int(flattened_state.shape[-1] // full_model.pad_size):
-            target_state = target_states[:,i]
+        for i in range(int(full_state.shape[-1] // full_model.pad_size)):
+            target_state = target_states[i]
             proxes.append(get_full_proximity(full_model, full_state, target_state, normalized=normalized))
         return np.concatenate(proxes, axis=-1)
+    if error_type == error_types.LIKELIHOOD_GRADIENT:
+        return pytorch_model.unwrap(all_gradient_eval(full_model, use_part, masking="full"))
 
 
     if error_type == error_types.TRACE: return use_part.trace
     if error_type == error_types.DONE: return part.done
-    raise Error("invalid error type")
+    raise Exception("invalid error type")
 
 def get_full_proximity(full_model, flattened_state, target_state, normalized=False):
     # print(flattened_state.reshape(flattened_state.shape[:-1] + (flattened_state.shape[-1] // full_model.pad_size, full_model.pad_size)).shape)
@@ -174,7 +183,7 @@ def get_full_proximity(full_model, flattened_state, target_state, normalized=Fal
     # print(dists[0], proximity[0], proximity.shape)
     return proximity
 
-def get_error(full_model, rollouts, object_rollout=None, error_type=0, reduced=True, normalized=False, prenormalize = False, object_names=None):
+def get_error(full_model, rollouts, object_rollout=None, error_type=0, reduced=True, normalized=False, prenormalize = False, object_names=None, given_mask=None):
     # computes some term over the entire rollout, iterates through batches of 500 to avoid overloading the GPU
 
     # gets all the data from rollouts, in the order of the data (for assignment)
@@ -191,7 +200,7 @@ def get_error(full_model, rollouts, object_rollout=None, error_type=0, reduced=T
         part = batch[i*CUTSIZE:(i+1)*CUTSIZE]
         obj_part = None if obj_batch is None else object_rollout[i*CUTSIZE:(i+1)*CUTSIZE]
         done_flags = np.expand_dims((1-part.done).squeeze(), -1)
-        values = compute_error(full_model, error_type, part, obj_part, normalized=normalized, reduced=reduced, prenormalize=prenormalize, object_names = object_names)
+        values = compute_error(full_model, error_type, part, obj_part, normalized=normalized, reduced=reduced, prenormalize=prenormalize, object_names = object_names, given_mask=given_mask)
         if not outputs(error_type): values = values * done_flags
         # print("done flags", error_names[error_type], done_flags.shape, values.shape, compute_error(full_model, error_type, part, obj_part, normalized=normalized, reduced=reduced, prenormalize=prenormalize, object_names = object_names).shape)
         model_error.append(values)

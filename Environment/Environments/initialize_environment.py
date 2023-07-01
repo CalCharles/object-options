@@ -8,6 +8,7 @@ def initialize_environment(args, record_args):
     if args.env == "Breakout":
         from Environment.Environments.Breakout.breakout_screen import Breakout
         environment = Breakout(frameskip = args.frameskip, breakout_variant=args.variant, fixed_limits=args.fixed_limits)
+        print(args.seed)
         environment.seed(args.seed)
     elif args.env == "Asteroids":
         from Environment.Environments.Asteroids.asteroids import Asteroids

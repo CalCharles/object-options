@@ -10,6 +10,7 @@ from Network.General.conv import ConvNetwork
 from Network.General.pair import PairNetwork
 from Network.Dists.base import DiagGaussianForwardNetwork, InteractionNetwork
 from Network.Dists.forward_mask import DiagGaussianForwardMaskNetwork, DiagGaussianForwardPadMaskNetwork
+from Network.Dists.forward_multi import DiagGaussianForwardMultiMaskNetwork
 from Network.Dists.mask_utils import expand_mask, apply_probabilistic_mask
 from Network.Dists.forward_hot import DiagGaussianForwardPadHotNetwork
 from Network.Dists.inter_mask import InteractionMaskNetwork, InteractionSelectionMaskNetwork

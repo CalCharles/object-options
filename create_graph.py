@@ -47,6 +47,7 @@ def compute_error_bars(results, step_size, maxrange, key):
         at_step = list()
         at_mean = list()
         for r in results:
+            print(r, key, results)
             r = r[key]
             if len(r) > 0:
                 s,v = r[0]
@@ -77,10 +78,10 @@ if __name__=='__main__':
     yrng, xlim = ranges
     if args.name.find("cdl") != -1:
         results = [read_iterations_cdl(filename) for filename in filenames]
-    elif args.name.find("hype") != -1:
-        results = [read_iterations(filename) for filename in filenames]
     elif args.name.find("full") != -1:
         results = [read_full_inter(filename) for filename in filenames]
+    else:
+        results = [read_iterations(filename) for filename in filenames]
     rkeys = list(results[0][1].keys()) # they should all have the same keys
 
     def plot(results, name, ci, key):

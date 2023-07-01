@@ -9,7 +9,7 @@ def get_command_args():
     parser.add_argument('--arg-dict', default = "full_args",
                         help='choice of arguments to use')
     # config parameter
-    parser.add_argument('--main-train', default = "Breakout",
+    parser.add_argument('--main-train', default = "BreakoutStack",
                         help='choice of arguments to use')
     # environment parameters
     parser.add_argument('--record-rollouts', default = "",
@@ -308,4 +308,6 @@ def get_args():
             args = args.command
         args.config = config
         args.config_name = os.path.split(config)[1][:-5]
+    else:
+        args = args.command
     return args

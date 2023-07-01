@@ -15,10 +15,10 @@ class InteractionMaskNetwork(Network):
     def __init__(self, args):
         super().__init__(args)
         inter_args = copy.deepcopy(args)
-        inter_args.num_outputs = 1
+        inter_args.num_outputs = args.cluster.num_clusters if args.cluster.use_cluster else 1 
         inter_args.activation_final = "none" if inter_args.softmax_output else "sigmoid"
         inter_args.mask_attn.needs_encoding = True
-        inter_args.aggregate_final = False
+        inter_args.aggregate_final = args.cluster.use_cluster # if in cluster mode, special behavior
         self.softmax_output = inter_args.softmax_output
         self.num_outputs = inter_args.num_outputs
         self.inter = network_type[args.net_type](inter_args)

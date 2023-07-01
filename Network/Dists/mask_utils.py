@@ -8,11 +8,11 @@ import copy, time
 from Network.network import Network, network_type
 from Network.network_utils import pytorch_model, get_acti
 
-def apply_symmetric(symmetric_key_query, tobs):
+def apply_symmetric(symmetric_key_query, tobs, masked=None):
     if symmetric_key_query: return torch.cat([tobs.clone(), tobs], dim=-1)
     return tobs
 
-def get_hot_mask(num_clusters, batch_size, num_keys, num_queries, i, iscuda): # if called with a numpy input, needs to be unwrapped
+def get_hot_mask(num_clusters, batch_size, num_keys, num_queries, i, iscuda): # if called with a numpy output, needs to be unwrapped
     if batch_size <= 0:
         if i >= 0:
             hot_vals = pytorch_model.wrap(torch.zeros(num_keys, num_clusters), cuda=iscuda)
@@ -22,7 +22,7 @@ def get_hot_mask(num_clusters, batch_size, num_keys, num_queries, i, iscuda): # 
     if i >= 0:
         hot_vals = pytorch_model.wrap(torch.zeros(batch_size, num_keys, num_clusters), cuda=iscuda)
         hot_vals[...,i] = 1
-    else: hot_vals = pytorch_model.wrap(torch.ones(num_keys, num_clusters), cuda=iscuda) / float(num_clusters)
+    else: hot_vals = pytorch_model.wrap(torch.ones(batch_size, num_keys, num_clusters), cuda=iscuda) / float(num_clusters)
     return hot_vals 
 
 def get_active_mask(batch_size, num_keys, num_queries, iscuda):

@@ -15,7 +15,7 @@ class KeyPairNetwork(Network):
         super().__init__(args)
         self.object_dim = args.pair.object_dim # expects that object_dim is the same for the targets and the values
         self.single_obj_dim = args.pair.single_obj_dim
-        self.first_obj_dim = args.pair.first_obj_dim # this should include all the instances of the object, should be divisible by self.object_dim
+        self.first_obj_dim = args.pair.first_obj_dim # this should include all the instances of the object, should be divisible by self.single_object_dim
         self.aggregate_final = args.pair.aggregate_final
         self.query_aggregate = args.embedpair.query_aggregate
         self.reduce_fn = args.pair.reduce_function
@@ -39,7 +39,7 @@ class KeyPairNetwork(Network):
             
         embed_query_layer_args = copy.deepcopy(args)
         embed_query_layer_args.hidden_sizes = list()
-        embed_query_layer_args.pair.object_dim = self.object_dim
+        embed_query_layer_args.object_dim = self.object_dim
         embed_query_layer_args.output_dim = self.embed_dim # must have embed_inputs
         embed_query_layer_args.activation_final = embed_query_layer_args.activation
         embed_query_layer_args.pair.aggregate_final = self.query_pair # the pair net computes over all queries, so we only need a single output for any one target
@@ -101,11 +101,11 @@ class KeyPairNetwork(Network):
 
     def slice_mask_input(self, x, i, m):
         key = x[...,i * self.single_obj_dim: (i+1) * self.single_obj_dim]
-        # print(key.shape, self.embed_key_layer, x.shape)
         key = self.embed_key_layer(key)
-        queries = queries = x[...,self.first_obj_dim:]
+        queries = x[...,self.first_obj_dim:]
+        # print(key.shape, self.embed_query_layer, x.shape, queries.shape,queries.reshape(x.shape[0], -1, self.object_dim).transpose(1,2).shape, self.object_dim, self.first_obj_dim, self.single_obj_dim)
         queries = queries.reshape(x.shape[0], -1, self.object_dim).transpose(1,2)
-        # print(self.first_obj_dim, x.shape, self.object_dim, self.single_obj_dim)
+        # print(queries.shape, self.first_obj_dim, x.shape, self.object_dim, self.single_obj_dim)
         queries = self.embed_query_layer(queries).transpose(2,1).reshape(x.shape[0], -1)
         # print(queries.transpose(2,1).reshape(x.shape[0], -1)[0])
         if m is None: # unmasked if m is None
@@ -113,6 +113,7 @@ class KeyPairNetwork(Network):
             # print(x[0], xi[0])
         else:
             total_obj_dim  = self.embed_dim * self.total_instances
+            # print(m.shape, self.embed_dim, self.total_instances, x.shape, self.first_obj_dim, queries.shape)
             # print(x.shape, total_obj_dim, self.embed_dim, self.total_instances, key.shape, queries.shape, m.shape, i)
             # print((queries * m[...,i * total_obj_dim:(i+1) * total_obj_dim])[0:10])
             xi = torch.cat([key, queries * m[...,i * total_obj_dim:(i+1) * total_obj_dim]], dim=-1)
@@ -128,7 +129,7 @@ class KeyPairNetwork(Network):
         # print(self.first_obj_dim, self.single_obj_dim)
         for i in range(int(self.first_obj_dim // self.single_obj_dim)):
             xi = self.slice_mask_input(x, i, m)
-            # print(i, x.shape, xiself.query_aggregate = args.embedpair.query_aggregate.shape, self.single_obj_dim, self.first_obj_dim, x.shape[-1] - self.first_obj_dim)
+            # print(i, x.shape, xi.shape, self.query_aggregate, self.single_obj_dim, self.first_obj_dim, x.shape[-1] - self.first_obj_dim, self.first_obj_dim // self.single_obj_dim)
             # print(self.pair_net.aggregate_final, self.pair_net.num_outputs, self.pair_net.first_obj_dim)
             xil = xi
             # print(x.shape, xi.shape, self.num_layers)
@@ -145,9 +146,9 @@ class KeyPairNetwork(Network):
             else: xil = self.decode_layer(self.reappend_queries(xi, xil))
             # print(xil.shape)
             value.append(xil)
-       # print(value[0].shape, xil.shape, xi.shape)
+        # print(value[0].shape, xil.shape, xi.shape)
         x = torch.stack(value, dim=2) # [batch size, pairnet output dim, num_instances]
-        # print(x.shape, self.aggregate_final)
+        # print(x.shape, self.query_aggregate)
         if self.aggregate_final:
             x = reduce_function(self.reduce_fn, x) # reduce the stacked values along axis 2
             x = x.view(-1, self.conv_dim)

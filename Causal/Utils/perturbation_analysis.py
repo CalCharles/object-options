@@ -1,7 +1,6 @@
 import numpy as np
 import time, copy
 from Network.network_utils import pytorch_model, get_gradient
-from Causal.Utils.get_error import get_error, error_types
 import logging
 from tianshou.data import Batch
 from Causal.Utils.instance_handling import compute_likelihood
@@ -59,6 +58,44 @@ def gradient_eval(factored_state, full_model, environment, target_name, args):
     
     # loss and optimizer interaction_mask
     grad_variable = interaction_likelihood if args.inter_grad else active_full_inputs
+    grad_variable = get_gradient(full_model, full_loss, grad_variables=grad_variable)
+    # print(grad_variables[1].shape, active_soft_inputs[...,batch.obs.shape[-1]:].shape, active_soft_inputs.shape, batch.obs.shape)
+    return grad_variable
+
+def all_gradient_eval(full_model, batch, masking="full"):
+    active_hard_params, active_soft_params, active_full, \
+        interaction_likelihood, hot_likelihood, hard_interaction_mask, soft_interaction_mask, full_interaction_mask, target, \
+        active_hard_dist, active_soft_dist, active_full_dist, \
+        active_hard_log_probs, active_soft_log_probs, active_full_log_probs, \
+        active_hard_inputs, active_soft_inputs, active_full_inputs = full_model.reduced_likelihoods(batch, 
+                                        normalize=False, mixed="mixed",
+                                        input_grad = True, soft_eval = True, masking=[masking])
+
+    # done flags
+    done_flags = pytorch_model.wrap(1-batch.done, cuda = full_model.iscuda).squeeze().unsqueeze(-1)
+    if masking == "hard": active_log_probs = active_hard_log_probs
+    elif masking == "soft": active_log_probs = active_soft_log_probs
+    elif masking == "full": active_log_probs = active_full_log_probs
+    if masking == "hard": active_inputs = active_hard_inputs
+    elif masking == "soft": active_inputs = active_soft_inputs
+    elif masking == "full": active_inputs = active_full_inputs
+
+    # combine the cost function (extend possible interaction losses here)
+
+    
+    # # loss and optimizer interaction_mask
+    # grad_variables = [interaction_likelihood, active_soft_inputs]
+    # grad_variables = get_gradient(full_model, interaction_loss, grad_variables=grad_variables)
+
+    # gradient computation
+    grad_variables = [active_inputs]
+    active_nlikelihood = compute_likelihood(full_model, len(batch), - active_log_probs, done_flags=done_flags, reduced=False, is_full = True)
+    grad_variables = get_gradient(full_model, active_nlikelihood, grad_variables=grad_variables)
+
+    # combine the cost function (extend possible interaction losses here)
+    full_loss = active_nlikelihood.mean()
+    
+    # loss and optimizer interaction_mask
     grad_variable = get_gradient(full_model, full_loss, grad_variables=grad_variable)
     # print(grad_variables[1].shape, active_soft_inputs[...,batch.obs.shape[-1]:].shape, active_soft_inputs.shape, batch.obs.shape)
     return grad_variable

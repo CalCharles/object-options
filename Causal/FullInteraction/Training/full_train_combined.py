@@ -135,6 +135,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             # TODO: ccreate a good logger for the all dataset
             # print(active_nlikelihood.shape, active_full_nlikelihood.shape, active_log_probs.shape, active_params[0].shape, np.expand_dims(np.sum(pytorch_model.unwrap(interaction_likelihood) - 1, axis=-1), axis=-1).shape, batch.trace.shape, np.expand_dims(np.sum(batch.trace - 1, axis=-1), axis=-1).shape)
             single_trace = np.expand_dims(np.sum(np.sum(batch.trace - 1, axis=-1), axis=-1), axis=-1) if len(batch.trace.shape) == 3 else np.expand_dims(np.sum(batch.trace - 1, axis=-1), axis=-1)
+            if full_model.form == "all": single_trace = np.sum(single_trace, axis= -2)
             single_trace[single_trace > 1] = 1
             log_interval = logger.log(i, loss, active_nlikelihood * done_flags, active_full_nlikelihood * done_flags, 
                         active_hard_log_probs * done_flags, single_trace, weight_rate, full_batch.done,
@@ -163,6 +164,8 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             single_trace = None
             if full_model.name == "all":
                 single_trace = np.expand_dims(np.sum(rollouts.trace[inter_idxes] - 1, axis=-1), axis=-1)
+                single_trace[single_trace > 1] = 1
+                single_trace = np.sum(single_trace, axis= -2)
             elif (object_rollouts is not None and object_rollouts.trace is not None):
                 single_trace = np.expand_dims(np.sum(np.sum(object_rollouts.trace[inter_idxes] - 1, axis=-1), axis=-1), axis=-1) if len(object_rollouts.trace[inter_idxes].shape) == 3 else np.expand_dims(np.sum(object_rollouts.trace[inter_idxes] - 1, axis=-1), axis=-1)
                 single_trace[single_trace > 1] = 1
@@ -195,13 +198,13 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             # if int(inline_iters) > 0:
             #     print_errors(full_model, rollouts[inter_idxes[90:]], error_types=[error_types.ACTIVE_RAW, error_types.ACTIVE, error_types.PASSIVE_LIKELIHOOD, error_types.ACTIVE_LIKELIHOOD, error_types.TRACE, error_types.INTERACTION, error_types.INTERACTION_BINARIES, error_types.PROXIMITY, error_types.DONE], prenormalize=normalize)
             entropy_lambda = entropy_lambda_schedule(i)
-            lasso_oneloss_lambda = lasso_oneloss_schedule(i)
+            lasso_oneloss_lambda = lasso_oneloss_schedule(i)# train combined
             lasso_halfloss_lambda = lasso_halfloss_schedule(i)
             lasso_lambda = lasso_schedule(i) if dual_lasso_lr <= 0 else lasso_lambda
             inline_iters = inline_iter_schedule(i)
             active_weighting_lambda = active_weighting_schedule(i)
             # print(active_weighting_lambda)
-            active_weights = get_weights(active_weighting_lambda, object_rollouts.weight_binary[:len(rollouts)].squeeze())
+            active_weights = get_weights(active_weighting_lambda, (object_rollouts if full_model.form == "full" else rollouts).weight_binary[:len(rollouts)].squeeze() if full_model.form == "full" else rollouts.weight_binary[:len(rollouts)].squeeze())
             # print(active_weights)
             inter_weighting_lambda = interaction_weighting_schedule(i)
 
@@ -210,7 +213,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             # print(type(full_model.apply_mask(get_error(full_model, rollouts, object_rollout=object_rollouts, error_type = check_error), x=tarinter_all)))
             # print(type(get_error(full_model, rollouts, object_rollout=object_rollouts, error_type = check_error)), type(tarinter_all))
             mask_binary = (np.sum(np.round(full_model.apply_mask(get_error(full_model, rollouts, object_rollout=object_rollouts, error_type = check_error), x=tarinter_all)), axis=-1) > 1).astype(int)
-            inter_bin = (object_rollouts.weight_binary[:len(rollouts)].squeeze() + mask_binary.squeeze())
+            inter_bin = ((object_rollouts if full_model.form == "full" else rollouts).weight_binary[:len(rollouts)].squeeze() + mask_binary.squeeze())
             inter_bin[inter_bin> 1] = 1
             interaction_weights = get_weights(inter_weighting_lambda, inter_bin)
             # print("inline_iters", inline_iters)
@@ -234,5 +237,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             #     # full_model.norm.reverse(pytorch_model.unwrap(active_params[0])), full_model.norm.reverse(pytorch_model.unwrap(active_params[1])),
             #     # pytorch_model.unwrap(active_params[0]), pytorch_model.unwrap(active_params[1]),
             #     pytorch_model.unwrap(active_nlikelihood), pytorch_model.unwrap(passive_nlikelihood), pytorch_model.unwrap(interaction_likelihood), trace[idxes], np.expand_dims(active_weights[idxes], 1)], axis=-1))
+            test_dict = test_full(full_model, test_rollout, test_object_rollout, args, None)
+            logger.log_testing(test_dict)
     test_dict = test_full(full_model, test_rollout, test_object_rollout, args, None)
     logger.log_testing(test_dict)

@@ -3,7 +3,7 @@ import time
 from Causal.Utils.get_error import get_error, error_types
 import logging
 
-def test_full(full_model, test_full_buffer, test_object_buffer, args, environment):
+def test_full(full_model, test_full_buffer, test_object_buffer, args, environment, printouts=False):
 	''' train, test| prediction l1 per-element
 	train, test| max, min, mean per-element likelihood
 	interaction binary, true FP, FN
@@ -11,7 +11,8 @@ def test_full(full_model, test_full_buffer, test_object_buffer, args, environmen
 	'''
 	# start = time.time()
 	# next target or target diff predicted
-	test_target = test_object_buffer.target_diff if full_model.predict_dynamics else test_object_buffer.next_target
+	# if full_model.form == "all": test_full_buffer.tarinter_state = test_full_buffer.obs
+	test_target = (test_object_buffer.target_diff if full_model.predict_dynamics else test_object_buffer.next_target) if full_model.form == "full" else (test_full_buffer.target_diff if full_model.predict_dynamics else test_full_buffer.next_target)
 	test_valid = (test_full_buffer.done != 1).squeeze()[:len(test_full_buffer)] # TODO: needs to regulate the length because of a bug in Tianshou
 	# print(time.time() - start )
 
@@ -66,7 +67,7 @@ def test_full(full_model, test_full_buffer, test_object_buffer, args, environmen
 	# interaction binaries (these are binaries per state)
 	test_bin = get_error(full_model, test_full_buffer, object_rollout=test_object_buffer, error_type = error_types.INTERACTION_BINARIES)[test_valid]
 	# interaction trace (these are length(all) vectors per state)
-	test_trace = test_object_buffer.trace[:len(test_object_buffer)][test_valid]
+	test_trace = test_object_buffer.trace[:len(test_object_buffer)][test_valid] if full_model.form == "full" else test_full_buffer.trace[:len(test_full_buffer)].reshape(len(test_full_buffer), -1)[test_valid]
 	# interaction likelihood values (length all vectors per state)
 	test_likev = get_error(full_model, test_full_buffer, object_rollout=test_object_buffer, error_type = error_types.INTERACTION_RAW)[test_valid]
 	# interaction mask values flat (length all vectors per state) 
@@ -87,7 +88,7 @@ def test_full(full_model, test_full_buffer, test_object_buffer, args, environmen
 	# l1 difference between the trace and the likev
 	likev_diff = np.mean(np.abs(test_trace - test_likev.astype(int)), axis=0)
 	likev_miss = np.sum(np.abs(test_trace - test_likev.astype(int)), axis=-1)
-	print("trace, likev samples", test_trace[:10], test_likev[:10])
+	# print("trace, likev samples", test_trace[:10], test_likev[:10])
 	likev_average_miss = np.sum(likev_diff, axis=-1)
 	# print(time.time() - start, test_trace.shape, test_likev.shape, (test_trace - test_likev).shape)
 
@@ -99,8 +100,8 @@ def test_full(full_model, test_full_buffer, test_object_buffer, args, environmen
 
 	# proximity
 	# print("getting error", test_full_buffer.parent_state[:10], test_full_buffer.target[:10])
-	test_prox = get_error(full_model, test_full_buffer, object_rollout=test_object_buffer, error_type=error_types.PROXIMITY_FULL, normalized=True)[test_valid]
-
+	if full_model.form == "full": test_prox = get_error(full_model, test_full_buffer, object_rollout=test_object_buffer, error_type=error_types.PROXIMITY_FULL, normalized=True)[test_valid]
+	elif full_model.form == "all": test_prox = get_error(full_model, test_full_buffer, error_type=error_types.PROXIMITY_ALL, normalized=True)[test_valid]
 
 	inter_points = (flat_miss >= 1) + (likev_miss >= 1)
 	# print(time.time() - start)
@@ -132,10 +133,10 @@ def test_full(full_model, test_full_buffer, test_object_buffer, args, environmen
 		log_string += '\n' + key + f': {log_values[key]}'
 
 
-	target = test_object_buffer.obs[:len(test_object_buffer)][test_valid]#[inter_points]
-	inter_state = test_full_buffer.obs[:len(test_full_buffer)][test_valid]#[inter_points]
-	next_target = test_object_buffer.obs_next[:len(test_object_buffer)][test_valid]#[inter_points]
-	target_diff = test_object_buffer.target_diff[:len(test_object_buffer)][test_valid]#[inter_points]
+	target = test_object_buffer.obs[:len(test_object_buffer)][test_valid] if full_model.form == "full" else test_full_buffer.target[:len(test_full_buffer)][test_valid] 
+	inter_state = test_full_buffer.obs[:len(test_full_buffer)][test_valid] 
+	next_target = test_object_buffer.obs_next[:len(test_object_buffer)][test_valid] if full_model.form == "full" else test_full_buffer.next_target[:len(test_full_buffer)][test_valid] 
+	target_diff = test_object_buffer.target_diff[:len(test_object_buffer)][test_valid] if full_model.form == "full" else test_full_buffer.target_diff[:len(test_full_buffer)][test_valid] 
 
 	passive_samp = np.concatenate([target_diff, test_raw_passive, test_l1_passive, test_passive_var, test_likev], axis=-1)[inter_points]
 	active_samp = np.concatenate([target_diff, test_raw_active, test_l1_active, test_active_var, test_likev], axis=-1)[inter_points]
@@ -159,5 +160,5 @@ def test_full(full_model, test_full_buffer, test_object_buffer, args, environmen
 	log_string += f'\nactive_pred_diff: {active_samp}'
 	log_string += f'\nlike, pred, bin, trace, prox, like, plike, alike: {bins}'
 	logging.info(log_string)
-	print(log_string, np.sum(inter_points.astype(int)))
+	if printouts: print(log_string, np.sum(inter_points.astype(int)))
 	return log_values

@@ -98,11 +98,11 @@ def train_full(full_model, rollouts, object_rollout, test_rollout, test_object_r
     # if len(args.inter.load_intermediate) > 0: full_model.passive_model, full_model.active_model, full_model.interaction_model, active_optimizer, passive_optimizer, interaction_optimizer = load_intermediate(args, full_model, environment)
     # sampling weights, either wit hthe passive error or if we can upweight the true interactions
     passive_weights = get_passive_weights(args, full_model, rollouts if full_model.form == "all" else object_rollout)
-    proximal = get_error(full_model, rollouts, object_rollout, error_type=error_types.PROXIMITY_FULL, normalized = True)
+    proximal = get_error(full_model, rollouts, object_rollout, error_type=error_types.PROXIMITY_FULL if full_model.form == "full" else error_types.PROXIMITY_ALL, normalized = True)
     passive_error, active_weights, binaries = separate_weights(args.inter.active.weighting, full_model, rollouts, proximal, None, object_rollouts=object_rollout)
     # print(passive_error, binaries)
     # error
-    interaction_weights = get_weights(args.inter.active.weighting[2], object_rollout.weight_binary)
+    interaction_weights = get_weights(args.inter.active.weighting[2], object_rollout.weight_binary if full_model.form == "full" else rollouts.weight_binary)
     if args.inter.interaction.interaction_pretrain > 0: train_interaction(full_model, rollouts, object_rollout, args, interaction_optimizer)
 
 

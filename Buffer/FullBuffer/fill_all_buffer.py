@@ -24,8 +24,9 @@ def fill_all_buffer(full_model, environment, data, args, object_names, norm, pre
         
         full_traces = environment.get_full_trace(factored_state, act)
         trace = np.stack([full_traces[name] for name in environment.all_names], axis=0).astype(float)
+        trace = np.pad(trace, (0, 2))[:trace.shape[0]]
         proximity = np.stack([get_full_proximity(full_model, full_state, full_model.target_selectors[name](factored_state), normalized=False) for name in environment.all_names], axis=0)
-        weight_binary = np.ones(environment.instance_length)
+        weight_binary = np.ones(1)
 
         # assign selections of the state
         obs = norm(full_state, form="inter")

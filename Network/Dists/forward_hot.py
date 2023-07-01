@@ -9,7 +9,7 @@ from Network.General.mlp import MLPNetwork
 from Network.General.conv import ConvNetwork
 from Network.General.pair import PairNetwork
 import copy, time
-from Network.Dists.mask_utils import expand_mask, apply_probabilistic_mask, count_keys_queries
+from Network.Dists.mask_utils import expand_mask, apply_probabilistic_mask, count_keys_queries, get_hot_mask, get_active_mask, get_passive_mask, apply_symmetric
 
 
 MASK_ATTENTION_TYPES = ["maskattn"] # currently only one kind of mask attention net
@@ -24,7 +24,7 @@ class DiagGaussianForwardPadHotNetwork(Network):
         self.cluster_mode = args.cluster.cluster_mode
         self.num_clusters = args.cluster.num_clusters
         self.needs_key_query = args.net_type in MASK_ATTENTION_TYPES
-        self.embed_dim = args.embed_inputs * max(1, int(self.maskattn) * args.mask_attn.num_heads )
+        self.embed_dim = args.embed_inputs * max(1, int(self.maskattn))
         self.object_dim = args.pair.object_dim # the object dim is the dimension of the value input
         self.single_obj_dim = args.pair.single_obj_dim
         self.first_obj_dim = args.pair.first_obj_dim # this should include all the instances of the object, should be divisible by self.single_obj_dim
@@ -42,7 +42,7 @@ class DiagGaussianForwardPadHotNetwork(Network):
             args.include_last = True
             key_args = copy.deepcopy(args)
             key_args.object_dim = args.pair.single_obj_dim
-            key_args.output_dim = self.embed_dims
+            key_args.output_dim = self.embed_dim
             key_args.hidden_sizes = args.pair.final_layers
             key_args.use_layer_norm = False
             key_args.pair.aggregate_final = False
@@ -79,6 +79,7 @@ class DiagGaussianForwardPadHotNetwork(Network):
             forward_args.pair.aggregate_final = False
             forward_args.pair.object_dim = self.embed_dim 
             forward_args.pair.first_obj_dim = int(self.embed_dim * (self.first_obj_dim / self.single_obj_dim))
+        # print("num_first", self.first_obj_dim / self.single_obj_dim, self.embed_dim, forward_args.pair.first_obj_dim)
         self.means = nn.ModuleList([network_type[args.net_type](forward_args) for i in range(self.num_clusters)])
         self.stds = nn.ModuleList([network_type[args.net_type](forward_args) for i in range(self.num_clusters)])
 
@@ -99,11 +100,12 @@ class DiagGaussianForwardPadHotNetwork(Network):
         if hasattr(self.inter_models[0], "reset_environment"): 
             for im in self.inter_models:
                 im.reset_environment(class_index, num_objects, first_obj_dim)
-        if hasattr(self.means[0], "reset_environment"): 
+        if hasattr(self.means[0], "reset_environment"):
+            if self.embed_dim > 0: emb_first_obj_dim = int(self.embed_dim * (self.first_obj_dim / self.single_obj_dim))
             for m in self.means:
-                m.reset_environment(class_index, num_objects, first_obj_dim)
+                m.reset_environment(class_index, num_objects, emb_first_obj_dim)
             for s in self.stds:
-                s.reset_environment(class_index, num_objects, first_obj_dim)
+                s.reset_environment(class_index, num_objects, emb_first_obj_dim)
 
     def slice_input(self, x):
         keys = torch.stack([x[...,i * self.single_obj_dim: (i+1) * self.single_obj_dim] for i in range(int(self.first_obj_dim // self.single_obj_dim))], dim=-2) # [batch size, num keys, single object dim]
@@ -116,21 +118,27 @@ class DiagGaussianForwardPadHotNetwork(Network):
         return count_keys_queries(self.first_obj_dim, self.single_obj_dim, self.object_dim, x)
 
     def get_hot_passive_mask(self, batch_size, num_keys, num_queries): # if called with a numpy input, needs to be unwrapped
+        if num_keys < 0: num_keys = int(self.first_obj_dim // self.single_obj_dim)
         return get_hot_mask(self.num_clusters, batch_size, num_keys, num_queries, 0, self.iscuda)
 
     def get_hot_full_mask(self, batch_size, num_keys, num_queries):
+        if num_keys < 0: num_keys = int(self.first_obj_dim // self.single_obj_dim)
         return get_hot_mask(self.num_clusters, batch_size, num_keys, num_queries, 1, self.iscuda)
 
     def get_all_mask(self, batch_size, num_keys, num_queries):
+        if num_keys < 0: num_keys = int(self.first_obj_dim // self.single_obj_dim)
         return get_hot_mask(self.num_clusters, batch_size, num_keys, num_queries, -1, self.iscuda)
 
     def get_passive_mask(self, batch_size, num_keys, num_queries):
+        if num_keys < 0: num_keys = int(self.first_obj_dim // self.single_obj_dim)
         return get_passive_mask(batch_size, num_keys, num_queries, self.num_objects, self.class_index, self.iscuda)
 
     def get_active_mask(self, batch_size, num_keys, num_queries):
+        if num_keys < 0: num_keys = int(self.first_obj_dim // self.single_obj_dim)
         return get_active_mask(batch_size, num_keys, num_queries, self.iscuda)
 
     def get_inter_mask(self, i, x, num_keys, soft, mixed, flat):
+        if num_keys < 0: num_keys = int(self.first_obj_dim // self.single_obj_dim)
         inter = self.inter_models[i](x).reshape(x.shape[0], num_keys, -1)
         # print(inter[:4], self.inter_dist, self.relaxed_inter_dist, ((not soft) or (soft and mixed)), (soft and not mixed), mixed, flat, self.dist_temperature)
         return apply_probabilistic_mask(inter, inter_dist=self.inter_dist if ((not soft) or (soft and mixed)) else None,
@@ -179,6 +187,7 @@ class DiagGaussianForwardPadHotNetwork(Network):
         # print(torch.stack(total_out, dim=-1).shape, m.unsqueeze(-2).shape, (torch.stack(total_out, dim=-1) * m.unsqueeze(-2)).sum(-1).shape)
         # print(torch.stack(total_out, dim=-1).shape, torch.stack(total_out, dim=-1).transpose(-2,-1)[:3], torch.stack(total_out, dim=-1).transpose(-2,-1).reshape(keys.shape[0], -1)[:3])
         # print("to", total_out[2][0], full, torch.stack(total_out, dim=1).reshape(keys.shape[0], -1)[0])
+        print("full", keys.shape[0], torch.stack(total_out, dim=1).shape, full)
         if full: return torch.stack(total_out, dim=1).reshape(keys.shape[0], -1) # batch size x n_keys * single_obj_dim * num_clusters
         return (torch.stack(total_out, dim=-1) * m.unsqueeze(-2)).sum(-1).reshape(keys.shape[0], -1) # batch size x n_keys * single_obj_dim
 
@@ -191,7 +200,6 @@ class DiagGaussianForwardPadHotNetwork(Network):
         keys, queries = self.slice_input(x) # [batch size, object dim, num queries], [batch size, single object dim, num keys]
         keys = self.key_encoding(keys) # [batch size, embed dim, num keys]
         queries = self.query_encoding(queries) # [batch size, embed dim, num queries]
-        # print(keys.shape, queries.shape, m)
         inter_masks, total_mask = self.compute_cluster_masks(x, m, keys.shape[-1], queries.shape[-1], soft=soft, mixed=mixed, flat=flat)
         # if full: print(inter_masks.mean(1).squeeze(), soft, mixed)
         if not self.needs_key_query:

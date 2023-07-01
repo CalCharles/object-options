@@ -14,6 +14,7 @@ def read_iterations(filename):
     test_vals = {"scores": list()}
     train_mode = False
     for line in file.readlines():
+        print(line)
         if line.find(TR) != -1:
             train_mode = True
         if line.find(TE) != -1:
