@@ -20,6 +20,8 @@ def get_command_args():
                         help='save the trained network here')
     parser.add_argument('--env',
                         help='environment to run on')
+    parser.add_argument('--gym-to-gymnasium', action='store_true', default=False,
+                        help='converts a gym environment to a gymnsaium environment spec')
     parser.add_argument('--render', action='store_true', default=False,
                         help='run the pushing gripper domain')
     parser.add_argument('--fixed-limits', action='store_true', default=False,

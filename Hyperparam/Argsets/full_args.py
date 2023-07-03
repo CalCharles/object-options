@@ -94,6 +94,7 @@ full_args = {
         "demonstrate": False,
         "load_environment": "",
         "fixed_limits": False,
+        "gym_to_gymnasium": True,
     },
     "torch": {
         "gpu": 1,
