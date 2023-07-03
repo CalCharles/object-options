@@ -3,6 +3,23 @@ from config_list import breakout_configs, breakout_variant_configs, robopushing_
 from arguments import get_args
 from Hyperparam.read_config import read_config
 from train_interaction import train_interaction
+from train_masking import train_mask
+from generate_random import generate_random, generate_args
+
+def breakout_random(config_choice):
+    breakout_path = config_choice.pop(0)
+    rand_args = generate_args()
+    rand_args.record_rollouts = breakout_path
+    rand_args.env = "Breakout"
+    # generate_random(rand_args)
+
+def robo_random(config_choice):
+    robo_path = config_choice.pop(0)
+    rand_args = generate_args()
+    rand_args.record_rollouts = robo_path
+    rand_args.env = "RoboPushing"
+    generate_random(rand_args)
+
 
 if __name__ == "__main__":
     args = get_args()
@@ -13,15 +30,19 @@ if __name__ == "__main__":
     else:
         if args.main_train == "BreakoutStack":
             config_choice = breakout_configs
+            breakout_random(breakout_configs)
         elif args.main_train == "RoboPushingStack":
             config_choice = robopushing_configs
-        print(config_choice)
+            robo_random(robopushing_configs)
         for i, config in enumerate(config_choice):
+            # if i < 3: continue
             args = read_config(config)
             if i % 3 == 0:
-                train_interaction(args)
-            elif i % 2 == 0:
-                train_masking(args)
+                pass
+                # train_interaction(args)
+            elif i % 3 == 1:
+                pass
+                # train_mask(args)
             else:
                 train_option(args)
         if args.main_train == "RoboPushingObstacle":

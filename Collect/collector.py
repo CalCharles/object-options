@@ -142,7 +142,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         write_string(os.path.join(self.save_path, "mask_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string([mask[0]]) + "\n")
 
     def reset_env(self, keep_statistics: bool = False):
-        full_state = self.env.reset()
+        full_state, info = self.env.reset()
         self._reset_components(full_state[0])
 
     def _reset_components(self, full_state):
@@ -351,6 +351,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             if self.save_action: self._save_action(act, action_chain, terminations, param, mask)
             info[0]["TimeLimit.truncated"] = bool(cutoff + info[0]["TimeLimit.truncated"]) if "TimeLimit.truncated" in info[0] else cutoff # environment might send truncated itself
             info[0]["TimeLimit.truncated"] = bool(self.trunc_true * true_done + info[0]["TimeLimit.truncated"]) # if we want to treat environment resets as truncations
+            truncated = info[0]["TimeLimit.truncated"]
             self.option.update(act, action_chain, terminations, masks, update_policy=not self.test)
             # print(parent_state, target, param, act)
             # print(inter_state, self.option.interaction_model.predict_next_state(self.data.full_state))
@@ -367,6 +368,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             # update the current values TODO: next_full_state is time expensive (.001 sec per iteration). It should be stored separately
             self.data.update(next_full_state=[next_full_state], true_done=last_true_done, next_true_done=true_done, true_reward=true_reward, 
                 param=param, mask = mask, info = info, inter = [inter], time=[1], trace = [np.any(self.environment.current_trace(self.names))],
+                truncated=[truncated], terminated=[done],
                 inst_trace=self.environment.current_trace(self.names), proximity=[proximity.squeeze()], 
                 proximity_inst=[proximity_inst.squeeze()], weight_binary=[binaries.squeeze()],
                 rew=[rew], done=[done], terminate=[term], ext_term = [ext_term], # all prior are stored, after are not 

@@ -1,7 +1,7 @@
 import copy
 
 network_args = {    
-    "net_type": "basic",
+    "net_type": "mlp",
     "use_layer_norm": False,
     "hidden_sizes": list(), # TODO: must have values if used
     "init_form": "",

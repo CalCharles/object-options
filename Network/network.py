@@ -27,6 +27,8 @@ class Network(nn.Module):
         if gpu is not None: self.gpu = gpu
         for m in self.model:
             if issubclass(type(m), Network): m.cuda(gpu=gpu)
+            else: m.cuda()
+            # if hasattr(m, "weight"): print(type(m), m.weight.data)
         return self
 
     def cpu(self):

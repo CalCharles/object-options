@@ -5,7 +5,7 @@ import logging
 def test_full_train(full_model, train_buffer, args, object_names, environment):
 	# prints out training assessment, with most of the same values as test_full
 	# predicted target for the model
-	train_buffer = train_buffer.sample(0) # only sample valid indices
+	train_buffer, all_indices = train_buffer.sample(0) # only sample valid indices
 	train_target = train_buffer.next_target if full_model.predict_dynamics else train_buffer.target_diff
 
 	train_valid = (train_buffer.done != 1).squeeze()
@@ -114,6 +114,7 @@ def test_full(full_model, test_buffer, args, object_names, environment):
 	samples of 128: target, binary, trace, passive error, prediction means
 	'''
 	# next target or target diff predicted
+	test_buffer, test_all_indices = test_buffer.sample(0) # only sample valid indices
 	test_target = test_buffer.target_diff if full_model.predict_dynamics else test_buffer.next_target
 	test_valid = (test_buffer.done != 1).squeeze()[:len(test_buffer)] # TODO: needs to regulate the length because of a bug in Tianshou
 

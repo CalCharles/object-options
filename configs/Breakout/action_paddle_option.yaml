@@ -28,7 +28,6 @@ critic_net:
 actor_net:
 network:
   hidden_sizes: 128 128
-  net_type: basic
   activation_final: tanh
   scale_logits: 30
   optimizer:

@@ -117,18 +117,20 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
         return np.stack(pytorch_model.unwrap(output))
 
     # likelihood type error computation
+    likelihood_index = -2 if (full_model.form == "full" or full_model.form == "all") else -1 # pair interaction models use a different index
     if error_type == error_types.LIKELIHOOD:
-        if full_model.form == "full" or full_model.form == "all": output = pytorch_model.unwrap(full_model.active_open_likelihoods(use_part)[-2])
-        else: output = pytorch_model.unwrap(full_model.weighted_likelihoods(use_part)[-1])
+        if full_model.form == "full" or full_model.form == "all": output = pytorch_model.unwrap(full_model.active_open_likelihoods(use_part)[likelihood_index])
+        else: output = pytorch_model.unwrap(full_model.weighted_likelihoods(use_part)[likelihood_index])
     elif error_type == error_types.PASSIVE_LIKELIHOOD:
-        output = pytorch_model.unwrap(full_model.passive_likelihoods(use_part)[-2])
+        output = pytorch_model.unwrap(full_model.passive_likelihoods(use_part)[likelihood_index])
     elif error_type == error_types.ACTIVE_LIKELIHOOD:
-        output = pytorch_model.unwrap(full_model.active_likelihoods(use_part)[-2])
+        output = pytorch_model.unwrap(full_model.active_likelihoods(use_part)[likelihood_index])
     elif error_type == error_types.ACTIVE_GIVEN_LIKELIHOOD:
-        output = pytorch_model.unwrap(full_model.given_likelihoods(use_part, given_mask)[-2])
+        output = pytorch_model.unwrap(full_model.given_likelihoods(use_part, given_mask)[likelihood_index])
     elif error_type == error_types.ACTIVE_OPEN_LIKELIHOOD:
-        output = pytorch_model.unwrap(full_model.active_open_likelihoods(use_part)[-2])
+        output = pytorch_model.unwrap(full_model.active_open_likelihoods(use_part)[likelihood_index])
     if error_type <= error_types.ACTIVE_OPEN_LIKELIHOOD:
+        print(output, error_type, error_types.LIKELIHOOD)
         if reduced: output = - compute_likelihood(full_model, num_batch, - output, is_full=is_full)
         return output
 

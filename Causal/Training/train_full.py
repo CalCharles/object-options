@@ -58,7 +58,6 @@ def train_full(full_model, rollouts, test_rollout, args, object_names, environme
     # Proximity for Test rollouts
     test_proximal = get_error(full_model, test_rollout, error_type=error_types.PROXIMITY, normalized=True).astype(int)
     test_proximal_inst = get_error(full_model, test_rollout, error_type=error_types.PROXIMITY, reduced=False, normalized=True).astype(int) # the same as above if not multiinstanced
-
     train_passive(full_model, rollouts, args, active_optimizer, passive_optimizer, weights=non_proximal_weights if full_model.proximity_epsilon > 0 else None)
 
     del passive_optimizer

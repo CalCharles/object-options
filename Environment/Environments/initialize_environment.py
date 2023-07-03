@@ -7,7 +7,7 @@ def initialize_environment(args, record_args):
     # construct an environment specified by args.env
     if args.env == "Breakout":
         from Environment.Environments.Breakout.breakout_screen import Breakout
-        environment = Breakout(frameskip = args.frameskip, breakout_variant=args.variant, fixed_limits=args.fixed_limits)
+        environment = Breakout(frameskip = args.frameskip, breakout_variant=args.variant, fixed_limits=args.fixed_limits, gymnasium=args.is_gymnasium)
         print(args.seed)
         environment.seed(args.seed)
     elif args.env == "Asteroids":
@@ -25,7 +25,7 @@ def initialize_environment(args, record_args):
     elif args.env == "RandomDistribution":
         from Environment.Environments.RandomDistribution.random_distribution import RandomDistribution
         if len(args.load_environment) > 0: environment = load_from_pickle(os.path.join(args.load_environment, "environment.pkl"))
-        else: environment = RandomDistribution(frameskip = args.frameskip, variant=args.variant, fixed_limits=args.fixed_limits)
+        else: environment = RandomDistribution(frameskip = args.frameskip, variant=args.variant, fixed_limits=args.fixed_limits, gymnasium=args.is_gymnasium)
         environment.seed(args.seed)
     # elif args.env == "Nav2D":
         # environment = Nav2D()
@@ -38,7 +38,7 @@ def initialize_environment(args, record_args):
         from Environment.Environments.RoboPushing.robopushing_screen import RoboPushing
 
         args.continuous = True
-        environment = RoboPushing(variant=args.variant, horizon=args.horizon, renderable=args.render, fixed_limits=args.fixed_limits)
+        environment = RoboPushing(variant=args.variant, horizon=args.horizon, renderable=args.render, fixed_limits=args.fixed_limits, gymnasium=args.is_gymnasium)
         environment.seed(args.seed)
     elif args.env.find("AirHockey") != -1:
         from Environment.Environments.AirHockey.air_hockey import RobosuiteAirHockey

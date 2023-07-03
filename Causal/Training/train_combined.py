@@ -50,8 +50,8 @@ def train_combined(full_model, rollouts, test_rollout, args,
     active_optimizer, passive_optimizer, interaction_optimizer,
     normalize=False):    
 
-    passive_logger = forward_logger("passive", args.graph.record_graphs, args.inter.active.active_log_interval, full_model)
-    logger = forward_logger("active", args.graph.record_graphs, args.inter.active.active_log_interval, full_model)
+    passive_logger = forward_logger("passive", args.record.record_graphs, args.inter.active.active_log_interval, full_model)
+    logger = forward_logger("active", args.record.record_graphs, args.inter.active.active_log_interval, full_model)
     inter_logger = interaction_logger("interaction", args.record.record_graphs, args.inter.active.active_log_interval, full_model)
     # initialize loss function
     inter_loss = nn.BCELoss()

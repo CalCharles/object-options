@@ -99,6 +99,7 @@ class NeuralInteractionForwardModel(nn.Module):
     def __init__(self, args, environment):
         super().__init__()
         # set input and output
+        self.form = "pair"
         self.name = make_name(args.object_names)
         self.names = args.object_names
         self.extractor = CausalExtractor(self.names, environment)
@@ -144,7 +145,7 @@ class NeuralInteractionForwardModel(nn.Module):
         self.proximity_epsilon, self.position_masks = args.inter.proximity_epsilon, environment.position_masks
 
         # set up cuda
-        self.cuda() if args.torch.cuda else self.cpu()
+        self.cuda(args.torch.gpu) if args.torch.cuda else self.cpu()
 
     def regenerate(self, environment):
         self.extractor = CausalExtractor(self.names, environment)
@@ -168,6 +169,7 @@ class NeuralInteractionForwardModel(nn.Module):
 
     def save(self, pth):
         torch.save(self.cpu(), os.path.join(create_directory(pth), self.name + "_inter_model.pt"))
+        self.cuda(device=self.device)
 
     def cpu(self):
         super().cpu()
@@ -178,7 +180,8 @@ class NeuralInteractionForwardModel(nn.Module):
         return self
 
     def cuda(self, device=-1):
-        device = cuda_string(device)
+        if device >= 0: self.device=device
+        device = cuda_string(self.device)
         super().cuda()
         self.active_model.cuda().to(device)
         self.interaction_model.cuda().to(device)

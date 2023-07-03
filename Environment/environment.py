@@ -1,6 +1,7 @@
 import numpy as np
+import gymnasium as gym
 
-class Environment():
+class Environment(gym.Env):
     def __init__(self, frameskip = 1, variant="", fixed_limits=False):
         ''' required attributes:
             num actions: int or None
@@ -92,6 +93,7 @@ class Environment():
         '''
         numpy should be the only source of randomness, but override if there are more
         '''
+        if seed < 0: seed = np.random.randint(10000)
         np.random.seed(seed)
 
 
