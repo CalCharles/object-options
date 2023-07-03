@@ -130,7 +130,6 @@ def compute_error(full_model, error_type, part, obj_part, normalized = False, re
     elif error_type == error_types.ACTIVE_OPEN_LIKELIHOOD:
         output = pytorch_model.unwrap(full_model.active_open_likelihoods(use_part)[likelihood_index])
     if error_type <= error_types.ACTIVE_OPEN_LIKELIHOOD:
-        print(output, error_type, error_types.LIKELIHOOD)
         if reduced: output = - compute_likelihood(full_model, num_batch, - output, is_full=is_full)
         return output
 

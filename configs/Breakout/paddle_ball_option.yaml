@@ -1,11 +1,11 @@
 ---
   record:
-    record_rollouts: /nfs/data/calebc/object_data/breakout/testrun/ball3/
+    # record_rollouts: /hdd/datasets/object_data/breakout/testrun/ball
     # record_rollouts: /hdd/datasets/object_data/breakout/testrun/ball
     record_recycle: -1
     log_filename: logs/temp/ball_train3.log
-    load_dir: /hdd/datasets/object_data/breakout/testrun2/
-    save_dir: /hdd/datasets/object_data/breakout/testrun2/run3/
+    load_dir: /hdd/datasets/object_data/breakout/testrun2
+    save_dir: /hdd/datasets/object_data/breakout/testrun2
     # checkpoint_dir: /nfs/data/calebc/object_data/breakout/testrun/paddle_ball_checkpoint
     save_interval: 100
   environment:
@@ -21,7 +21,7 @@
     num_steps: 250 #
     num_frames: 1000
     train_edge: Paddle Ball
-    load_rollouts: /hdd/datasets/object_data/breakout/paddle
+    load_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle
     num_iters: 40000
     batch_size: 128 # 
   critic_net:
@@ -30,7 +30,7 @@
     activation_final: tanh
     scale_logits: 10
     hidden_sizes: 128 128 128 128 128 128
-    net_type: basic
+    net_type: mlp
     optimizer:
       lr: .0001
       alt_lr: .0001
@@ -56,6 +56,7 @@
     temporal_extend: 3
     time_cutoff: 300
     interaction_as_termination: True
+    use_binary: False
   collect:
     buffer_len : 300000
     test_episode: True

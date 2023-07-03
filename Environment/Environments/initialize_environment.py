@@ -1,13 +1,14 @@
 from Record.file_management import load_from_pickle
 from Record.record_state import FullRecord
 import os
+from Environment.gymnasium_wrapper import GymnasiumWrapper
 
 
 def initialize_environment(args, record_args):
     # construct an environment specified by args.env
     if args.env == "Breakout":
         from Environment.Environments.Breakout.breakout_screen import Breakout
-        environment = Breakout(frameskip = args.frameskip, breakout_variant=args.variant, fixed_limits=args.fixed_limits, gymnasium=args.is_gymnasium)
+        environment = Breakout(frameskip = args.frameskip, breakout_variant=args.variant, fixed_limits=args.fixed_limits)
         print(args.seed)
         environment.seed(args.seed)
     elif args.env == "Asteroids":
@@ -25,7 +26,7 @@ def initialize_environment(args, record_args):
     elif args.env == "RandomDistribution":
         from Environment.Environments.RandomDistribution.random_distribution import RandomDistribution
         if len(args.load_environment) > 0: environment = load_from_pickle(os.path.join(args.load_environment, "environment.pkl"))
-        else: environment = RandomDistribution(frameskip = args.frameskip, variant=args.variant, fixed_limits=args.fixed_limits, gymnasium=args.is_gymnasium)
+        else: environment = RandomDistribution(frameskip = args.frameskip, variant=args.variant, fixed_limits=args.fixed_limits)
         environment.seed(args.seed)
     # elif args.env == "Nav2D":
         # environment = Nav2D()
@@ -53,7 +54,7 @@ def initialize_environment(args, record_args):
         environment = RoboStick(variant=args.variant, horizon=args.time_cutoff, renderable=args.render, fixed_limits=args.fixed_limits)
         environment.seed(args.seed)
     if args.gym_to_gymnasium:
-        environment = gynmasium_wrapper(environment)
+        environment = GymnasiumWrapper(environment)
     record = FullRecord(0, record_args.record_rollouts, record_args.record_recycle, args.render) if record_args is not None and len(record_args.record_rollouts) != 0 else None
     args.environment = environment
     args.record = record

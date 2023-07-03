@@ -11,6 +11,8 @@ def get_command_args():
     # config parameter
     parser.add_argument('--main-train', default = "BreakoutStack",
                         help='choice of arguments to use')
+    parser.add_argument('--main-uid', default = "",
+                        help='unique identifier to save a new stack')
     # environment parameters
     parser.add_argument('--record-rollouts', default = "",
                         help='base directory to save results')
@@ -312,4 +314,5 @@ def get_args():
         args.config_name = os.path.split(config)[1][:-5]
     else:
         args = args.command
+    print(args.main_uid)
     return args

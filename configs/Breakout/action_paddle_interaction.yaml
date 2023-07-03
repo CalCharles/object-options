@@ -3,7 +3,7 @@
     record_rollouts: ""
     record_recycle: -1
     # load_dir: /nfs/data/calebc/object_data/breakout/testrun/
-    save_dir: /hdd/datasets/object_data/breakout/testrun2/
+    save_dir: /hdd/datasets/object_data/breakout/testrun2
   environment:
     env: Breakout
   torch:

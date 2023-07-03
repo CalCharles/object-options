@@ -66,6 +66,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         self.display_frame = args.collect.display_frame
         self.stream_print_file = args.collect.stream_print_file
         self.save_display = args.collect.save_display
+        self.time_check = args.collect.time_check
         if len(self.stream_print_file) > 0: 
             create_directory(os.path.split(self.stream_print_file)[0])
             self.stream_str_record = deque(maxlen=1000)
@@ -223,7 +224,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             print("hit", hit, self.data.next_target, self.data.param, drop_count, dropped)
         drop_count += int(dropped)
         hit_count += int(hit)
-        miss_count += int(not hit)
+        miss_count += int(not hit and (not dropped or not self.time_check))
         return hit, hit_count, miss_count, drop_count
 
     def show_param(self, param, frame):
@@ -322,7 +323,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
                 self.environment.set_from_factored_state(debug_states[2][itr]["factored_state"])
                 obs_next = Batch([self.environment.get_state()])
                 rew, done, info = obs_next["factored_state"]["Reward"], obs_next["factored_state"]["Done"], [self.environment.get_info()]
-            else: obs_next, rew, done, info = self.env.step(action_remap, id=ready_env_ids)
+            else: obs_next, rew, done, trunc, info = self.env.step(action_remap, id=ready_env_ids)
             # print("done after step", done)
             # print(self.data.full_state.factored_state.Action)
             if self.environment.discrete_actions: self.data.full_state.factored_state.Action = [action_remap] # reassign the action to correspond to the current action taken

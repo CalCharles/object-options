@@ -235,6 +235,7 @@ full_args = {
             "sum_rewards": True,
             "only_termination": False,
         },
+        "time_check": False, # returns a miss only if timing check fails 
     },
     "policy": {
         "learning_type": "dqn",

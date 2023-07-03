@@ -1,6 +1,7 @@
 import numpy as np
+import gymnasium as gym
 
-class GymnasiumWrapper():
+class GymnasiumWrapper(gym.Env):
     def __init__(self, gym_environment):
         ''' required attributes:
             num actions: int or None
@@ -16,6 +17,7 @@ class GymnasiumWrapper():
         '''
         # environment properties
         self.gym = gym_environment
+        self.self_reset = self.gym.self_reset
         self.num_actions = self.gym.num_actions
         self.name = self.gym.name
         self.fixed_limits = self.gym.fixed_limits
@@ -53,14 +55,14 @@ class GymnasiumWrapper():
         self.instance_length = self.gym.instance_length
 
         # proximity state components
-        self.position_masks = self.gym.instance_length
+        self.position_masks = self.gym.position_masks
 
     def step(self, action):
         obs, rew, done, info= self.gym.step(action)
         return obs, rew, done, False if "Timelimit.truncated" not in info else info["Timelimit.truncated"], info
 
     def reset(self):
-        return self.gym.reset(), dict() # returns a dummy info on reset
+        return self.gym.reset(), self.get_info() # returns a dummy info on reset
 
     def render(self, mode='human'):
         return self.gym.render(mode=mode)

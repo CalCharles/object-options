@@ -16,6 +16,7 @@ class Environment(gym.Env):
         All the below properties are set by the subclass
         '''
         # environment properties
+        self.self_reset = True
         self.num_actions = None # this must be defined, -1 for continuous. Only needed for primitive actions
         self.name = "ABSTRACT_BASE" # required for an environment
         self.fixed_limits = False # uses normalization limits which are fixed across all objects

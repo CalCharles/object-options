@@ -5,40 +5,27 @@ from Record.file_management import display_frame, display_param, save_to_pickle
 from Causal.Sampling.sampling import samplers
 import numpy as np
 from State.feature_selector import construct_object_selector
+from State.object_dict import ObjDict
 
 def generate_args():
-    parser = argparse.ArgumentParser(description='Generate random data from an environment')
-    parser.add_argument('--record-rollouts', default = "",
-                        help='base directory to save results')
-    parser.add_argument('--record-recycle', type=int, default=-1,
-                        help='max number of frames to keep, default: -1 not used')
-    parser.add_argument('--env',
-                        help='environment to run on')
-    parser.add_argument('--render', action='store_true', default=False,
-                        help='run the pushing gripper domain')
-    parser.add_argument('--fixed-limits', action='store_true', default=False,
-                        help='fixes the norm boundaries between objects')
-    parser.add_argument('--display-frame', action='store_true', default=False,
-                        help='shows the frame if renderering')
-    parser.add_argument('--frameskip', type=int, default=1,
-                        help='amount of frameskip, 1=no frameskip')
-    parser.add_argument('--variant', default="default",
-                        help='environment variant to use')
-    parser.add_argument('--load-environment', default="",
-                        help='load the environment from here')
-    parser.add_argument('--horizon', type=int, default=-1,
-                        help='time cutoff for environment resets, defaults -1 (no cutoff)')
-    parser.add_argument('--num-frames', type=int, default=10000,
-                        help='number of frames to run')
-    parser.add_argument('--seed', type=int, default=-1,
-                        help='number of frames to run')
-    parser.add_argument('--demonstrate', action='store_true', default=False,
-                        help='get the data from demonstrations or from random actions')
-    parser.add_argument('--angle', action='store_true', default=False,
-                        help='uses the angle policy if true')
-    args = parser.parse_args()
+    args = ObjDict()
+    args.record_rollouts = ""
+    args.record_recycle = -1
+    args.env = "Breakout"
+    args.render = False
+    args.fixed_limits = False
+    args.display_frame = False
+    args.frameskip = 1
+    args.variant = "default"
+    args.load_environment = "" 
+    args.horizon = -1
+    args.num_frames = 10000 
+    args.seed = -1
+    args.demonstrate = False
+    args.angle = False
     args.seed = args.seed if args.seed >= 0 else np.random.randint(10000)
     args.render = args.demonstrate or args.render
+    args.gym_to_gymnasium = False
     return args
 
 def generate_random(args):
