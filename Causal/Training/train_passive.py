@@ -31,6 +31,8 @@ def train_passive(full_model, rollouts, args, active_optimizer, passive_optimize
         
         # Train the passive model
         done_flags = 1-batch.done
+        # print(np.concatenate([pytorch_model.unwrap(passive_prediction_params[0][:10]), pytorch_model.unwrap(passive_prediction_params[1][:10]), pytorch_model.unwrap(target[:10]),done_flags[:10]], axis=-1))
+        # print(np.concatenate([np.expand_dims(weights[idxes][:10], -1), full_model.norm.reverse(batch.inter_state[:10], form="inter"), full_model.norm.reverse(batch.next_target[:10]), pytorch_model.unwrap(target[:10]), done_flags[:10]], axis=-1))
         passive_likelihood_full = - full_model.dist(*passive_prediction_params).log_prob(target)
         passive_loss = compute_likelihood(full_model, args.train.batch_size, passive_likelihood_full, done_flags=done_flags)
         run_optimizer(passive_optimizer, full_model.passive_model, passive_loss)

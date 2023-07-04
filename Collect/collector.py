@@ -42,6 +42,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         multi_instanced: bool = False,
         record: None = None, # a record object to save states
         args: Namespace = None,
+        stream_write: bool = True, # writes by append
     ) -> None:
         self.param_recycle = args.sample.param_recycle # repeat a parameter
         self.param_counter = 0
@@ -67,6 +68,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         self.stream_print_file = args.collect.stream_print_file
         self.save_display = args.collect.save_display
         self.time_check = args.collect.time_check
+        self.stream_write = stream_write
         if len(self.stream_print_file) > 0: 
             create_directory(os.path.split(self.stream_print_file)[0])
             self.stream_str_record = deque(maxlen=1000)
@@ -79,6 +81,13 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             param_dumps.close()
             term_dumps.close()
             mask_dumps.close()
+            if self.stream_write:
+                self.act_dumps = open(os.path.join(self.save_path, "act_dumps.txt"), 'a')
+                self.option_dumps = open(os.path.join(self.save_path, "option_dumps.txt"), 'a')
+                self.term_dumps = open(os.path.join(self.save_path, "term_dumps.txt"), 'a')
+                self.param_dumps = open(os.path.join(self.save_path, "param_dumps.txt"), 'a')
+                self.mask_dumps = open(os.path.join(self.save_path, "mask_dumps.txt"), 'a')
+
         
         # shortcut calling option attributes through option
         self.state_extractor = self.option.state_extractor
@@ -136,11 +145,18 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
 
     def _save_action(self, act, action_chain, term_chain, param, mask): # this is handled here because action chains are option dependent
         if len(act.shape) == 0: act = [act]
-        write_string(os.path.join(self.save_path, "act_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string(act) + "\n")
-        write_string(os.path.join(self.save_path, "option_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string(action_chain) + "\n")
-        write_string(os.path.join(self.save_path, "term_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string([term_chain]) + "\n")
-        write_string(os.path.join(self.save_path, "param_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string([param[0]]) + "\n")
-        write_string(os.path.join(self.save_path, "mask_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string([mask[0]]) + "\n")
+        if self.stream_write:
+            self.act_dumps.write(str(self.environment.get_itr() - 1) + ":" + action_chain_string(act) + "\n")
+            self.option_dumps.write(str(self.environment.get_itr() - 1) + ":" + action_chain_string(action_chain) + "\n")
+            self.term_dumps.write(str(self.environment.get_itr() - 1) + ":" + action_chain_string([term_chain]) + "\n")
+            self.param_dumps.write(str(self.environment.get_itr() - 1) + ":" + action_chain_string([param[0]]) + "\n")
+            self.mask_dumps.write(str(self.environment.get_itr() - 1) + ":" + action_chain_string([mask[0]]) + "\n")
+        else:
+            write_string(os.path.join(self.save_path, "act_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string(act) + "\n")
+            write_string(os.path.join(self.save_path, "option_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string(action_chain) + "\n")
+            write_string(os.path.join(self.save_path, "term_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string([term_chain]) + "\n")
+            write_string(os.path.join(self.save_path, "param_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string([param[0]]) + "\n")
+            write_string(os.path.join(self.save_path, "mask_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string([mask[0]]) + "\n")
 
     def reset_env(self, keep_statistics: bool = False):
         full_state, info = self.env.reset()

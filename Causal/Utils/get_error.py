@@ -54,6 +54,7 @@ def check_proximity(full_model, parent_state, target, normalized=False, reduced=
     else: target = target[...,target_pos]
     target = full_model.norm.reverse(target, idxes=target_pos) if normalized else target
     # print(full_model.proximity_epsilon, np.concatenate([target, parent, np.expand_dims(np.linalg.norm(parent-target, ord=1, axis=-1), -1), np.expand_dims(np.linalg.norm(parent-target, ord=1, axis=-1) < full_model.proximity_epsilon, -1)], axis=-1))
+    # print(np.concatenate([np.expand_dims(np.linalg.norm(parent-target, ord=1, axis=-1), axis=-1), np.expand_dims(np.linalg.norm(parent-target, ord=1, axis=-1) < full_model.proximity_epsilon, -1),parent, target], axis=-1)[:100])
     return np.expand_dims(np.linalg.norm(parent-target, ord=1, axis=-1) < full_model.proximity_epsilon, -1) if full_model.proximity_epsilon > 0 else np.ones((num_batch, 1)).astype(bool) # returns binarized differences
 
 

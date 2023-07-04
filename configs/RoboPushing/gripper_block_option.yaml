@@ -1,14 +1,14 @@
 ---
   record:
-    # record_rollouts: /nfs/data/calebc/object_data/breakout/testrun/paddle/
-    # record_rollouts: /hdd/datasets/object_data/robopushing/testrun/block
+    # record_rollouts: /nfs/data/object_data/breakout/testrun/paddle/
+    # record_rollouts: /hdd/datasets/object_data/robopusg/testrun/block
     record_recycle: -1
-    log_filename: logs/temp/block_train6.log
-    load_dir: /nfs/data/calebc/object_data/robopushing/testrun/
-    save_dir: /nfs/data/calebc/object_data/robopushing/testrun_block6/
-    record_graphs: /nfs/data/calebc/object_data/robopushing/testrun_graphs6/
-    # checkpoint_dir: /hdd/datasets/object_data/robopushing/testrun/action_gripper_checkpoint
-    # pretrain_dir: /hdd/datasets/object_data/robopushing/testrun/action_gripper_checkpoint
+    log_filename: logs/temp/block_train
+    load_dir: /nfs/data/object_data/robopush/testrun
+    save_dir: /nfs/data/object_data/robopush/testrun
+    record_graphs: /nfs/data/object_data/robopush/testrun/block_graphs
+    # checkpoint_dir: /hdd/datasets/object_data/robopush/testrun/action_gripper_checkpoint
+    # pretrain_dir: /hdd/datasets/object_data/robopush/testrun/action_gripper_checkpoint
     presave_graph: True
     save_interval: 100
   environment:
@@ -24,14 +24,14 @@
     num_steps: 100
     num_frames: 1000
     train_edge: Gripper Block
-    load_rollouts: /hdd/datasets/object_data/robopushing/testrun/random
+    load_rollouts: /nfs/data/object_data/robopush/random
     num_iters: 10000
     batch_size: 256
   critic_net:
   actor_net:
   network:
     hidden_sizes: 512 512 512 512
-    net_type: basic
+    net_type: mlp
     activation_final: tanh
     scale_logits: 1
     optimizer:
@@ -67,6 +67,7 @@
     test_episode: True
     max_steps: 1000
     stream_print_file: logs/robo/gb_option_stream6.txt
+    time_check: True
   hindsight:
     use_her: True
     early_stopping: 1
@@ -82,7 +83,7 @@
       primacy_iters: 50
       stop_resets: 5000
     logging:
-      log_interval: 100
+      log_interval: 25
       train_log_maxlen: 30
       test_log_maxlen: 50
       initial_trials: 20

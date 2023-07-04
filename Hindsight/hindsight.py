@@ -158,7 +158,8 @@ class Hindsight():
                             rew = rew if not self.use_sum_rewards else self.sum_rewards(i, param, mask)
 
                             her_batch.info["TimeLimit.truncated"] = [False] # no time cutoff for HER
-                            her_batch.update(done=[done], terminate=[term], rew=[rew], old_inter=copy.deepcopy(her_batch.inter), inter=[inter])
+                            her_batch.truncated = [False]
+                            her_batch.update(done=[done], terminate=[term], terminated=[done], rew=[rew], old_inter=copy.deepcopy(her_batch.inter), inter=[inter])
                             add_queue.append(her_batch)
                             if np.any(batch.done) and i != len(self.replay_queue) - 1:
                                 add_queue = list()
@@ -170,7 +171,7 @@ class Hindsight():
                                 her_batch = add_queue[i]
                                 # print("her", her_batch.time, her_batch.param, her_batch.next_target, her_batch.mapped_act, her_batch.rew, her_batch.terminate, her_batch.done, her_batch.true_done)
                                 # print(self.terminate_reward.inter_extract(full_state, norm=True)), pytorch_model.unwrap(self.terminate_reward.interaction_model.interaction(self.terminate_reward.inter_extract(full_state, norm=True))))
-                                # print("adding", her_batch.target, her_batch.next_target, her_batch.inter, her_batch.old_inter, her_batch.rew, her_batch.done, her_batch.param)
+                                # print("adding", her_batch.target, her_batch.next_target, her_batch.inter, her_batch.old_inter, her_batch.rew, her_batch.done, her_batch.param, her_batch.)
                                 self.at, ep_rew, ep_len, ep_idx = her_buffer.add(her_batch, buffer_ids=[0])
                                 if debug: debug_list.append(copy.deepcopy(her_batch))
                                 early_stopping_counter += int(np.any(her_batch.done))

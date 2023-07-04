@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 variants = {
     "default": (2, 30, 0, -0.1, 10, -3, -3, 0), # default has no obstacles
@@ -74,9 +75,9 @@ instanced = {
     "Reward": 1
 }
 
-discrete_ranges = ranges
+discrete_ranges = copy.deepcopy(ranges)
 discrete_ranges["Action"] = [np.array([0]), np.array([5])]
-discrete_dynamics = dynamics
+discrete_dynamics = copy.deepcopy(dynamics)
 discrete_dynamics["Action"] = [np.array([-5]), np.array([5])]
-discrete_position_masks = position_masks
+discrete_position_masks = copy.deepcopy(position_masks)
 discrete_position_masks["Action"] = np.array([0])
