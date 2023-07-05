@@ -20,3 +20,6 @@ if __name__ == "__main__":
         from Baselines.CDL.utils.utils import TrainingParams
         params = TrainingParams(training_params_fname=args.param_config, train=True)
         train(params, args)
+    if args.arg_dict == "ride":
+        from Baselines.RIDE.train_RIDE import train
+        train_RIDE(args)
