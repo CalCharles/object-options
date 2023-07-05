@@ -164,11 +164,11 @@ def test_full(full_model, test_buffer, args, object_names, environment, normaliz
 	test_like_mean = np.mean(test_like, axis=0)
 
 	# interaction binaries
-	test_bin = get_error(full_model, test_buffer, error_type = error_types.INTERACTION_BINARIES)[test_valid]
+	test_bin = get_error(full_model, test_buffer, error_type = error_types.INTERACTION_BINARIES, prenormalize=normalize)[test_valid]
 	# interaction trace
 	test_trace = test_buffer.trace[:len(test_buffer)][test_valid]
 	# interaction likelihood values
-	test_likev = get_error(full_model, test_buffer, error_type = error_types.INTERACTION_RAW)[test_valid]
+	test_likev = get_error(full_model, test_buffer, error_type = error_types.INTERACTION_RAW, prenormalize=normalize)[test_valid]
 	# interaction likelihood values predictive binary 
 	test_likepred = full_model.test(test_likev)
 
