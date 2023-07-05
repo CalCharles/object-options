@@ -102,6 +102,6 @@ class InlineTrainer():
             # print(term.shape, rew.shape, done.shape, inter.shape)
             rollouts.terminate[:len(rollouts)], rollouts.rew[:len(rollouts)], rollouts.done[:len(rollouts)], rollouts.inter[:len(rollouts)] = \
                 np.expand_dims(term, 1), np.expand_dims(rew, 1), np.expand_dims(done, 1), np.expand_dims(inter, 1)
-            if self.train_passive: # also need to update the passive weights if we changed the passive model
-                passive_error = get_error(self.interaction_model, rollouts, error_type=error_types.PASSIVE, prenormalize=True)
-                rollouts.weight_binary = passive_binary(passive_error, self.weighting, cut_rols.proximity, cut_rols.done)
+            # if self.train_passive: # also need to update the passive weights if we changed the passive model
+            #     passive_error = get_error(self.interaction_model, rollouts, error_type=error_types.PASSIVE, prenormalize=True)
+                # rollouts.weight_binary = passive_binary(passive_error, self.weighting, cut_rols.proximity, cut_rols.done)

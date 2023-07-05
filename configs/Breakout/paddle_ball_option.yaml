@@ -17,8 +17,8 @@
     no_cuda: False
   train:
     train: True
-    # pretrain_frames: 20000 # 
-    pretrain_frames: 10000 # 
+    pretrain_frames: 20000 # 
+    # pretrain_frames: 10000 # 
     num_steps: 250 #
     num_frames: 1000
     train_edge: Paddle Ball
@@ -70,7 +70,7 @@
     stream_print_file: logs/breakout/log_dumps/pb_option_stream3.txt
   hindsight:
     use_her: True
-    select_positive: 0.1
+    select_positive: 0.2
     max_hindsight: 20
     interaction_resample: False
     interaction_criteria: 1
@@ -85,13 +85,13 @@
       log_interval: 10
       train_log_maxlen: 5
       test_log_maxlen: 50
-      # initial_trials: 20 #
-      # test_trials: 10 #
+      initial_trials: 20 #
+      test_trials: 10 #
       max_terminate_step: 1 300
     learn:
       grad_epoch: 50
       sample_form: merged
-      # post_random_iters: 200
+      post_random_iters: 200
   action:
     use_relative_action: True
     relative_action_ratio: 0.15
@@ -99,8 +99,8 @@
   inline:
     interaction_config: configs/Breakout/angle_hyperparam/paddle_ball_interaction_inline.yaml
     inpolicy_iters: 5000
-    inpolicy_schedule: 10
-    # inpolicy_schedule: 150
+    # inpolicy_schedule: 10
+    inpolicy_schedule: 150
     inpolicy_times: 4
     policy_intrain_passive: True
     intrain_weighting: 0 200000 10 -1
