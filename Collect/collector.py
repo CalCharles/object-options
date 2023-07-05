@@ -332,7 +332,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             tc_action = time.time()
             self._policy_state_update(result)
             self.data.update(true_action=[action_chain[0]], act=[act], mapped_act=[action_chain[-1]], option_resample=[resampled], action_chain = action_chain)
-            
+            # print(resampled, action_chain[0],self.data.full_state["factored_state"].Gripper, action_chain[-1], act)
             # step in env
             action_remap = self.data.true_action
             if debug_states is not None:

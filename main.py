@@ -18,7 +18,7 @@ def robo_random(config_choice, uid):
     rand_args = generate_args()
     rand_args.record_rollouts = robo_path + uid
     rand_args.env = "RoboPushing"
-    # generate_random(rand_args)
+    generate_random(rand_args)
 
 
 if __name__ == "__main__":
@@ -36,18 +36,18 @@ if __name__ == "__main__":
             config_choice = robopushing_configs
             robo_random(robopushing_configs, uid)
         for i, config in enumerate(config_choice):
-            if i < 3: continue
+            # if i < 3: continue
             args = read_config(config)
             args.torch.gpu = int(uid) % 4 if len(uid) > 0 else args.torch.gpu# hardcoded for 4-gpu servers to spread load
             if i % 3 == 0:
                 args.record.save_dir = args.record.save_dir + uid
                 args.train.load_rollouts = args.train.load_rollouts + uid
-                # train_interaction(args)
+                train_interaction(args)
             elif i % 3 == 1:
                 args.record.save_dir = args.record.save_dir + uid
                 args.record.load_dir = args.record.load_dir + uid
                 args.train.load_rollouts = args.train.load_rollouts + uid
-                # train_mask(args)
+                train_mask(args)
             else:
                 if len(args.record.log_filename) > 0: args.record.log_filename = args.record.log_filename + uid
                 if len(args.record.record_graphs) > 0: args.record.record_graphs = args.record.record_graphs + uid
