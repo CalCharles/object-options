@@ -4,7 +4,7 @@
     # record_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle
     record_recycle: -1
     log_filename: logs/temp/ball_test.log
-    load_dir: /hdd/datasets/object_data/breakout/testrun2/
+    load_dir: /hdd/datasets/object_data/breakout/testrun20/
   environment:
     env: Breakout
     variant: drop_stopping
@@ -18,7 +18,7 @@
     buffer_len : 100
     test_episode: True
     max_steps: 1000
-    display_frame: 1
+    display_frame: 3
   policy:
     logging:
       log_interval: 10

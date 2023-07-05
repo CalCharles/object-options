@@ -1,7 +1,11 @@
     
 class InteractionTesting:
     def __init__(self, interaction_params):
+        self.set_test_binaries(interaction_params)
+
+    def set_test_binaries(self, interaction_params):
         self.interaction_prediction, self.forward_threshold, self.passive_threshold, self.difference_threshold = interaction_params
+
 
     def compute_binary(self, forward, passive):
         '''computes an interaction binary, which defines if the active prediction is high likelihood enough

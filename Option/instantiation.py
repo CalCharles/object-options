@@ -52,6 +52,7 @@ def instantiate_interaction(args, graph, environment, object_names):
     else:
         interaction_model = graph.nodes[object_names.target].interaction
         interaction_model.regenerate(environment)
+        if hasattr(interaction_model, "test") and interaction_model.test is not None: interaction_model.test.set_test_binaries(args.inter.interaction_testing)
     return parent_option, parent_interaction, interaction_model
 
 def instantiate_sampler(args, interaction_model, environment):

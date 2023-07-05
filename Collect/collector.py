@@ -249,7 +249,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         if self.display_frame == 3: # display angles
             param.squeeze()[:2] = self.data.parent_state.squeeze()[:2]
             # print("param", param)
-        frame = display_param(frame, param, rescale=8 if self.env_name in FULL_ENVS else 64, waitkey=200, transpose=self.environment.transpose)
+        frame = display_param(frame, param, rescale=8 if self.env_name in FULL_ENVS else 64, waitkey=10, transpose=self.environment.transpose)
         if len(self.save_display) > 0: imio.imsave(os.path.join(self.save_display, "state" + str(self.counter) + ".png"), frame)
 
 
@@ -430,7 +430,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             # print(self.data[0].mapped_act, self.data[0].full_state.factored_state.Gripper, self.data.terminations[-1])
             # print(self.data[0].mapped_act, self.data.parent_state, self.data[0].param, self.data.terminations[-1])
             # add to the main buffer
-            next_data, skipped, added, self.at = self._aggregate(self.data, self.buffer, full_ptr, ready_env_ids)
+            next_data, skipped, added, self.at = self._aggregate(self.data, self.buffer, full_ptr, ready_env_ids, interaction_model= self.option.interaction_model)
             # print(self.data.target, not self.test, self.hindsight is not None)
             if not self.test and self.hindsight is not None: self.her_at, her_list = self.her_collect(self.her_buffer, next_data, self.data, added, debug=debug)
             if self.display_frame > 0: self.show_param(param if self.display_frame < 4 else action_chain[-1], self.environment.render())

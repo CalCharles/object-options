@@ -195,19 +195,23 @@ def display_param(frame, param, waitkey=10, rescale=-1, dot=True, transpose = Tr
         if transpose: loc[0], loc[1] = loc[1], loc[0]
         angle = None
         if len(param.squeeze()) >= 4:
-            if not transpose: param[...,2], param[...,3] =  param[...,3], param[...,2]
             angle = param.squeeze()[2:4]
-            angle[1] = - angle[1]
+            # angle[1] = - angle[1]
+            if transpose: angle[1], angle[0] =  angle[0], angle[1]
         color = (0,128,0)
-        if len(param.squeeze()) == 3 or len(param.squeeze()) == 5:
-            if param.squeeze()[3] == -1:
+        if angle is not None:
+            if angle[1] == -1:
                 color = (0,0,128)
+        # if len(param.squeeze()) == 3 or len(param.squeeze()) == 5:
+        #     if param.squeeze()[3] == -1:
+        #         color = (0,0,128)
             # if param.squeeze()[len(param.squeeze()) - 1:] < 0.5:
             #     color = (0,0,128)
+        # print(transpose, param, color, angle)
         frame = np.stack([frame.copy() for i in range(3)], axis = -1)
         # print(loc, angle, color)
         if angle is not None:
-            cv2.line(frame, loc.astype(int), (loc + 2 * angle).astype(int), color,1)
+            cv2.line(frame, loc.astype(int), (loc + 3 * angle).astype(int), color,1)
         else:
             if dot:
                 color = np.array(color)

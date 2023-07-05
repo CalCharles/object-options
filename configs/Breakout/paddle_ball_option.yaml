@@ -17,18 +17,19 @@
     no_cuda: False
   train:
     train: True
+    # pretrain_frames: 20000 # 
     pretrain_frames: 10000 # 
     num_steps: 250 #
     num_frames: 1000
     train_edge: Paddle Ball
     load_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle
-    num_iters: 40000
+    num_iters: 4000
     batch_size: 128 # 
   critic_net:
   actor_net:
   network:
     activation_final: tanh
-    scale_logits: 10
+    scale_logits: 200
     hidden_sizes: 128 128 128 128 128 128
     net_type: mlp
     optimizer:
@@ -44,6 +45,8 @@
   extract:
     single_obs_setting: 1 1 0 1 0 0
     relative_obs_setting: 1 0 0 0 0
+  inter:
+    interaction_testing: 0.9 -1 -1 -1
   option:
     term_form: combined
     term_as_done: True
@@ -56,7 +59,7 @@
     temporal_extend: 3
     time_cutoff: 300
     interaction_as_termination: True
-    use_binary: False
+    use_binary: True
   collect:
     buffer_len : 300000
     test_episode: True
@@ -82,23 +85,24 @@
       log_interval: 10
       train_log_maxlen: 5
       test_log_maxlen: 50
-      initial_trials: 20 #
-      test_trials: 10 #
+      # initial_trials: 20 #
+      # test_trials: 10 #
       max_terminate_step: 1 300
     learn:
       grad_epoch: 50
       sample_form: merged
-      post_random_iters: 200
+      # post_random_iters: 200
   action:
     use_relative_action: True
     relative_action_ratio: 0.15
     round_values: True
   inline:
     interaction_config: configs/Breakout/angle_hyperparam/paddle_ball_interaction_inline.yaml
-    inpolicy_iters: 10000
-    inpolicy_schedule: 500
+    inpolicy_iters: 5000
+    inpolicy_schedule: 10
+    # inpolicy_schedule: 150
     inpolicy_times: 4
-    policy_intrain_passive: False
-    intrain_weighting: 0 200000 100 -1
+    policy_intrain_passive: True
+    intrain_weighting: 0 200000 10 -1
     policy_inline_iters: 20 20 -1
 ...
