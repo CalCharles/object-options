@@ -16,6 +16,7 @@ def fill_buffer(environment, data, args, object_names, norm, predict_dynamics):
         next_target = norm(args.target_select(next_factored_state))
         target_diff = norm(args.target_select(next_factored_state) - args.target_select(factored_state), form="dyn")
         inter_state = norm(args.inter_select(factored_state), form="inter")
+        # print(args.target_select(factored_state), args.target_select(next_factored_state), target, next_target, target_diff)
 
         # parent and additional states are unnormalized
         parent_state = args.parent_select(factored_state)
@@ -39,10 +40,11 @@ def fill_buffer(environment, data, args, object_names, norm, predict_dynamics):
         # print(factored_state["Done"], target_diff, target, next_target)
         # print(factored_state["Done"], target_diff, args.target_select(next_factored_state) - args.target_select(factored_state), args.target_select(factored_state), args.target_select(next_factored_state))
         # if np.sum(target_diff) > 0: print(inter_state, factored_state["Block"], target_diff,  use_done)
-        buffer.add(Batch(act=act, done=use_done, true_done=use_done, rew=rew, target=target, next_target=next_target, target_diff=target_diff,
+        # print(factored_state["Block"], next_factored_state["Block"], use_done)
+        buffer.add(Batch(act=act, done=use_done, terminated=use_done, truncated=False, true_done=use_done, rew=rew, target=target, next_target=next_target, target_diff=target_diff,
                         trace=trace, inst_trace = inst_trace, obs=inter_state, inter_state=inter_state, parent_state=parent_state, additional_state=additional_state,
                         inter=0.0, proximity=False, proximity_inst=np.zeros(np.array(inst_trace).shape).astype(bool), mask=np.ones(target.shape).astype(float), weight_binary=0)) # the last row are dummy placeholders
-        # print(buffer.done.shape, factored_state["Done"])
+        # print(buffer.done.shape, factored_state["Done"], buffer.true_done.shape)
         last_done = factored_state["Done"]
         factored_state = next_factored_state
     return buffer

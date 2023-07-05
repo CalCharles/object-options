@@ -3,7 +3,7 @@
     record_rollouts: ""
     record_recycle: -1
     # load_dir: /nfs/data/calebc/object_data/breakout/testrun/
-    save_dir: /hdd/datasets/object_data/breakout/testrun2/
+    save_dir: /hdd/datasets/object_data/breakout/testrun2
   environment:
     env: Breakout
   torch:
@@ -11,10 +11,11 @@
     no_cuda: False
   train:
     train: True
-    num_frames: 1000
+    num_frames: 10000
     train_edge: Action Paddle
     load_rollouts: /hdd/datasets/object_data/breakout/random
-    num_iters: 7500
+    num_iters: 4000
+    # num_iters: 2000
     batch_size: 64
   inter:
     predict_dynamics: True
@@ -24,6 +25,7 @@
     save_intermediate: /hdd/datasets/object_data/breakout/temp/
     compare_trace: True
     passive:
+      # passive_iters: 5000
       passive_iters: 5000
       passive_log_interval: 100
       pretrain_active: True

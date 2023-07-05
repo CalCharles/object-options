@@ -4,8 +4,8 @@ record:
   record_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle
   record_recycle: -1
   log_filename: logs/temp/paddle_train.log
-  load_dir: /hdd/datasets/object_data/breakout/testrun2/
-  # save_dir: /hdd/datasets/object_data/breakout/testrun2/
+  load_dir: /hdd/datasets/object_data/breakout/testrun2
+  save_dir: /hdd/datasets/object_data/breakout/testrun2
   # checkpoint_dir: /nfs/data/calebc/object_data/breakout/testrun/action_paddle_checkpoint
   # load_checkpoint: /nfs/data/calebc/object_data/breakout/testrun_inline/action_paddle_checkpoint
   save_interval: 100
@@ -17,18 +17,18 @@ torch:
   no_cuda: False
 train:
   train: True
+  # pretrain_frames: 2000
   pretrain_frames: 2000
   num_steps: 90
   num_frames: 1000
   train_edge: Action Paddle
   load_rollouts: /hdd/datasets/object_data/breakout/random2
-  num_iters: 200
+  num_iters: 1000
   batch_size: 64
 critic_net:
 actor_net:
 network:
   hidden_sizes: 128 128
-  net_type: basic
   activation_final: tanh
   scale_logits: 30
   optimizer:
@@ -62,6 +62,7 @@ collect:
   test_episode: True
   max_steps: 1000
   stream_print_file: logs/breakout/ap_option_stream.txt
+  time_check: True
 hindsight:
   use_her: True
 policy:

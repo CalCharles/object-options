@@ -1,12 +1,13 @@
 ---
   record:
     # record_rollouts: /nfs/data/calebc/object_data/breakout/testrun/paddle/
-    record_rollouts: /hdd/datasets/object_data/robopushing/testrun/gripper
+    record_rollouts: /nfs/data/object_data/robopush/testrun/gripper
     record_recycle: -1
-    log_filename: logs/temp/gripper_train.log
-    load_dir: /nfs/data/calebc/object_data/robopushing/testrun/
-    save_dir: /nfs/data/calebc/object_data/robopushing/testrun/
-    checkpoint_dir: /hdd/datasets/object_data/robopushing/testrun/action_gripper_checkpoint
+    log_filename: logs/temp/gripper_train
+    load_dir: /nfs/data/object_data/robopush/testrun
+    save_dir: /nfs/data/object_data/robopush/testrun
+    # checkpoint_dir: /hdd/datasets/object_data/robopush/testrun/action_gripper_checkpoint
+    record_graphs: /nfs/data/object_data/robopush/testrun/gripper_graphs
     # pretrain_dir: /hdd/datasets/object_data/robopushing/testrun/action_gripper_checkpoint
     save_interval: 100
   environment:
@@ -22,14 +23,14 @@
     num_steps: 90
     num_frames: 1000
     train_edge: Action Gripper
-    load_rollouts: /hdd/datasets/object_data/robopushing/testrun/random
-    num_iters: 4000
+    load_rollouts: /nfs/data/object_data/robopush/random
+    num_iters: 1200
     batch_size: 64
   critic_net:
   actor_net:
   network:
     hidden_sizes: 256 256
-    net_type: basic
+    net_type: mlp
     optimizer:
       lr: .0001
       alt_lr: .0001
@@ -48,7 +49,7 @@
   option:
     term_form: param
     term_as_done: True
-    epsilon_close: .003
+    epsilon_close: .004
     param_norm: 3
     constant_lambda: -1
     param_lambda: 1
@@ -60,6 +61,7 @@
     test_episode: True
     max_steps: 1000
     stream_print_file: logs/robo/ag_option_stream.txt
+    time_check: True
   hindsight:
     use_her: True
   policy:

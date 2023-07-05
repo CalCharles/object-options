@@ -1,7 +1,7 @@
 import copy
 
 network_args = {    
-    "net_type": "basic",
+    "net_type": "mlp",
     "use_layer_norm": False,
     "hidden_sizes": list(), # TODO: must have values if used
     "init_form": "",
@@ -235,6 +235,7 @@ full_args = {
             "sum_rewards": True,
             "only_termination": False,
         },
+        "time_check": False, # returns a miss only if timing check fails 
     },
     "policy": {
         "learning_type": "dqn",

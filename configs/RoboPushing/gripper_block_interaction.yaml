@@ -2,8 +2,8 @@
   record:
     record_rollouts: ""
     record_recycle: -1
-    # load_dir: /nfs/data/calebc/object_data/robopushing/testrun/
-    save_dir: /nfs/data/calebc/object_data/robopushing/testrun/
+    # load_dir: /nfs/data/calebc/object_data/robopush/testrun
+    save_dir: /nfs/data/object_data/robopush/testrun
   environment:
     env: RoboPushing
   torch:
@@ -11,20 +11,22 @@
     no_cuda: False
   train:
     train: True
-    num_frames: 100000
+    num_frames: 5000
+    # num_frames: 100000
     train_edge: Gripper Action Block
-    load_rollouts: /hdd/datasets/object_data/robopushing/testrun/gripper
-    num_iters: 50000
+    load_rollouts: /nfs/data/object_data/robopush/testrun/gripper
+    num_iters: 10000
     batch_size: 128
   inter:
     predict_dynamics: True
     interaction_testing: 0.5 -1 -1 -1
     interaction_iters: 0
-    # load_intermediate: /hdd/datasets/object_data/robopush/temp/
-    save_intermediate: /hdd/datasets/object_data/robopush/temp/
+    # load_intermediate: /nfs/data/object_data/robopush/temp/
+    save_intermediate: /nfs/data/object_data/robopush/temp/
     compare_trace: True
+    proximity_epsilon: .13
     passive:
-      passive_iters: 10000
+      passive_iters: 5000
       passive_log_interval: 100
       pretrain_active: True
     active:
@@ -42,5 +44,5 @@
       eps: .00001
       alpha: 0.99
       betas: 0.9 0.999
-      weight_decay: 0.00
+      weight_decay: 0.0001
 ...

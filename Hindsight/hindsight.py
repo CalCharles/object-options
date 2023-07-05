@@ -79,6 +79,10 @@ class Hindsight():
 
 
     def satisfy_criteria(self, replay_queue):
+        # if len(replay_queue) > 0:
+        #     print(self.interaction_criteria)
+        #     if self.interaction_criteria==2: print(mean_replay_difference(replay_queue))
+        #     else: print(replay_queue)
         return len(replay_queue) > 0 and ((self.interaction_criteria == 1 and np.sum(np.stack([b.inter for b in replay_queue])) > 0.5) or # keep if interaction happened
          (self.interaction_criteria == 2 and mean_replay_difference(replay_queue) > 0.001) or # keep if displacement happened
           (self.interaction_criteria == 0)) # just keep any termination
@@ -158,7 +162,8 @@ class Hindsight():
                             rew = rew if not self.use_sum_rewards else self.sum_rewards(i, param, mask)
 
                             her_batch.info["TimeLimit.truncated"] = [False] # no time cutoff for HER
-                            her_batch.update(done=[done], terminate=[term], rew=[rew], old_inter=copy.deepcopy(her_batch.inter), inter=[inter])
+                            her_batch.truncated = [False]
+                            her_batch.update(done=[done], terminate=[term], terminated=[done], rew=[rew], old_inter=copy.deepcopy(her_batch.inter), inter=[inter])
                             add_queue.append(her_batch)
                             if np.any(batch.done) and i != len(self.replay_queue) - 1:
                                 add_queue = list()

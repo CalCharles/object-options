@@ -1,6 +1,7 @@
 import numpy as np
+import gymnasium as gym
 
-class Environment():
+class Environment(gym.Env):
     def __init__(self, frameskip = 1, variant="", fixed_limits=False):
         ''' required attributes:
             num actions: int or None
@@ -15,6 +16,7 @@ class Environment():
         All the below properties are set by the subclass
         '''
         # environment properties
+        self.self_reset = True
         self.num_actions = None # this must be defined, -1 for continuous. Only needed for primitive actions
         self.name = "ABSTRACT_BASE" # required for an environment
         self.fixed_limits = False # uses normalization limits which are fixed across all objects
@@ -92,6 +94,7 @@ class Environment():
         '''
         numpy should be the only source of randomness, but override if there are more
         '''
+        if seed < 0: seed = np.random.randint(10000)
         np.random.seed(seed)
 
 

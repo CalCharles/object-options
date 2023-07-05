@@ -5,6 +5,54 @@ from Record.file_management import display_frame, display_param, save_to_pickle
 from Causal.Sampling.sampling import samplers
 import numpy as np
 from State.feature_selector import construct_object_selector
+from State.object_dict import ObjDict
+
+def generate_args():
+    args = ObjDict()
+    args.record_rollouts = ""
+    args.record_recycle = -1
+    args.env = "Breakout"
+    args.render = False
+    args.fixed_limits = False
+    args.display_frame = False
+    args.frameskip = 1
+    args.variant = "default"
+    args.load_environment = "" 
+    args.horizon = -1
+    args.num_frames = 10000 
+    args.seed = -1
+    args.demonstrate = False
+    args.angle = False
+    args.seed = args.seed if args.seed >= 0 else np.random.randint(10000)
+    args.render = args.demonstrate or args.render
+    args.gym_to_gymnasium = False
+    return args
+
+def generate_random(args):
+    environment, record = initialize_environment(args, args)
+    if args.angle: 
+        policy = AnglePolicy(4)
+        angle = np.random.randint(4)
+    if args.variant == "proximity":
+        environment.sampler = samplers["exist"](obj_dim=5, target_select=construct_object_selector(["Block"], environment),parent_select=None,additional_select=None,test_sampler=False,mask=None)
+        environment.reset()
+    start = time.time()
+    for i in range(args.num_frames):
+        if args.angle and environment.ball.paddle: angle = angle = np.random.randint(4)
+        action = environment.action_space.sample() if not args.demonstrate else environment.demonstrate()
+        # action = np.ones(environment.action_space._shape) * (-0.5 + i/args.num_frames) if not args.demonstrate else environment.demonstrate()
+        # action = np.random.rand(*environment.action_space._shape) * (environment.action_space.high - environment.action_space.low) + environment.action_space.low if not args.demonstrate else environment.demonstrate()
+        action = action if not args.angle else policy.act(environment, angle=angle)
+        full_state, reward, done, info = environment.step(action, render=args.render)
+        if args.render and args.display_frame: 
+            frame = cv2.resize(full_state["raw_state"], (full_state["raw_state"].shape[0] * 5, full_state["raw_state"].shape[1] * 5), interpolation = cv2.INTER_NEAREST)
+            display_frame(frame, waitkey=10)
+        if args.render and args.variant == "proximity" and args.display_frame: display_param(full_state['raw_state'], param=environment.sampler.param[:2], waitkey=100, rescale = 10, dot=False)
+        elif args.render and args.display_frame: display_frame(full_state['raw_state'], rescale=10, waitkey=30)
+        if record is not None: record.save(full_state['factored_state'], full_state["raw_state"], environment.toString)
+        if i % 1000 == 0: print(i, "fps", i / (time.time() - start))
+    if args.env not in ["RoboPushing", "RoboStick", "AirHockey"]: save_to_pickle(os.path.join(args.record_rollouts, "environment.pkl"), environment)
+    print("fps", args.num_frames / (time.time() - start))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate random data from an environment')
@@ -40,27 +88,4 @@ if __name__ == "__main__":
     args.seed = args.seed if args.seed >= 0 else np.random.randint(10000)
     args.render = args.demonstrate or args.render
     # first argument is num frames, second argument is save path
-    environment, record = initialize_environment(args, args)
-    if args.angle: 
-        policy = AnglePolicy(4)
-        angle = np.random.randint(4)
-    if args.variant == "proximity":
-        environment.sampler = samplers["exist"](obj_dim=5, target_select=construct_object_selector(["Block"], environment),parent_select=None,additional_select=None,test_sampler=False,mask=None)
-        environment.reset()
-    start = time.time()
-    for i in range(args.num_frames):
-        if args.angle and environment.ball.paddle: angle = angle = np.random.randint(4)
-        action = environment.action_space.sample() if not args.demonstrate else environment.demonstrate()
-        # action = np.ones(environment.action_space._shape) * (-0.5 + i/args.num_frames) if not args.demonstrate else environment.demonstrate()
-        # action = np.random.rand(*environment.action_space._shape) * (environment.action_space.high - environment.action_space.low) + environment.action_space.low if not args.demonstrate else environment.demonstrate()
-        action = action if not args.angle else policy.act(environment, angle=angle)
-        full_state, reward, done, info = environment.step(action, render=args.render)
-        if args.render and args.display_frame: 
-            frame = cv2.resize(full_state["raw_state"], (full_state["raw_state"].shape[0] * 5, full_state["raw_state"].shape[1] * 5), interpolation = cv2.INTER_NEAREST)
-            display_frame(frame, waitkey=10)
-        if args.render and args.variant == "proximity" and args.display_frame: display_param(full_state['raw_state'], param=environment.sampler.param[:2], waitkey=100, rescale = 10, dot=False)
-        elif args.render and args.display_frame: display_frame(full_state['raw_state'], rescale=10, waitkey=30)
-        if record is not None: record.save(full_state['factored_state'], full_state["raw_state"], environment.toString)
-        if i % 1000 == 0: print(i, "fps", i / (time.time() - start))
-    if args.env not in ["RoboPushing", "RoboStick", "AirHockey"]: save_to_pickle(os.path.join(args.record_rollouts, "environment.pkl"), environment)
-    print("fps", args.num_frames / (time.time() - start))
+    generate_random(args)

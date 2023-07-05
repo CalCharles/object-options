@@ -1,7 +1,7 @@
 ---
   record:
-    load_dir: /nfs/data/calebc/object_data/robopushing/testrun/
-    save_dir: /nfs/data/calebc/object_data/robopushing/testrun/
+    load_dir: /nfs/data/object_data/robopush/testrun
+    save_dir: /nfs/data/object_data/robopush/testrun
     refresh: True
   environment:
     env: RoboPushing
@@ -11,8 +11,8 @@
     no_cuda: False
   train:
     train_edge: Action Gripper
-    load_rollouts: /hdd/datasets/object_data/robopushing/testrun/random
-    num_frames: 1000
+    load_rollouts: /nfs/data/object_data/robopush/random
+    num_frames: 10000
   mask:
     min_sample_difference: 0.1
     var_cutoff: 0.05

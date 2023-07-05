@@ -3,7 +3,7 @@ import imageio as imio
 from Record.file_management import append_string, create_directory, action_chain_string
 
 class FullRecord():
-    def __init__(self, itr, save_dir, recycle, save_raw, all_dir=""):
+    def __init__(self, itr, save_dir, recycle, save_raw, all_dir="", append=True):
         '''
         starting iteration number
         '''
@@ -16,6 +16,13 @@ class FullRecord():
         option_dumps = open(os.path.join(self.save_path, "option_dumps.txt"), 'w')
         param_dumps = open(os.path.join(self.save_path, "param_dumps.txt"), 'w')
         object_dumps.close(), action_dumps.close(), option_dumps.close(), param_dumps.close()
+        self.append = append
+        if self.append:
+            self.object_dumps = open(os.path.join(self.save_path, "object_dumps.txt"), 'a')
+            self.action_dumps = open(os.path.join(self.save_path, "action_dumps.txt"), 'a')
+            self.option_dumps = open(os.path.join(self.save_path, "option_dumps.txt"), 'a')
+            self.param_dumps = open(os.path.join(self.save_path, "param_dumps.txt"), 'a')
+
 
     def save(self, entity_state, frame, toString): # TODO: put into parent class
         '''
@@ -31,7 +38,11 @@ class FullRecord():
             count = self.itr
         create_directory(state_path)
         
-        append_string(os.path.join(self.save_path, "action_dumps.txt"), action_chain_string([entity_state["Action"]]) + "\t")
-        append_string(os.path.join(self.save_path, "object_dumps.txt"), toString(entity_state) + "\n")
+        if self.append:
+            self.action_dumps.write(action_chain_string([entity_state["Action"]]) + "\t")
+            self.object_dumps.write(toString(entity_state) + "\n")
+        else:
+            append_string(os.path.join(self.save_path, "action_dumps.txt"), action_chain_string([entity_state["Action"]]) + "\t")
+            append_string(os.path.join(self.save_path, "object_dumps.txt"), toString(entity_state) + "\n")
         if self.save_raw: imio.imsave(os.path.join(state_path, "state" + str(count) + ".png"), frame)
         self.itr += 1

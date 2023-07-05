@@ -1,7 +1,7 @@
 ---
   record:
-    load_dir: /hdd/datasets/object_data/breakout/testrun2/
-    save_dir: /hdd/datasets/object_data/breakout/testrun2/
+    load_dir: /hdd/datasets/object_data/breakout/testrun2
+    save_dir: /hdd/datasets/object_data/breakout/testrun2
     refresh: True
   environment:
     env: Breakout
@@ -12,8 +12,8 @@
   train:
     train_edge: Action Paddle
     load_rollouts: /hdd/datasets/object_data/breakout/random
-    num_frames: 1000
+    num_frames: 10000
   mask:
     min_sample_difference: 0.1
-    var_cutoff: 0.05
+    var_cutoff: 0.03
 ...

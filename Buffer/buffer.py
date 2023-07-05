@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Tuple, Union, Optional
 import numpy as np
+import copy
 
 from tianshou.data import Batch, ReplayBuffer, PrioritizedReplayBuffer
 
@@ -13,9 +14,13 @@ class ParamReplayBuffer(ReplayBuffer):
     # true_reward, true_done are the actual dones and rewards
     # option_terminate is for temporal extension, stating if the last object terminated
     # TODO: parent is the action that specifies which parent to use
-    _reserved_keys = ("obs", "act", "rew", "done", "obs_next", "info", "policy", "param", 
+    _all_keys = ["obs", "act", "rew", "done", "obs_next", "info", "policy", "param", "terminated", "truncated",
         "mask", "target", "next_target", "target_diff", "terminate", "true_reward", "true_done", "option_resample", 
-        "mapped_act", "inter", "trace", "inst_trace", "proximity", "proximity_inst", "inter_state", "parent_state", "additional_state", "time", "weight_binary")
+        "mapped_act", "inter", "trace", "inst_trace", "proximity", "proximity_inst", "inter_state", "parent_state", "additional_state", "time", "weight_binary"]
+    _reserved_keys = tuple(_all_keys)
+    _input_keys = copy.copy(_all_keys)
+    _input_keys.pop(_input_keys.index("done"))
+    _input_keys = tuple(_input_keys)
 
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
         """Return a data batch: self[index].
@@ -41,6 +46,8 @@ class ParamReplayBuffer(ReplayBuffer):
             act=self.act[indice],
             rew=self.rew[indice],
             done=self.done[indice],
+            terminated=self.terminated[indice],
+            truncated=self.truncated[indice],
             terminate = self.terminate[indice],
             obs_next=obs_next,
             info=self.get(indice, "info", Batch()),
@@ -67,9 +74,13 @@ class ParamReplayBuffer(ReplayBuffer):
         )
 
 class ParamPriorityReplayBuffer(PrioritizedReplayBuffer): # not using double inheritance so exactly the same as above.
-    _reserved_keys = ("obs", "act", "rew", "done", "obs_next", "info", "policy", "param", 
+    _all_keys = ["obs", "act", "rew", "done", "obs_next", "info", "policy", "param", "terminated",  "truncated",
         "mask", "target", "next_target", "target_diff", "terminate", "true_reward", "true_done", "option_resample", 
-        "mapped_act", "inter", "trace", "inst_trace", "proximity", "proximity_inst", "inter_state", "parent_state", "additional_state", "time", "weight_binary")
+        "mapped_act", "inter", "trace", "inst_trace", "proximity", "proximity_inst", "inter_state", "parent_state", "additional_state", "time", "weight_binary"]
+    _reserved_keys = tuple(_all_keys)
+    _input_keys = copy.copy(_all_keys)
+    _input_keys.pop(_input_keys.index("done"))
+    _input_keys = tuple(_input_keys)
 
     def sample(self, batch_size: int, no_prio=False) -> Tuple[Batch, np.ndarray]:
         """Replace Tianshou Sample to add no-prio parameter
@@ -111,6 +122,8 @@ class ParamPriorityReplayBuffer(PrioritizedReplayBuffer): # not using double inh
             act=self.act[indice],
             rew=self.rew[indice],
             done=self.done[indice],
+            terminated=self.terminated[indice],
+            truncated=self.truncated[indice],
             terminate = self.terminate[indice],
             obs_next=obs_next,
             info=self.get(indice, "info", Batch()),
@@ -239,9 +252,14 @@ class InterWeightedReplayBuffer(ReplayBuffer):
     # inter_state, parent_state, additional_state record:
     #   inter = parent+additional+target, parent=primary parent, additional=other state
     # TODO: parent is the action that specifies which parent to use
-    _reserved_keys = ("obs", "act", "rew", "done", "true_done", "obs_next",
+    _all_keys = ["obs", "act", "rew", "done", "true_done", "obs_next", "terminated", "truncated",
         "mask", "target", "next_target", "target_diff",
-        "inter", "trace", "inst_trace", "proximity", "proximity_inst", "inter_state", "parent_state", "additional_state", "weight_binary")
+        "inter", "trace", "inst_trace", "proximity", "proximity_inst", "inter_state", "parent_state", "additional_state", "weight_binary"]
+    _reserved_keys = tuple(_all_keys)
+    
+    _input_keys = copy.copy(_all_keys)
+    _input_keys.pop(_input_keys.index("done"))
+    _input_keys = tuple(_input_keys)
 
     def __getitem__(self, index: Union[slice, int, List[int], np.ndarray]) -> Batch:
         """Return a data batch: self[index].
@@ -267,6 +285,8 @@ class InterWeightedReplayBuffer(ReplayBuffer):
             act=self.act[indice],
             rew=self.rew[indice],
             done=self.done[indice],
+            terminated=self.terminated[indice],
+            truncated=self.truncated[indice],
             obs_next=obs_next,
             true_done=self.true_done[indice],
             mask = self.mask[indice], 

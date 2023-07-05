@@ -58,7 +58,6 @@ def train_full(full_model, rollouts, test_rollout, args, object_names, environme
     # Proximity for Test rollouts
     test_proximal = get_error(full_model, test_rollout, error_type=error_types.PROXIMITY, normalized=True).astype(int)
     test_proximal_inst = get_error(full_model, test_rollout, error_type=error_types.PROXIMITY, reduced=False, normalized=True).astype(int) # the same as above if not multiinstanced
-
     train_passive(full_model, rollouts, args, active_optimizer, passive_optimizer, weights=non_proximal_weights if full_model.proximity_epsilon > 0 else None)
 
     del passive_optimizer
@@ -77,6 +76,7 @@ def train_full(full_model, rollouts, test_rollout, args, object_names, environme
     if len(args.inter.load_intermediate) > 0: full_model.passive_model, full_model.active_model, full_model.interaction_model, active_optimizer, passive_optimizer, interaction_optimizer = load_intermediate(args, full_model, environment)
     passive_error, active_weights, binaries = separate_weights(args.inter.active.weighting, full_model, rollouts, proximal, trace if args.inter.interaction.interaction_pretrain > 0 else None)
     train_interaction(full_model, rollouts, args, trace, interaction_optimizer, weights = active_weights)
+    # print(rollouts.target[binaries], rollouts.next_target[binaries])
     if args.inter.save_intermediate and args.inter.interaction.interaction_pretrain > 0:
         torch.save(full_model.interaction_model, os.path.join(args.inter.save_intermediate, environment.name + "_" + full_model.name + "_interaction_model.pt"))
 

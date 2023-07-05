@@ -3,7 +3,7 @@
     # record_rollouts: ""
     record_recycle: -1
     # load_dir: /nfs/data/calebc/object_data/breakout/testrun/
-    save_dir: /hdd/datasets/object_data/breakout/ball_bounce_base/
+    save_dir: /hdd/datasets/object_data/breakout/testrun2
   environment:
     env: Breakout
     variant: default
@@ -16,7 +16,7 @@
     train_test_order: time
     train_edge: Paddle Ball
     load_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle
-    num_iters: 50000
+    num_iters: 20000
     batch_size: 256
   inter:
     predict_dynamics: False

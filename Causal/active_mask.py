@@ -39,7 +39,6 @@ class ActiveMasking():
             batch = rollouts[i]
             if interaction_model.test(batch.inter): # assumes interactions are already computed
                 inter, (active_mean, av), (pm, pv) = interaction_model.hypothesize((batch.inter_state, batch.target))
-
                 if self.sample_grid:
                     # sample alternative states based on a meshgrid, where min(num_samples, parent_max_num (which is num_actions when discrete)) is used at each dimension
                     n_dim = int(np.ceil(np.power(self.num_samples, 1/np.sum(parent_active))))

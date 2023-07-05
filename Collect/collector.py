@@ -42,6 +42,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         multi_instanced: bool = False,
         record: None = None, # a record object to save states
         args: Namespace = None,
+        stream_write: bool = True, # writes by append
     ) -> None:
         self.param_recycle = args.sample.param_recycle # repeat a parameter
         self.param_counter = 0
@@ -66,6 +67,8 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         self.display_frame = args.collect.display_frame
         self.stream_print_file = args.collect.stream_print_file
         self.save_display = args.collect.save_display
+        self.time_check = args.collect.time_check
+        self.stream_write = stream_write
         if len(self.stream_print_file) > 0: 
             create_directory(os.path.split(self.stream_print_file)[0])
             self.stream_str_record = deque(maxlen=1000)
@@ -78,6 +81,13 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             param_dumps.close()
             term_dumps.close()
             mask_dumps.close()
+            if self.stream_write:
+                self.act_dumps = open(os.path.join(self.save_path, "act_dumps.txt"), 'a')
+                self.option_dumps = open(os.path.join(self.save_path, "option_dumps.txt"), 'a')
+                self.term_dumps = open(os.path.join(self.save_path, "term_dumps.txt"), 'a')
+                self.param_dumps = open(os.path.join(self.save_path, "param_dumps.txt"), 'a')
+                self.mask_dumps = open(os.path.join(self.save_path, "mask_dumps.txt"), 'a')
+
         
         # shortcut calling option attributes through option
         self.state_extractor = self.option.state_extractor
@@ -135,14 +145,21 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
 
     def _save_action(self, act, action_chain, term_chain, param, mask): # this is handled here because action chains are option dependent
         if len(act.shape) == 0: act = [act]
-        write_string(os.path.join(self.save_path, "act_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string(act) + "\n")
-        write_string(os.path.join(self.save_path, "option_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string(action_chain) + "\n")
-        write_string(os.path.join(self.save_path, "term_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string([term_chain]) + "\n")
-        write_string(os.path.join(self.save_path, "param_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string([param[0]]) + "\n")
-        write_string(os.path.join(self.save_path, "mask_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string([mask[0]]) + "\n")
+        if self.stream_write:
+            self.act_dumps.write(str(self.environment.get_itr() - 1) + ":" + action_chain_string(act) + "\n")
+            self.option_dumps.write(str(self.environment.get_itr() - 1) + ":" + action_chain_string(action_chain) + "\n")
+            self.term_dumps.write(str(self.environment.get_itr() - 1) + ":" + action_chain_string([term_chain]) + "\n")
+            self.param_dumps.write(str(self.environment.get_itr() - 1) + ":" + action_chain_string([param[0]]) + "\n")
+            self.mask_dumps.write(str(self.environment.get_itr() - 1) + ":" + action_chain_string([mask[0]]) + "\n")
+        else:
+            write_string(os.path.join(self.save_path, "act_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string(act) + "\n")
+            write_string(os.path.join(self.save_path, "option_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string(action_chain) + "\n")
+            write_string(os.path.join(self.save_path, "term_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string([term_chain]) + "\n")
+            write_string(os.path.join(self.save_path, "param_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string([param[0]]) + "\n")
+            write_string(os.path.join(self.save_path, "mask_dumps.txt"), str(self.environment.get_itr() - 1) + ":" + action_chain_string([mask[0]]) + "\n")
 
     def reset_env(self, keep_statistics: bool = False):
-        full_state = self.env.reset()
+        full_state, info = self.env.reset()
         self._reset_components(full_state[0])
 
     def _reset_components(self, full_state):
@@ -223,7 +240,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             print("hit", hit, self.data.next_target, self.data.param, drop_count, dropped)
         drop_count += int(dropped)
         hit_count += int(hit)
-        miss_count += int(not hit)
+        miss_count += int(not hit and (not dropped or not self.time_check))
         return hit, hit_count, miss_count, drop_count
 
     def show_param(self, param, frame):
@@ -232,7 +249,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         if self.display_frame == 3: # display angles
             param.squeeze()[:2] = self.data.parent_state.squeeze()[:2]
             # print("param", param)
-        frame = display_param(frame, param, rescale=8 if self.env_name in FULL_ENVS else 64, waitkey=200, transpose=self.environment.transpose)
+        frame = display_param(frame, param, rescale=8 if self.env_name in FULL_ENVS else 64, waitkey=10, transpose=self.environment.transpose)
         if len(self.save_display) > 0: imio.imsave(os.path.join(self.save_display, "state" + str(self.counter) + ".png"), frame)
 
 
@@ -315,14 +332,14 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             tc_action = time.time()
             self._policy_state_update(result)
             self.data.update(true_action=[action_chain[0]], act=[act], mapped_act=[action_chain[-1]], option_resample=[resampled], action_chain = action_chain)
-            
+            # print(resampled, action_chain[0],self.data.full_state["factored_state"].Gripper, action_chain[-1], act)
             # step in env
             action_remap = self.data.true_action
             if debug_states is not None:
                 self.environment.set_from_factored_state(debug_states[2][itr]["factored_state"])
                 obs_next = Batch([self.environment.get_state()])
                 rew, done, info = obs_next["factored_state"]["Reward"], obs_next["factored_state"]["Done"], [self.environment.get_info()]
-            else: obs_next, rew, done, info = self.env.step(action_remap, id=ready_env_ids)
+            else: obs_next, rew, done, trunc, info = self.env.step(action_remap, id=ready_env_ids)
             # print("done after step", done)
             # print(self.data.full_state.factored_state.Action)
             if self.environment.discrete_actions: self.data.full_state.factored_state.Action = [action_remap] # reassign the action to correspond to the current action taken
@@ -351,6 +368,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             if self.save_action: self._save_action(act, action_chain, terminations, param, mask)
             info[0]["TimeLimit.truncated"] = bool(cutoff + info[0]["TimeLimit.truncated"]) if "TimeLimit.truncated" in info[0] else cutoff # environment might send truncated itself
             info[0]["TimeLimit.truncated"] = bool(self.trunc_true * true_done + info[0]["TimeLimit.truncated"]) # if we want to treat environment resets as truncations
+            truncated = info[0]["TimeLimit.truncated"]
             self.option.update(act, action_chain, terminations, masks, update_policy=not self.test)
             # print(parent_state, target, param, act)
             # print(inter_state, self.option.interaction_model.predict_next_state(self.data.full_state))
@@ -367,6 +385,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             # update the current values TODO: next_full_state is time expensive (.001 sec per iteration). It should be stored separately
             self.data.update(next_full_state=[next_full_state], true_done=last_true_done, next_true_done=true_done, true_reward=true_reward, 
                 param=param, mask = mask, info = info, inter = [inter], time=[1], trace = [np.any(self.environment.current_trace(self.names))],
+                truncated=[truncated], terminated=[done],
                 inst_trace=self.environment.current_trace(self.names), proximity=[proximity.squeeze()], 
                 proximity_inst=[proximity_inst.squeeze()], weight_binary=[binaries.squeeze()],
                 rew=[rew], done=[done], terminate=[term], ext_term = [ext_term], # all prior are stored, after are not 
@@ -411,7 +430,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             # print(self.data[0].mapped_act, self.data[0].full_state.factored_state.Gripper, self.data.terminations[-1])
             # print(self.data[0].mapped_act, self.data.parent_state, self.data[0].param, self.data.terminations[-1])
             # add to the main buffer
-            next_data, skipped, added, self.at = self._aggregate(self.data, self.buffer, full_ptr, ready_env_ids)
+            next_data, skipped, added, self.at = self._aggregate(self.data, self.buffer, full_ptr, ready_env_ids, interaction_model= self.option.interaction_model)
             # print(self.data.target, not self.test, self.hindsight is not None)
             if not self.test and self.hindsight is not None: self.her_at, her_list = self.her_collect(self.her_buffer, next_data, self.data, added, debug=debug)
             if self.display_frame > 0: self.show_param(param if self.display_frame < 4 else action_chain[-1], self.environment.render())

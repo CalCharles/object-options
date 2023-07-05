@@ -50,8 +50,8 @@ def train_combined(full_model, rollouts, test_rollout, args,
     active_optimizer, passive_optimizer, interaction_optimizer,
     normalize=False):    
 
-    passive_logger = forward_logger("passive", args.graph.record_graphs, args.inter.active.active_log_interval, full_model)
-    logger = forward_logger("active", args.graph.record_graphs, args.inter.active.active_log_interval, full_model)
+    passive_logger = forward_logger("passive", args.record.record_graphs, args.inter.active.active_log_interval, full_model)
+    logger = forward_logger("active", args.record.record_graphs, args.inter.active.active_log_interval, full_model)
     inter_logger = interaction_logger("interaction", args.record.record_graphs, args.inter.active.active_log_interval, full_model)
     # initialize loss function
     inter_loss = nn.BCELoss()
@@ -143,8 +143,8 @@ def train_combined(full_model, rollouts, test_rollout, args,
 
             print("ii, aws, is", inline_iters, active_weighting_lambda, interaction_schedule(i))
             if i % (args.inter.active.active_log_interval * 10) == 0:
-                test_full_train(full_model, rollouts, args, full_model.names, None)
-                test_full(full_model, test_rollout if test_rollout is not None else rollouts, args, full_model.names, None)
+                test_full_train(full_model, rollouts, args, full_model.names, None, normalize=normalize)
+                test_full(full_model, test_rollout if test_rollout is not None else rollouts, args, full_model.names, None, normalize = normalize)
                 # print(trace[inter_idxes], active_weights[inter_idxes])
             # print(full_model.norm.reverse(rollouts.target[48780:48800]), full_model.norm.reverse(rollouts.next_target[48780:48800]))
             # print(interaction_schedule(i))
