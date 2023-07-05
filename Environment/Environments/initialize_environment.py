@@ -1,5 +1,6 @@
 from Record.file_management import load_from_pickle
 from Record.record_state import FullRecord
+from Environment.gymnasium_wrapper import GymnasiumWrapper
 import os
 
 
@@ -53,7 +54,7 @@ def initialize_environment(args, record_args):
         environment = RoboStick(variant=args.variant, horizon=args.time_cutoff, renderable=args.render, fixed_limits=args.fixed_limits)
         environment.seed(args.seed)
     if args.gym_to_gymnasium:
-        environment = gynmasium_wrapper(environment)
+        environment = GymnasiumWrapper(environment)
     record = FullRecord(0, record_args.record_rollouts, record_args.record_recycle, args.render) if record_args is not None and len(record_args.record_rollouts) != 0 else None
     args.environment = environment
     args.record = record
