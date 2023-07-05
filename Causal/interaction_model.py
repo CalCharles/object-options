@@ -258,7 +258,7 @@ class NeuralInteractionForwardModel(nn.Module):
     def get_active_mask(self):
         return self.test.selection_binary
 
-    def interaction(self, val, target=None, next_target=None, target_diff=None, prenormalize=False, use_binary=False, return_hot=False): # val is either a batch, or a ndarray of inter_state. Does NOT unwrap, Does NOT normalize
+    def interaction(self, val, target=None, next_target=None, target_diff=None, prenormalize=False, use_binary=False, return_hot=False, printout=False): # val is either a batch, or a ndarray of inter_state. Does NOT unwrap, Does NOT normalize
         # hot is an unused parameter (see full_interaction_model for usage)
         if type(val) != Batch:
             bat = Batch()
@@ -273,7 +273,8 @@ class NeuralInteractionForwardModel(nn.Module):
             bat = self.normalize_batch(bat)
 
         if use_binary:
-            _, _, inter, _, _, _, active_log_probs, passive_log_probs = self.likelihoods(bat)
+            aparam, pparam, inter, _, _, _, active_log_probs, passive_log_probs = self.likelihoods(bat)
+            if printout: print("likelihood check", active_log_probs, passive_log_probs, self.interaction_model(pytorch_model.wrap(bat.inter_state, cuda=self.iscuda)), - active_log_probs.sum(dim=-1), - passive_log_probs.sum(dim=-1), self.test.forward_threshold, self.test.passive_threshold, self.test.difference_threshold)
             binary = self.test.compute_binary(- active_log_probs.sum(dim=-1),
                                                 - passive_log_probs.sum(dim=-1)).unsqueeze(-1)
             # print(pytorch_model.unwrap(active_log_probs.sum()), pytorch_model.unwrap(passive_log_probs.sum()), binary, pytorch_model.unwrap(self.interaction_model(pytorch_model.wrap(bat.inter_state, cuda=self.iscuda))))

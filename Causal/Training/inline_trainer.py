@@ -9,6 +9,7 @@ from collections import Counter
 from Causal.Utils.weighting import get_weights, passive_binary
 from Causal.Utils.get_error import error_types, get_error, compute_error, check_proximity
 from Causal.Training.train_combined import train_combined
+from Causal.Training.train_passive import train_passive
 from Causal.Training.train_full import initialize_optimizer
 from Causal.dummy_interaction import DummyInteraction
 from Network.network_utils import pytorch_model, run_optimizer
@@ -80,13 +81,13 @@ class InlineTrainer():
                 self.interaction_model.reset_network("passive")
                 self.passive_optimizer = initialize_optimizer(self.interaction_model.passive_model, self.interaction_args.interaction_net.optimizer, self.interaction_args.interaction_net.optimizer.lr)
             
+            cut_rols = rollouts[:len(rollouts)]
             if self.train_passive:
-                proximal = rollouts.proximity
+                proximal = cut_rols.proximity
                 non_proximal = (proximal != True).astype(int)
                 non_proximal_weights = non_proximal.squeeze() / np.sum(non_proximal) if np.sum(non_proximal) != 0 else np.ones(non_proximal.shape) / len(non_proximal)
-                train_passive(self.interaction_model, rollouts, self.interaction_args, self.active_optimizer, self.passive_optimizer, weights=non_proximal_weights if full_model.proximity_epsilon > 0 else None)
+                train_passive(self.interaction_model, rollouts, self.interaction_args, self.active_optimizer, self.passive_optimizer, weights=non_proximal_weights.squeeze() if self.interaction_model.proximity_epsilon > 0 else None, normalize=True)
             # change interaction model values
-            cut_rols = rollouts[:len(rollouts)]
             # print(cut_rols.weight_binary[-200:], cut_rols.proximity[-200:])
             print("running inline training with", len(cut_rols))
             train_combined(self.interaction_model, rollouts, None, self.interaction_args,
@@ -102,5 +103,5 @@ class InlineTrainer():
             rollouts.terminate[:len(rollouts)], rollouts.rew[:len(rollouts)], rollouts.done[:len(rollouts)], rollouts.inter[:len(rollouts)] = \
                 np.expand_dims(term, 1), np.expand_dims(rew, 1), np.expand_dims(done, 1), np.expand_dims(inter, 1)
             if self.train_passive: # also need to update the passive weights if we changed the passive model
-                passive_error = get_error(self.interaction_model, rollouts, error_types.PASSIVE, prenormalize=True)
-                rollouts.weight_binary = passive_binary(passive_error, self.weighting, cut_rols.proximity)
+                passive_error = get_error(self.interaction_model, rollouts, error_type=error_types.PASSIVE, prenormalize=True)
+                rollouts.weight_binary = passive_binary(passive_error, self.weighting, cut_rols.proximity, cut_rols.done)

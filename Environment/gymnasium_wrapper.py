@@ -65,7 +65,7 @@ class GymnasiumWrapper(gym.Env):
         return self.gym.reset(), self.get_info() # returns a dummy info on reset
 
     def render(self, mode='human'):
-        return self.gym.render(mode=mode)
+        return self.gym.render()
 
     def close(self):
         return self.gym.close()

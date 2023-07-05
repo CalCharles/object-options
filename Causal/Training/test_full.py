@@ -2,7 +2,7 @@ import numpy as np
 from Causal.Utils.get_error import get_error, error_types
 import logging
 
-def test_full_train(full_model, train_buffer, args, object_names, environment):
+def test_full_train(full_model, train_buffer, args, object_names, environment, normalize=False):
 	# prints out training assessment, with most of the same values as test_full
 	# predicted target for the model
 	train_buffer, all_indices = train_buffer.sample(0) # only sample valid indices
@@ -11,20 +11,20 @@ def test_full_train(full_model, train_buffer, args, object_names, environment):
 	train_valid = (train_buffer.done != 1).squeeze()
 	
 	# l1 difference per element
-	train_l1_passive = get_error(full_model, train_buffer, error_type=error_types.PASSIVE, reduced=False)[train_valid]
-	train_l1_active = get_error(full_model, train_buffer, error_type=error_types.ACTIVE, reduced=False)[train_valid]
+	train_l1_passive = get_error(full_model, train_buffer, error_type=error_types.PASSIVE, reduced=False, prenormalize=normalize)[train_valid]
+	train_l1_active = get_error(full_model, train_buffer, error_type=error_types.ACTIVE, reduced=False, prenormalize=normalize)[train_valid]
 
 	# l1 difference between passive and active for train, per value, per element, without done states
-	train_raw_passive = get_error(full_model, train_buffer, error_type=error_types.PASSIVE_RAW, reduced=False, normalized=False)[train_valid]
-	train_raw_active = get_error(full_model, train_buffer, error_type=error_types.ACTIVE_RAW, reduced=False, normalized=False)[train_valid]
+	train_raw_passive = get_error(full_model, train_buffer, error_type=error_types.PASSIVE_RAW, reduced=False, prenormalize=normalize)[train_valid]
+	train_raw_active = get_error(full_model, train_buffer, error_type=error_types.ACTIVE_RAW, reduced=False, prenormalize=normalize)[train_valid]
 
 	# variance for passive and active for train
-	train_passive_var = get_error(full_model, train_buffer, error_type=error_types.PASSIVE_VAR)[train_valid]
-	train_active_var = get_error(full_model, train_buffer, error_type=error_types.ACTIVE_VAR)[train_valid]
+	train_passive_var = get_error(full_model, train_buffer, error_type=error_types.PASSIVE_VAR, prenormalize=normalize)[train_valid]
+	train_active_var = get_error(full_model, train_buffer, error_type=error_types.ACTIVE_VAR, prenormalize=normalize)[train_valid]
 
 	# active and passive mean, max min and sum
-	train_like_passive = (get_error(full_model, train_buffer, error_type = error_types.PASSIVE_LIKELIHOOD, reduced=False)[train_valid])
-	train_like_active = (get_error(full_model, train_buffer, error_type = error_types.ACTIVE_LIKELIHOOD, reduced=False)[train_valid])
+	train_like_passive = (get_error(full_model, train_buffer, error_type = error_types.PASSIVE_LIKELIHOOD, reduced=False, prenormalize=normalize)[train_valid])
+	train_like_active = (get_error(full_model, train_buffer, error_type = error_types.ACTIVE_LIKELIHOOD, reduced=False, prenormalize=normalize)[train_valid])
 	train_like_pmean = np.mean(train_like_passive, axis=0)
 	train_like_amean = np.mean(train_like_active, axis=0)
 	train_like_pmax = np.max(train_like_passive, axis=0)
@@ -35,16 +35,16 @@ def test_full_train(full_model, train_buffer, args, object_names, environment):
 	train_like_a = np.sum(np.mean(train_like_active, axis=0), axis=-1)
 
 	# interaction likelihood values
-	train_like = get_error(full_model, train_buffer, error_type = error_types.LIKELIHOOD, reduced=False)[train_valid]
+	train_like = get_error(full_model, train_buffer, error_type = error_types.LIKELIHOOD, reduced=False, prenormalize=normalize)[train_valid]
 	train_like_full = np.sum(np.mean(train_like, axis=0), axis=-1)
 	train_like_mean = np.mean(train_like, axis=0)
-	train_bin = get_error(full_model, train_buffer, error_type = error_types.INTERACTION_BINARIES)[train_valid]
+	train_bin = get_error(full_model, train_buffer, error_type = error_types.INTERACTION_BINARIES, prenormalize=normalize)[train_valid]
 	train_trace = train_buffer.trace[train_valid]
-	train_likev = get_error(full_model, train_buffer, error_type = error_types.INTERACTION_RAW)[train_valid]
+	train_likev = get_error(full_model, train_buffer, error_type = error_types.INTERACTION_RAW, prenormalize=normalize)[train_valid]
 	train_likepred = full_model.test(train_likev)
 
 	# proximity
-	train_prox = get_error(full_model, train_buffer, error_type=error_types.PROXIMITY, normalized=True)[train_valid]
+	train_prox = get_error(full_model, train_buffer, error_type=error_types.PROXIMITY, prenormalize=normalize)[train_valid]
 
 
 
@@ -107,7 +107,7 @@ def test_full_train(full_model, train_buffer, args, object_names, environment):
 	print(log_string)
 	logging.info(log_string)
 
-def test_full(full_model, test_buffer, args, object_names, environment):
+def test_full(full_model, test_buffer, args, object_names, environment, normalize=False):
 	''' train, test| prediction l1 per-element
 	train, test| max, min, mean per-element likelihood
 	interaction binary, true FP, FN
@@ -127,20 +127,20 @@ def test_full(full_model, test_buffer, args, object_names, environment):
 	# error
 
 	# l1 difference between passive and active for train and test, per value, per element, without done states
-	test_l1_passive = get_error(full_model, test_buffer, error_type=error_types.PASSIVE, reduced=False)[test_valid]
-	test_l1_active = get_error(full_model, test_buffer, error_type=error_types.ACTIVE, reduced=False)[test_valid]
+	test_l1_passive = get_error(full_model, test_buffer, error_type=error_types.PASSIVE, reduced=False, prenormalize=normalize)[test_valid]
+	test_l1_active = get_error(full_model, test_buffer, error_type=error_types.ACTIVE, reduced=False, prenormalize=normalize)[test_valid]
 
 	# l1 difference between passive and active for train and test, per value, per element, without done states
-	test_raw_passive = get_error(full_model, test_buffer, error_type=error_types.PASSIVE_RAW, reduced=False, normalized=True)[test_valid]
-	test_raw_active = get_error(full_model, test_buffer, error_type=error_types.ACTIVE_RAW, reduced=False, normalized=True)[test_valid]
+	test_raw_passive = get_error(full_model, test_buffer, error_type=error_types.PASSIVE_RAW, reduced=False, prenormalize=normalize)[test_valid]
+	test_raw_active = get_error(full_model, test_buffer, error_type=error_types.ACTIVE_RAW, reduced=False, prenormalize=normalize)[test_valid]
 
 	# variance for passive and active for test
 	test_passive_var = get_error(full_model, test_buffer, error_type=error_types.PASSIVE_VAR)[test_valid]
 	test_active_var = get_error(full_model, test_buffer, error_type=error_types.ACTIVE_VAR)[test_valid]
 
 	# passive and active likelihoods per value, per element
-	test_like_passive = (get_error(full_model, test_buffer, error_type = error_types.PASSIVE_LIKELIHOOD, reduced=False)[test_valid])
-	test_like_active = (get_error(full_model, test_buffer, error_type = error_types.ACTIVE_LIKELIHOOD, reduced=False)[test_valid])
+	test_like_passive = (get_error(full_model, test_buffer, error_type = error_types.PASSIVE_LIKELIHOOD, reduced=False, prenormalize=normalize)[test_valid])
+	test_like_active = (get_error(full_model, test_buffer, error_type = error_types.ACTIVE_LIKELIHOOD, reduced=False, prenormalize=normalize)[test_valid])
 
 	# passive and active likelihoods per element, meaned
 	test_like_pmean = np.mean(test_like_passive, axis=0)
@@ -157,7 +157,7 @@ def test_full(full_model, test_buffer, args, object_names, environment):
 	test_like_a = np.sum(np.mean(test_like_active, axis=0), axis=-1)
 
 	# weighted active likelihood, per element
-	test_like = get_error(full_model, test_buffer, error_type = error_types.LIKELIHOOD, reduced=False)[test_valid]
+	test_like = get_error(full_model, test_buffer, error_type = error_types.LIKELIHOOD, reduced=False, prenormalize=normalize)[test_valid]
 	# weighted active likelihood, totaled
 	test_like_full = np.sum(np.mean(test_like, axis=0), axis=-1)
 	# weighted active likelihood, per element
@@ -187,7 +187,7 @@ def test_full(full_model, test_buffer, args, object_names, environment):
 
 	# proximity
 	print("getting error", test_buffer.parent_state[:10], test_buffer.target[:10])
-	test_prox = get_error(full_model, test_buffer, error_type=error_types.PROXIMITY, normalized=True)[test_valid]
+	test_prox = get_error(full_model, test_buffer, error_type=error_types.PROXIMITY, prenormalize=normalize)[test_valid]
 
 	log_string  = f'\n\ntest_results:'
 	log_string += f'\nl1_passive: {np.mean(test_l1_passive, axis=0)}'
