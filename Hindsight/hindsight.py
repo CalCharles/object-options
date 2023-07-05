@@ -79,6 +79,10 @@ class Hindsight():
 
 
     def satisfy_criteria(self, replay_queue):
+        # if len(replay_queue) > 0:
+        #     print(self.interaction_criteria)
+        #     if self.interaction_criteria==2: print(mean_replay_difference(replay_queue))
+        #     else: print(replay_queue)
         return len(replay_queue) > 0 and ((self.interaction_criteria == 1 and np.sum(np.stack([b.inter for b in replay_queue])) > 0.5) or # keep if interaction happened
          (self.interaction_criteria == 2 and mean_replay_difference(replay_queue) > 0.001) or # keep if displacement happened
           (self.interaction_criteria == 0)) # just keep any termination
@@ -171,7 +175,7 @@ class Hindsight():
                                 her_batch = add_queue[i]
                                 # print("her", her_batch.time, her_batch.param, her_batch.next_target, her_batch.mapped_act, her_batch.rew, her_batch.terminate, her_batch.done, her_batch.true_done)
                                 # print(self.terminate_reward.inter_extract(full_state, norm=True)), pytorch_model.unwrap(self.terminate_reward.interaction_model.interaction(self.terminate_reward.inter_extract(full_state, norm=True))))
-                                # print("adding", her_batch.target, her_batch.next_target, her_batch.inter, her_batch.old_inter, her_batch.rew, her_batch.done, her_batch.param, her_batch.)
+                                # print("adding", her_batch.target, her_batch.next_target, her_batch.inter, her_batch.old_inter, her_batch.rew, her_batch.done, her_batch.param)
                                 self.at, ep_rew, ep_len, ep_idx = her_buffer.add(her_batch, buffer_ids=[0])
                                 if debug: debug_list.append(copy.deepcopy(her_batch))
                                 early_stopping_counter += int(np.any(her_batch.done))

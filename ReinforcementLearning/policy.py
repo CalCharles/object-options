@@ -135,6 +135,7 @@ class Policy(nn.Module):
 
     def sample_indices(self, sample_size, her_buffer, buffer, pre_chosen=None):
         her_batch, her_indice, main_batch, main_indice = None, None, None, None
+        # print("buffer_check", len(her_buffer) > self.MIN_HER, self.MIN_HER, len(her_buffer))
         if self.sample_form == "HER":
             if len(her_buffer) < self.MIN_HER: # nothing to sample 
                 return {}

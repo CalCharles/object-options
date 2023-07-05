@@ -18,7 +18,7 @@ def robo_random(config_choice, uid):
     rand_args = generate_args()
     rand_args.record_rollouts = robo_path + uid
     rand_args.env = "RoboPushing"
-    # generate_random(rand_args)
+    generate_random(rand_args)
 
 
 if __name__ == "__main__":
