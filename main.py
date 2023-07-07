@@ -28,6 +28,9 @@ if __name__ == "__main__":
         for variant in breakout_variant_configs:
             args = read_config(variant)
             train_option(args)
+    elif args.main_train == "RoboPushingObstacle":
+        args = read_config(obstacle_config)
+        train_option(obstacle_config)
     else:
         if args.main_train == "BreakoutStack":
             config_choice = breakout_configs
@@ -56,6 +59,3 @@ if __name__ == "__main__":
                 if len(args.record.record_rollouts) > 0: args.record.record_rollouts = args.record.record_rollouts + uid
                 args.train.load_rollouts = args.train.load_rollouts + uid
                 train_option(args)
-        if args.main_train == "RoboPushingObstacle":
-            args = read_config(obstacle_config)
-            train_option(obstacle_config)

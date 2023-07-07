@@ -61,7 +61,7 @@
     interaction_as_termination: True
     use_binary: True
   collect:
-    buffer_len : 300000
+    buffer_len : 100000
     test_episode: True
     max_steps: 1000
     prioritized_replay: 0.2 0.4
@@ -81,6 +81,11 @@
     tau: .001
     max_critic: 100
     epsilon_random: 0.1
+    primacy:
+      reset_layers: 4
+      reset_frequency: 125
+      primacy_iters: 50
+      stop_resets: 500
     logging:
       log_interval: 10
       train_log_maxlen: 5
