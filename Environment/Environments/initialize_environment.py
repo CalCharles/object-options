@@ -5,11 +5,11 @@ import os
 from Environment.gymnasium_wrapper import GymnasiumWrapper
 
 
-def initialize_environment(args, record_args):
+def initialize_environment(args, record_args, no_record=False):
     # construct an environment specified by args.env
     if args.env == "Breakout":
         from Environment.Environments.Breakout.breakout_screen import Breakout
-        environment = Breakout(frameskip = args.frameskip, breakout_variant=args.variant, fixed_limits=args.fixed_limits)
+        environment = Breakout(frameskip = args.frameskip, breakout_variant=args.variant, fixed_limits=args.fixed_limits, flat_obs = args.flat_obs)
         print(args.seed)
         environment.seed(args.seed)
     elif args.env == "Asteroids":
@@ -40,7 +40,7 @@ def initialize_environment(args, record_args):
         from Environment.Environments.RoboPushing.robopushing_screen import RoboPushing
 
         args.continuous = True
-        environment = RoboPushing(variant=args.variant, horizon=args.horizon, renderable=args.render, fixed_limits=args.fixed_limits)
+        environment = RoboPushing(variant=args.variant, horizon=args.horizon, renderable=args.render, fixed_limits=args.fixed_limits, flat_obs = args.flat_obs)
         environment.seed(args.seed)
     elif args.env.find("AirHockey") != -1:
         from Environment.Environments.AirHockey.air_hockey import RobosuiteAirHockey
@@ -59,4 +59,6 @@ def initialize_environment(args, record_args):
     record = FullRecord(0, record_args.record_rollouts, record_args.record_recycle, args.render) if record_args is not None and len(record_args.record_rollouts) != 0 else None
     args.environment = environment
     args.record = record
+    if no_record:
+        return environment # we didn't need the record
     return environment, record

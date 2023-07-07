@@ -37,6 +37,7 @@ def compute_possible(environment):
             if valid:
                 bin_valid.append(subset)
         valid_subsets.append(bin_valid)
+
     
     all_combinations = np.array(np.meshgrid(*[ss for ss in valid_subsets])).T.reshape(-1,3)
 

@@ -33,7 +33,7 @@ a = [[-0.7,0,0],
 DISCRETE_MOVEMENTS = np.array(a).astype(float)
 
 class RoboPushing(Environment):
-    def __init__(self, variant="default", horizon=30, renderable=False, fixed_limits=False):
+    def __init__(self, variant="default", horizon=30, renderable=False, fixed_limits=False, flat_obs=False):
         super().__init__()
         self.self_reset = True
         self.fixed_limits = fixed_limits
@@ -89,6 +89,7 @@ class RoboPushing(Environment):
             self.action = np.zeros(self.action_shape)
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=[9])
         self.renderable = renderable
+        self.flat_obs = flat_obs
 
         # running values
         self.timer = 0
@@ -140,6 +141,11 @@ class RoboPushing(Environment):
 
     def construct_full_state(self, factored_state, raw_state):
         self.full_state = {'raw_state': raw_state, 'factored_state': numpy_factored(factored_state)}
+        if self.flat_obs:
+            return np.array(sum([factored_state["Action"].tolist(), factored_state["Gripper"].tolist(), factored_state["Block"].tolist(), factored_state["Target"].tolist()]
+                         + [factored_state['Obstacle' + str(i)] for i in range(self.num_obstacles)] + 
+                         [(np.array(factored_state["Gripper"]) - np.array(factored_state["Block"])).tolist()] + 
+                         [(np.array(factored_state["Block"]) - np.array(factored_state["Target"])).tolist()], start = list()))
         return self.full_state
 
     def set_action(self, action):
