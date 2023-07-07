@@ -4,6 +4,7 @@ from State.object_dict import ObjDict
 from Hyperparam.Argsets.full_args import full_args
 from Hyperparam.Argsets.hype_args import hype_args
 from Hyperparam.Argsets.cdl_args import cdl_args
+from Hyperparam.Argsets.ride_args import ride_args
 
 arg_dicts = {
     "full": full_args,
@@ -50,6 +51,8 @@ def construct_namespace(data):
             expected_args = hype_args
         elif data["arg_dict"] == "cdl":
             expected_args = cdl_args
+        elif data["arg_dict"] == "ride":
+            expected_args = ride_args
         elif data["arg_dict"] == "full":
             expected_args = full_args
         else:

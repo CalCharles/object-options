@@ -15,7 +15,7 @@ from Causal.Sampling.General.block import BreakoutBlockSampler
 # target_mode (1)/edges(2)/center(3), scatter (4), num rows, num_columns, no_breakout (value for hit_reset), negative mode, bounce_count
 
 class Breakout(Environment):
-    def __init__(self, frameskip = 1, breakout_variant="default", fixed_limits=False):
+    def __init__(self, frameskip = 1, breakout_variant="default", fixed_limits=False, flat_obs=False):
         super(Breakout, self).__init__()
         # breakout specialized parameters are stored in the variant
         self.variant = breakout_variant
@@ -105,6 +105,7 @@ class Breakout(Environment):
         self.all_names = ["Action", "Paddle", "Ball"] + [b.name for b in self.blocks] + ['Done', "Reward"]
         self.instance_length = len(self.all_names)
         self.reset_rewards = True # resets rewards on the NEXT iteration
+        self.flat_obs = flat_obs
 
     def assign_assessment_stat(self):
         if self.dropped and self.variant != "proximity":
@@ -307,6 +308,9 @@ class Breakout(Environment):
         rdset = set(["Reward", "Done"])
         state =  {"raw_state": self.frame, "factored_state": numpy_factored({**{obj.name: obj.getMidpoint() + obj.vel.tolist() + [obj.getAttribute()] for obj in self.objects if obj.name not in rdset}, **{'Done': [self.done.attribute], 'Reward': [self.reward.attribute]}})}
         if self.variant == "proximity": state["factored_state"]["Param"] = self.param
+        if self.flat_obs:
+            return (np.array(sum([(self.ball.pos - self.paddle.pos).tolist()] +[[0,0]] + [obj.getMidpoint() + obj.vel.tolist() + [obj.getAttribute()] for obj in self.objects]
+                                 , start=list())).flatten() / 84)
         return state
 
     def get_info(self):

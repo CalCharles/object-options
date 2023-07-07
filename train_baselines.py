@@ -21,5 +21,5 @@ if __name__ == "__main__":
         params = TrainingParams(training_params_fname=args.param_config, train=True)
         train(params, args)
     if args.arg_dict == "ride":
-        from Baselines.RIDE.train_RIDE import train
+        from Baselines.RIDE.train_RIDE import train_RIDE
         train_RIDE(args)

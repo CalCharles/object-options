@@ -40,12 +40,12 @@ def compute_possible(environment):
             if valid:
                 bin_valid.append(subset)
         valid_subsets.append(bin_valid)
-    print(valid_subsets, len(valid_subsets), [len(vss) for vss in valid_subsets])
+    # print(valid_subsets, len(valid_subsets), [len(vss) for vss in valid_subsets])
     subset_indices = [np.arange(len(vss)) for vss in valid_subsets]
-    print(subset_indices)
+    # print(subset_indices)
     all_combinations = np.array(np.meshgrid(*valid_subsets)).T.reshape(-1,len(valid_subsets))
     # all_combinations = np.array(np.meshgrid(*subset_indices)).T.reshape(-1,len(valid_subsets))
-    print(all_combinations)
+    # print(all_combinations)
 
     def check_valid(comb, num): # checks if a combination of binary assignments is valid
         for i in range(len(comb)-1):
