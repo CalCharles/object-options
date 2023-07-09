@@ -139,6 +139,10 @@ class Breakout(Environment):
             if self.done.attribute:
                 if type(self.assessment_stat) == tuple:
                     self.assessment_stat = self.assessment_stat[1] / self.assessment_stat[0]
+    
+    def compute_assess(self):
+        if self.variant == "proximity" and type(self.assessment_stat) == tuple: return self.assessment_stat[1] / max(self.assessment_stat[0], 1)
+        return self.assessment_stat
 
     def ball_reset(self):
         self.ball.pos = [41, np.random.randint(20, 52)]
@@ -270,7 +274,7 @@ class Breakout(Environment):
         self.done = Done()
         self.reward = Reward()
         self.objects = [self.actions, self.paddle, self.ball] + self.blocks + self.walls + [self.done, self.reward]
-        self.num_objects = len(self.objects) - 1
+        self.num_objects = len(self.objects)
 
         # zero out relevant values
         self.assessment_stat = 0 if self.variant != "proximity" else (0,0)
@@ -318,6 +322,7 @@ class Breakout(Environment):
 
     def get_state(self, render=False):
         rdset = set(["Reward", "Done"])
+        # print([(np.array(self.sampler.param) / np.array([84,84,1,1,1])).tolist()], [((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ 84.0).tolist()+ [0,0,1]])
         if self.flat_obs:
             # return np.array(((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ 84.0).tolist()
             #      + self.ball.vel.tolist() + (np.array(self.paddle.getMidpoint()) / 84.0).tolist() + (np.array(self.ball.getMidpoint()) / 84.0).tolist())
@@ -326,9 +331,11 @@ class Breakout(Environment):
                 #                 [np.array((np.array(obj.getMidpoint()) / 84.0).tolist() + obj.vel.tolist() + [obj.getAttribute()] + obj.hot_id).shape for obj in self.objects if obj.name not in rdset]
                 #                  )
                 return (np.array(sum([((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ 84.0).tolist()+ [0,0,1] + [0,0,0,0,1,0]] + 
+                                [(np.array(self.sampler.param) / np.array([84,84,1,1,1])).tolist() + [0,0,0,0,1,0]] +
                                 [(np.array(obj.getMidpoint()) / 84.0).tolist() + obj.vel.tolist() + [obj.getAttribute()] + obj.hot_id for obj in self.objects if obj.name not in rdset]
                                  , start=list())).flatten())
             return (np.array(sum([((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ 84.0).tolist()+ [0,0,1]] + 
+                                [(np.array(self.sampler.param) / np.array([84,84,1,1,1])).tolist()] + 
                                 [(np.array(obj.getMidpoint()) / 84.0).tolist() + obj.vel.tolist() + [obj.getAttribute()] for obj in self.objects if obj.name not in rdset]
                                  , start=list())).flatten())
         else:
@@ -336,7 +343,7 @@ class Breakout(Environment):
         return state
 
     def get_info(self):
-        return {"lives": 5-self.ball.losses, "TimeLimit.truncated": False, "assessment": self.assessment_stat, "total_score": self.total_score}
+        return {"lives": 5-self.ball.losses, "TimeLimit.truncated": False, "assessment": self.compute_assess(), "total_score": self.total_score}
 
     def clear_interactions(self):
         self.ball.clear_hits()
@@ -516,7 +523,7 @@ class Breakout(Environment):
         # get assessment values
         self.assign_assessment_stat() # TODO: bugs may occur if using frame skipping
         assessment_stat = self.assessment_stat
-        info = {"lives": lives, "TimeLimit.truncated": False, "assessment": self.assessment_stat, "total_score": self.total_score} # treats drops as truncations
+        info = {"lives": lives, "TimeLimit.truncated": False, "assessment": self.compute_assess(), "total_score": self.total_score} # treats drops as truncations
         
         # perform resets
         rew, done = self.reward.attribute, self.done.attribute

@@ -1,0 +1,25 @@
+---
+metaparam: 
+  multi_filename: ride_variant1_runs
+  log_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_logs/ride_variant1/
+  yaml_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_yamls/ride_variant1/
+  save_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam/ride_variant1/
+  graph_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_graphs/ride_variant1/
+  bash_path: bashes/ride_variant1_runs.sh
+  # multi_filename: ride_variant2_runs
+  # log_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_logs/ride_variant2/
+  # yaml_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_yamls/ride_variant2/
+  # save_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam/ride_variant2/
+  # graph_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_graphs/ride_variant2/
+  # bash_path: bashes/ride_variant2_runs.sh
+  base_config: configs/Baselines/RIDE/breakout/ride.yaml
+  runfile: train_baselines.py
+  gpu: 0
+  simul_run: 15
+  match: 0
+  num_trials: 5
+  cycle_gpu: 4
+environment:
+  variant: big_block,center_medium,negative_rand_row
+  # variant: single_block,harden_single,proximity 
+...

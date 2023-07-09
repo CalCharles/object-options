@@ -155,7 +155,7 @@ def initialize_ride_continuous(args):
     ride_optim = torch.optim.Adam(ride_net.parameters(), lr=args.network.optimizer.lr)
     policy = RIDEPolicy(
         policy, ride_net, ride_optim, args.RIDE.lr_scale, args.RIDE.reward_scale,
-        args.RIDE.forward_loss_weight, args.RIDE.pseudocount_lambda
+        args.RIDE.forward_loss_weight, args.RIDE.pseudocount_lambda, discrete_actions = False,
     ).to(device)
     return policy
 
@@ -246,6 +246,6 @@ def initialize_ride_discrete(args):
     ride_optim = torch.optim.Adam(ride_net.parameters(), lr=args.network.optimizer.lr)
     policy = RIDEPolicy(
         policy, ride_net, ride_optim, args.RIDE.lr_scale, args.RIDE.reward_scale,
-        args.RIDE.forward_loss_weight, args.RIDE.pseudocount_lambda
+        args.RIDE.forward_loss_weight, args.RIDE.pseudocount_lambda, discrete_actions = True,
     ).to(device)
     return policy

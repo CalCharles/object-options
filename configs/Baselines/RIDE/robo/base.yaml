@@ -12,7 +12,7 @@ environment:
   horizon: -1
   seed: -1
 torch: 
-  gpu: 3
+  gpu: 0
   cuda: True
   torch_seed: -1
 train: 
@@ -26,8 +26,8 @@ RIDE:
   lr_scale: 1
   reward_scale: 0.01
   forward_loss_weight: 1 
-  training_num: 2
-  test_num: 1
+  training_num: 16
+  test_num: 4
   pseudocount_lambda: 1
 collect: 
   buffer_len: 200000

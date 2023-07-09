@@ -1,13 +1,13 @@
 ---
 metaparam: 
   multi_filename: ride_runs
-  log_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_logs/ride/inter/
-  yaml_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_yamls/ride/inter/
-  save_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam/ride/inter/
-  graph_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_graphs/ride/inter/
+  log_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_logs/ride/
+  yaml_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_yamls/ride/
+  save_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam/ride/
+  graph_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_graphs/ride/
   bash_path: ride_runs.sh
   base_config: configs/Baselines/RIDE/breakout/ride.yaml
-  runfile: train_interaction.py
+  runfile: train_baselines.py
   gpu: 0
   simul_run: 4
   match: 0
