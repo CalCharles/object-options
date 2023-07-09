@@ -96,6 +96,7 @@ full_args = {
         "fixed_limits": False,
         "gym_to_gymnasium": True,
         "flat_obs": False,
+        "append_id": False,
     },
     "torch": {
         "gpu": 1,

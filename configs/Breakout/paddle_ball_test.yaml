@@ -19,6 +19,7 @@
     test_episode: True
     max_steps: 1000
     display_frame: 3
+    save_display: /hdd/datasets/object_data/breakout/param_display/
   policy:
     logging:
       log_interval: 10
