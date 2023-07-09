@@ -222,6 +222,7 @@ def display_param(frame, param, waitkey=10, rescale=-1, dot=True, transpose = Tr
                 loc[0], loc[1] = loc[1], loc[0]
                 cv2.circle(frame, loc.astype(int), 3, color, 1)
 
+    print(frame.shape, rescale)
     if rescale > 0: frame = cv2.resize(frame, (frame.shape[0] * rescale, frame.shape[1] * rescale), interpolation = cv2.INTER_NEAREST)
     cv2.imshow('param_image',frame)
     cv2.waitKey(int(waitkey)) # waits until a key is pressed

@@ -41,8 +41,8 @@ def _assign_device(algo_policy, algo_name, discrete_actions, device):
             if hasattr(algo_policy.actor, "sigma"): algo_policy.actor.sigma.device = device
         else:
             algo_policy.actor.last.device = device
-        if hasattr(algo_policy.actor, "_max") and type(algo_policy.actor._max) == torch.Tensor:
-            algo_policy.actor._max = algo_policy.actor._max.to(device)
+        if hasattr(algo_policy.actor, "max_action") and type(algo_policy.actor.max_action) == torch.Tensor:
+            algo_policy.actor.max_action = algo_policy.actor.max_action.to(device)
         algo_policy.actor.device = device
     if hasattr(algo_policy, "critic"):
         algo_policy.critic.last.device = device

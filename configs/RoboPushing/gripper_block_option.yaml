@@ -43,7 +43,7 @@
       weight_decay: 0.00001
   sample:
     sample_type: cent
-    sample_distance: 0.25
+    sample_distance: 0.4
     # sample_schedule: 200
     # param_recycle: 0.1
   extract:
@@ -72,7 +72,7 @@
     use_her: True
     early_stopping: 1
     interaction_criteria: 2
-    select_positive: 0.5
+    select_positive: 0.2
   policy:
     learning_type: sac
     epsilon_random: 0.01

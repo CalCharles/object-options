@@ -24,7 +24,7 @@ from tianshou.env import BaseVectorEnv, DummyVectorEnv
 from tianshou.data import Collector, Batch, ReplayBuffer, to_torch_as, to_numpy
 from typing import Any, Dict, Tuple, Union, Optional, Callable
 
-FULL_ENVS = ["Breakout", "Asteroids", "RoboPushing", "AirHockey"]
+FULL_ENVS = ["Breakout", "Asteroids", "RobosuitePushing", "AirHockey"]
 
 def print_shape(batch, prefix=""):
     print(prefix, {n: batch[n].shape for n in batch.keys() if type(batch[n]) == np.ndarray})
@@ -244,12 +244,15 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         return hit, hit_count, miss_count, drop_count
 
     def show_param(self, param, frame):
+        rescale = 8
+        if self.env_name == "RobosuitePushing":
+            rescale = 1 
         if self.display_frame == 2:
             param = None
         if self.display_frame == 3: # display angles
             param.squeeze()[:2] = self.data.parent_state.squeeze()[:2]
             # print("param", param)
-        frame = display_param(frame, param, rescale=8 if self.env_name in FULL_ENVS else 64, waitkey=10, transpose=self.environment.transpose)
+        frame = display_param(frame, param, rescale=rescale if self.env_name in FULL_ENVS else 64, waitkey=10, transpose=self.environment.transpose)
         if len(self.save_display) > 0: imio.imsave(os.path.join(self.save_display, "state" + str(self.counter) + ".png"), frame)
 
 

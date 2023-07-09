@@ -41,12 +41,12 @@ class Graph:
 	def add_to_chain(self, name):
 		self.chain.append(name)
 
-def load_graph(load_dir, device):
+def load_graph(load_dir, device, use_cuda=True):
 	load_name = os.path.join(load_dir, "graph.gm")
 	graph = load_from_pickle(load_name)
 	for node in graph.nodes.values():
 		node.interaction = load_interaction(load_dir, node.name, device) # returns none if there is no interaction model in the directory
-		node.option = load_option(load_dir, node.name, node.interaction, device) # returns none if there is no option in the directory
+		node.option = load_option(load_dir, node.name, node.interaction, device, use_cuda=use_cuda) # returns none if there is no option in the directory
 		# print(load_name, node.name, node.option, node.intteraction)
 		# reassigns to the latest interaction model, if changed
 		if node.option is not None and node.interaction is not None:

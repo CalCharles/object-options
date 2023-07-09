@@ -9,10 +9,10 @@ metaparam:
   base_config: configs/Baselines/RIDE/breakout/ride.yaml
   runfile: train_baselines.py
   gpu: 0
-  simul_run: 4
+  simul_run: 8
   match: 0
   num_trials: 8
   cycle_gpu: 4
 environment:
-  variant: drop_stopping 
+  variant: default 
 ...

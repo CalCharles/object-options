@@ -1,0 +1,36 @@
+---
+record:
+  record_rollouts: /nfs/data/object_data/robo/block
+  # record_rollouts: /hdd/datasets/object_data/breakout/testrun/paddle
+  record_recycle: -1
+  log_filename: logs/temp/ball_test.log
+  load_dir: /nfs/data/object_data/robopush/testrun0
+environment:
+  env: RoboPushing
+  variant: obstacles_many
+  horizon: 300
+  render: True
+torch:
+  gpu: 0
+  cuda: True
+train:
+  num_iters: 1000
+  train_edge: Gripper Block
+collect:
+  buffer_len : 1000
+  test_episode: True
+  max_steps: 1000
+  display_frame: 2
+  stream_print_file: logs/robo/gb_test_stream.txt
+policy:
+  logging:
+    log_interval: 10
+    test_log_maxlen: 50
+    test_trials: 100
+    test_log_maxlen: 50
+    test_trials: 10
+    max_terminate_step: 1 30
+sample:
+  param_recycle: 0
+  sample_distance: 0.4
+...
