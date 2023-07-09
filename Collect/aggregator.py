@@ -60,8 +60,8 @@ class TemporalAggregator():
         if self.name == "Ball" and (np.linalg.norm(self.current_data.full_state.factored_state.Paddle - self.current_data.full_state.factored_state.Ball) < 8 or np.any(self.current_data.trace) or np.any(self.current_data.inter)):
         # if np.any(self.current_data.trace) or np.any(self.current_data.inter):
             print("near", self.current_data.target, self.current_data.next_target, self.current_data.param, self.current_data.trace, self.current_data.inter, self.current_data.rew, self.current_data.action_chain)
-        if self.current_data.trace.squeeze() != self.current_data.inter.squeeze():
-            print(interaction_model.interaction(data, prenormalize=True, use_binary = True, printout=True))
+        # if self.current_data.trace.squeeze() != self.current_data.inter.squeeze():
+        #     print(interaction_model.interaction(data, prenormalize=True, use_binary = True, printout=True))
         # print((np.any(data.ext_term) and not self.only_termination), # going to resample a new action
         #     np.any(data.done),
         #     np.any(data.terminate), data.true_done, self.temporal_skip, self.current_data.inter, self.current_data.parent_state, self.current_data.obs, self.current_data.obs_next)

@@ -43,6 +43,7 @@ class GymnasiumWrapper(gym.Env):
 
         # factorized state properties
         self.all_names = self.gym.all_names
+        self.num_objects = self.gym.num_objects
         self.object_names = self.gym.object_names
         self.object_sizes = self.gym.object_sizes
         self.object_range = self.gym.object_range
@@ -61,7 +62,7 @@ class GymnasiumWrapper(gym.Env):
         obs, rew, done, info= self.gym.step(action)
         return obs, rew, done, False if "Timelimit.truncated" not in info else info["Timelimit.truncated"], info
 
-    def reset(self):
+    def reset(self, **kwargs):
         return self.gym.reset(), self.get_info() # returns a dummy info on reset
 
     def render(self, mode='human'):

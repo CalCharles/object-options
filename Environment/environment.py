@@ -42,6 +42,7 @@ class Environment(gym.Env):
 
         # factorized state properties
         self.all_names = [] # must be initialized, the names of all the objects including multi-instanced ones
+        self.num_objects = -1 # should be defined if valid, the number of objects (or virtual objects) in the flattened obs
         self.object_names = [] # must be initialized, a list of names that controls the ordering of things
         self.object_sizes = dict() # must be initialized, a dictionary of name to length of the state
         self.object_range = dict() # the minimum and maximum values for a given feature of an object
@@ -95,6 +96,7 @@ class Environment(gym.Env):
         numpy should be the only source of randomness, but override if there are more
         '''
         if seed < 0: seed = np.random.randint(10000)
+        print("env seed", seed)
         np.random.seed(seed)
 
 

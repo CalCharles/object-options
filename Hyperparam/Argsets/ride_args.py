@@ -8,6 +8,7 @@ ride_args = {
         'save_dir': "",
         'load_dir': "",
         "log_filename": "",
+        "record_rollouts": "",
     },
     "environment": {
         "env": None,
@@ -20,6 +21,8 @@ ride_args = {
         "load_environment": "",
         "fixed_limits": False,
         "gym_to_gymnasium": True,
+        "flat_obs": True,
+        "append_id": False,
     },
     "torch": {
         "gpu": 1,
@@ -34,12 +37,14 @@ ride_args = {
         "num_steps": 0,
     },
     "RIDE": {
-        "lr_scale": 1,
+        "lr_scale": 1.0,
         "reward_scale": 0.01,
-        "forward_loss_weight": 1, 
+        "forward_loss_weight": 1.0, 
         "training_num": 16,
         "test_num": 8,
-        "pseudocount_lambda": 1,
+        "pseudocount_lambda": 0.1,
+        "pair_network": False,
+        "conv_mode": False,
     },
     "collect": {
         "buffer_len": 100000,
@@ -52,16 +57,19 @@ ride_args = {
         "rainbow": {
             "num_atoms": 51,
             "is_dueling": True,
+            "is_noisy": True,
         },
         "learn": {
-            "grad_epoch": 10,
+            "grad_epoch": 0.1, # in RIDE, grad epochs are represented as updates / steps ratio
         },
         "discount_factor": 0.99,
-        "lookahead": 2,
+        "lookahead": 1,
         "max_min_critic": [-1.0,-1.0],
         "reward_normalization": False,
         "tau": 0.005,
         "sac_alpha": 0.2,
+        "auto_alpha": False,
+        "alpha_lr": .0003,
         "deterministic_eval": False,
         "logging": {
             "log_interval": 5,

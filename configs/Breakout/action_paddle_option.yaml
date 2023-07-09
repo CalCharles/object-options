@@ -40,8 +40,8 @@ network:
     weight_decay: 0.00
 sample:
   sample_type: cent
-  sample_distance: 0.3
-  sample_schedule: 200
+  sample_distance: 0.4
+  # sample_schedule: 200
   param_recycle: 3
 extract:
   single_obs_setting: 1 0 0 1 0 0
@@ -72,9 +72,9 @@ policy:
     reset_frequency: 125
     primacy_iters: 50
     stop_resets: 500
-  # learning_type: rainbow
-  # max_min_critic: -10 0
-  # tau: 1000
+  learning_type: rainbow
+  max_min_critic: -30 0
+  tau: 1000
   logging:
     log_interval: 10
     train_log_maxlen: 5

@@ -1,6 +1,7 @@
 # extends the tianshou policy with the RIDE reward in the process_fn, updating rew with the appropriate intrinsic reward
 
 from typing import Any, Dict, Optional, Union
+from collections import Counter
 
 import numpy as np
 import torch
@@ -36,6 +37,7 @@ class RIDEPolicy(BasePolicy):
         lr_scale: float,
         reward_scale: float,
         forward_loss_weight: float,
+        pseudocount_lambda: float, 
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
@@ -45,7 +47,8 @@ class RIDEPolicy(BasePolicy):
         self.lr_scale = lr_scale
         self.reward_scale = reward_scale
         self.forward_loss_weight = forward_loss_weight
-        self.pseudo_count_dict = dict()
+        self.pseudocount_lambda = pseudocount_lambda
+        self.pseudo_count_dict = Counter()
         self.total_seen = 0
 
 
@@ -71,7 +74,7 @@ class RIDEPolicy(BasePolicy):
         bins = self._hash_vector(phi)
         counts = list()
         for b in bins: # unfortunately, we have to iterate to get the hashes
-            counts.append(self.pseudo_count_dict[tuple(state)])
+            counts.append(self.pseudo_count_dict[tuple(b)] + self.pseudocount_lambda)
         return torch.as_tensor(np.array(counts).astype(float), device = self.model.device)
 
     def forward(
@@ -88,10 +91,10 @@ class RIDEPolicy(BasePolicy):
             more detailed explanation.
         """
         # BELOW: hacked way to add a state to the visited queue based on the size of the batch
-        # batches less than 32 are assumed not for training
-        # if len(batch) < 32: 
-        #     mse_loss, act_hat, phi = self.model(batch.obs, batch.act, batch.obs_next)
-        #     self._add_pseudo_count(phi)
+        # the size of the batch is equal to 16 (number of enviroment values)
+        if len(batch) == 16:
+            phi = self.model.get_embedding(batch.obs)
+            self._add_pseudo_count(phi)
         return self.policy.forward(batch, state, **kwargs)
 
     def exploration_noise(self, act: Union[np.ndarray, Batch],
@@ -114,7 +117,7 @@ class RIDEPolicy(BasePolicy):
         """
         mse_loss, act_hat, phi = self.model(batch.obs, batch.act, batch.obs_next)
         batch.policy = Batch(orig_rew=batch.rew, act_hat=act_hat, mse_loss=mse_loss, phi=phi)
-        # mse_loss = mse_loss / self._get_hashes(phi)
+        mse_loss = mse_loss / self._get_hashes(phi)
         batch.rew += to_numpy(mse_loss * self.reward_scale)
         return self.policy.process_fn(batch, buffer, indices)
 

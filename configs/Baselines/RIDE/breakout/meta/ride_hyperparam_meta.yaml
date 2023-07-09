@@ -1,0 +1,31 @@
+---
+metaparam: 
+  multi_filename: ride_hyperparam_runs
+  log_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_logs/ride/inter/
+  yaml_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_yamls/ride/inter/
+  save_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam/ride/inter/
+  graph_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_graphs/ride/inter/
+  bash_path: ride_hyperparam_runs.sh
+  base_config: configs/Baselines/RIDE/breakout/ride_hyperparam.yaml
+  runfile: train_baselines.py
+  gpu: 0
+  simul_run: 8
+  match: 0
+  num_trials: 1
+  cycle_gpu: 4
+RIDE: 
+  lr_scale: 0.1,2.0
+  reward_scale: 0.005,0.1,1
+  pseudocount_lambda: 0.1,10
+policy: 
+  epsilon_random: 0.02,0.0
+  learn: 
+    grad_epoch: 0.3,1,0.1
+  lookahead: 1,5
+  tau: 200,1000
+network:
+  embed_inputs: 32,64,256
+  hidden_sizes: 128 128 128,256 256 256,512 512 512
+  optimizer:
+    lr: .0005,.00005
+...

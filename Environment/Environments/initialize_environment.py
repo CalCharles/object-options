@@ -9,8 +9,7 @@ def initialize_environment(args, record_args, no_record=False):
     # construct an environment specified by args.env
     if args.env == "Breakout":
         from Environment.Environments.Breakout.breakout_screen import Breakout
-        environment = Breakout(frameskip = args.frameskip, breakout_variant=args.variant, fixed_limits=args.fixed_limits, flat_obs = args.flat_obs)
-        print(args.seed)
+        environment = Breakout(frameskip = args.frameskip, breakout_variant=args.variant, fixed_limits=args.fixed_limits, flat_obs = args.flat_obs, append_id=args.append_id)
         environment.seed(args.seed)
     elif args.env == "Asteroids":
         from Environment.Environments.Asteroids.asteroids import Asteroids
@@ -40,7 +39,7 @@ def initialize_environment(args, record_args, no_record=False):
         from Environment.Environments.RoboPushing.robopushing_screen import RoboPushing
 
         args.continuous = True
-        environment = RoboPushing(variant=args.variant, horizon=args.horizon, renderable=args.render, fixed_limits=args.fixed_limits, flat_obs = args.flat_obs)
+        environment = RoboPushing(variant=args.variant, horizon=args.horizon, renderable=args.render, fixed_limits=args.fixed_limits, flat_obs = args.flat_obs, append_id=args.append_id)
         environment.seed(args.seed)
     elif args.env.find("AirHockey") != -1:
         from Environment.Environments.AirHockey.air_hockey import RobosuiteAirHockey

@@ -8,7 +8,7 @@ class CenteredSampler(Sampler):
         self.schedule = kwargs["sample_schedule"]
         self.use_parent = kwargs["sample_parent"]
         super().__init__(**kwargs)
-        self.current_distance = .1 if self.schedule > 0 or self.test_sampler else kwargs["sample_distance"]
+        self.current_distance = .1 if self.schedule > 0 else kwargs["sample_distance"]
 
     def update(self):
         if self.schedule > 0:
@@ -19,6 +19,7 @@ class CenteredSampler(Sampler):
         '''
         samples a new value: full_state
         '''
+        # print(self.current_distance)
         target = self.target_selector(full_state["factored_state"]) if not(hasattr(self, "use_parent") and self.use_parent) else self.parent_selector(full_state["factored_state"])
         axis = 0 if len(target.shape) == 1 else 1
         upper_range = np.min([self.mask.limits[1], target + self.current_distance * self.mask.range], axis=axis)

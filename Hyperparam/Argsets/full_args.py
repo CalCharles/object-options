@@ -95,6 +95,7 @@ full_args = {
         "load_environment": "",
         "fixed_limits": False,
         "gym_to_gymnasium": True,
+        "flat_obs": False,
     },
     "torch": {
         "gpu": 1,
@@ -244,6 +245,7 @@ full_args = {
         "rainbow": {
             "num_atoms": 51,
             "is_dueling": True,
+            "is_noisy": True,
         },
         "ground_truth": "",
         "learn": {
@@ -262,7 +264,9 @@ full_args = {
         "max_min_critic": [-1.0,-1.0],
         "reward_normalization": False,
         "tau": 0.005,
-        "sac_alpha": 0.2,
+        "sac_alpha": 0.2, # TODO: move sac arguments into a sac specific subcategory
+        "auto_alpha": False,
+        "alpha_lr": .0003,
         "deterministic_eval": False,
         "logging": {
             "log_interval": 5,

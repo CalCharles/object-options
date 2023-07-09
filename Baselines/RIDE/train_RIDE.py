@@ -4,109 +4,16 @@ from ReinforcementLearning.utils.RL_logger import RLLogger
 from State.object_dict import ObjDict
 from Environment.Environments.initialize_environment import initialize_environment
 from train_interaction import init_names
+from Baselines.RIDE.ride_module import RIDEPolicy
+from Baselines.RIDE.ride_network import DQN, Rainbow, RIDEModule
+from Baselines.RIDE.ride_initializer import initialize_data, initialize_ride_continuous, initialize_ride_discrete
+
 import torch
 import numpy as np
 from tianshou.env import ShmemVectorEnv
-from Baselines.RIDE.ride_module import RIDEPolicy
-from Baselines.RIDE.ride_module import DQN, Rainbow, RIDEModule
-
-def initialize_data(args, train_envs, test_envs)
-
-    buffer = VectorReplayBuffer(
-        args.collect.buffer_len,
-        buffer_num=len(train_envs),
-        ignore_obs_next=True,
-        save_only_last_obs=True,
-        stack_num=1
-    )
-    # collector
-    train_collector = Collector(policy, train_envs, buffer, exploration_noise=True)
-    test_collector = Collector(policy, test_envs, exploration_noise=True)
-    # logger
-    now = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
-    args.algo_name = "ride"
-    log_name = os.path.join(args.environment.env, "RIDE", str(args.environment.seed), now)
-    log_path = os.path.join(args.record.log_filename, log_name)
-
-    # if args.logger == "wandb":
-    #     logger = WandbLogger(
-    #         save_interval=1,
-    #         name=log_name.replace(os.path.sep, "__"),
-    #         run_id=args.resume_id,
-    #         config=args,
-    #         project=args.wandb_project,
-    #     )
-    writer = SummaryWriter(log_path)
-    writer.add_text("args", str(args))
-    # if args.logger == "tensorboard":
-    logger = TensorboardLogger(writer)
-    # else:  # wandb
-    #     logger.load(writer)
+from tianshou.trainer import offpolicy_trainer
 
 
-def initialize_ride_dicrete(args):
-    state_shape = args.RIDE.state_shape
-    action_shape = args.RIDE.action_shape
-    num_atoms = args.policy.rainbow.num_atoms
-    noisy_std = 0.5
-    device = 'cuda:' + str(args.torch.gpu) if args.torch.gpu >= 0 else 'cpu'
-    gamma = args.policy.discount_factor
-    v_min = -10
-    v_max = 100
-    n_step = 1
-    target_update_freq = args.policy.tau
-    hidden_sizes = args.network.hidden_sizes
-    output_dim = args.network.embed_inputs
-
-    net = Rainbow(
-        *state_shape,
-        action_shape,
-        hidden_sizes,
-        output_dim,
-        num_atoms,
-        noisy_std,
-        device,
-        is_dueling=not args.no_dueling,
-        is_noisy=not args.no_noisy
-    )
-    optim = torch.optim.Adam(net.parameters(), lr=args.lr)
-    # define policy
-    policy = RainbowPolicy(
-        net,
-        optim,
-        gamma,
-        num_atoms,
-        v_min,
-        v_max,
-        n_step,
-        target_update_freq=target_update_freq
-    ).to(device)
-
-
-
-    feature_net = DQN(
-        *state_shape, 
-        action_shape,
-        hidden_sizes,
-        output_dim,
-        device, 
-        features_only=True
-    )
-    action_dim = np.prod(action_shape)
-    feature_dim = feature_net.output_dim # args.net.embed_dim
-    icm_net = IntrinsicCuriosityModule(
-        feature_net.net,
-        feature_dim,
-        action_dim,
-        hidden_sizes=[hidden_sizes],
-        device=device,
-    )
-
-    icm_optim = torch.optim.Adam(icm_net.parameters(), lr=args.network.optimizer.lr)
-    policy = ICMPolicy(
-        policy, icm_net, icm_optim, args.RIDE.lr_scale, args.RIDE.reward_scale,
-        args.RIDE.forward_loss_weight
-    ).to(device)
 
 def initialize_multienv(args):
     env = initialize_environment(args.environment, args.record, no_record=True)
@@ -136,11 +43,14 @@ def train_RIDE(args):
 
     # env, record = initialize_environment(args.environment, args.record)
     env, train_envs, test_envs = initialize_multienv(args)
-    state = env.reset()
-    args.RIDE.state_shape = state.shape
+    state, info = env.reset()
+    args.RIDE.state_shape = (state.shape[0] // env.num_objects, ) if args.RIDE.conv_mode else state.shape
     args.RIDE.action_shape = (env.num_actions, ) if env.discrete_actions else env.action_space.shape
-    ride_policy = initialize_ride_discrete(args) if args.environment.env == "Breakout" else initialize_ride_continuous(args)
-    train_collector, test_collector, replay_buffer, logger = initialize_data(args, ride_policy, env)
+    args.RIDE.action_space = env.action_space
+    args.num_objects = env.num_objects
+    if not env.discrete_actions: args.RIDE.max_action = env.action_space.high
+    ride_policy = initialize_ride_discrete(args) if env.discrete_actions else initialize_ride_continuous(args)
+    train_collector, test_collector, replay_buffer, logger = initialize_data(args, ride_policy, train_envs, test_envs)
     
     def save_best_fn(policy):
         torch.save(policy.state_dict(), os.path.join(args.record.net_path, 'policy.pth'))
@@ -162,14 +72,17 @@ def train_RIDE(args):
     def test_fn(epoch, env_step):
         policy.set_eps(args.eps_test)
 
+    print(int(args.train.num_iters // args.policy.logging.log_interval), 
+        args.policy.logging.log_interval,
+        args.train.num_steps)
     result =  offpolicy_trainer(
-        policy,
+        ride_policy,
         train_collector,
         test_collector,
-        int(args.train.num_iters // args.policy.logging.log_interval),
-        args.policy.logging.log_interval, # each "epoch" is the number of log intervals
-        args.train.num_steps,
-        args.policy.logging.log_interval,
+        args.train.num_iters, # epoch
+        args.policy.logging.log_interval, # each "epoch" is the number of log intervals, step per epoch
+        args.train.num_steps, # steps per collect
+        args.policy.logging.test_trials, # test number
         args.train.batch_size,
         save_best_fn=False,
         logger=logger,

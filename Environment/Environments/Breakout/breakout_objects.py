@@ -8,6 +8,7 @@ paddle_velocity = 2
 class Object():
 
     def __init__(self, pos, attribute):
+        self.hot_id = [0,0,0,0,0,0]
         self.pos = pos
         self.vel = np.zeros(pos.shape).astype(np.int64)
         self.width = 0
@@ -61,6 +62,7 @@ def intersection(a, b):
 class Ball(animateObject):
     def __init__(self, pos, attribute, vel, top_reset = False, hard_mode=False):
         super(Ball, self).__init__(pos, attribute, vel)
+        self.hot_id = [0,0,1,0,0,0]
         self.width = 2
         self.height = 2
         self.name = "Ball"
@@ -174,6 +176,7 @@ class Paddle(animateObject):
         self.name = "Paddle"
         self.nowall = False
         self.zero_vel = True
+        self.hot_id = [0,1,0,0,0,0]
 
     def interact(self, other):
         if other.name == "Action":
@@ -204,6 +207,7 @@ class Paddle(animateObject):
 class Wall(Object):
     def __init__(self, pos, attribute, side):
         super(Wall, self).__init__(pos, attribute)
+        self.hot_id = [0,0,0,0,0,1]
         if side == "Top":
             self.width = 84
             self.height = 4
@@ -221,6 +225,7 @@ class Wall(Object):
 class Block(Object):
     def __init__(self, pos, attribute, index, index2d, width= 3, height=2,size=1):
         super(Block, self).__init__(pos, attribute)
+        self.hot_id = [0,0,0,1,0,0]
         self.width = width * size
         self.height = height * size
         if index >= 0:
@@ -238,22 +243,24 @@ class Block(Object):
 class Action(Object):
     def __init__(self, pos, attribute):
         super(Action, self).__init__(pos, attribute)
+        self.hot_id = [1,0,0,0,0,0]
         self.width = 0
         self.height = 0
         self.name = "Action"
-        self.vel = np.array([])
+        self.vel = np.array([0,0])
 
     def take_action(self, action):
         self.attribute = action
 
     def getMidpoint(self):
-        return [] # empty midpoint
+        return [0,0] # empty midpoint
 
     def interact (self, other):
         if other.name == "Paddle": self.interaction_trace.append(other.name)
 
 class Done():
     def __init__(self):
+        self.hot_id = [0,0,0,0,0,1]
         self.interaction_trace = list()
         self.name = "Done"
         self.attribute = False
@@ -263,6 +270,7 @@ class Done():
 
 class Reward():
     def __init__(self):
+        self.hot_id = [0,0,0,0,0,1]
         self.interaction_trace = list()
         self.name = "Reward"
         self.attribute = 0.0

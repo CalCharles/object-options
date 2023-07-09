@@ -9,13 +9,14 @@ from Environment.Environments.Breakout.breakout_specs import *
 from Record.file_management import numpy_factored
 from gym import spaces
 from Causal.Sampling.General.block import BreakoutBlockSampler
+from collections import deque
 
 
 # default settings for normal variants, args in order: 
 # target_mode (1)/edges(2)/center(3), scatter (4), num rows, num_columns, no_breakout (value for hit_reset), negative mode, bounce_count
 
 class Breakout(Environment):
-    def __init__(self, frameskip = 1, breakout_variant="default", fixed_limits=False, flat_obs=False):
+    def __init__(self, frameskip = 1, breakout_variant="default", fixed_limits=False, flat_obs=False, append_id =False):
         super(Breakout, self).__init__()
         # breakout specialized parameters are stored in the variant
         self.variant = breakout_variant
@@ -26,12 +27,12 @@ class Breakout(Environment):
         self.num_actions = 4 # this must be defined, -1 for continuous. Only needed for primitive actions
         self.name = "Breakout" # required for an environment 
         self.discrete_actions = True
-        self.frameskip = 1 # no frameskip
+        self.frameskip = frameskip # no frameskip
+        self.flat_obs = flat_obs
 
         # spaces
         self.action_shape = (1,)
         self.action_space = spaces.Discrete(self.num_actions) # gym.spaces
-        self.observation_space = spaces.Box(low=0, high=255, shape=(84, 84), dtype=np.uint8) # raw space, gym.spaces
         self.seed_counter = -1
 
         # state components
@@ -78,6 +79,8 @@ class Breakout(Environment):
         self.num_columns = num_columns # must be a factor of 60
         self.max_block_height = max_block_height
         self.random_exist = random_exist
+        self.action_record = deque(maxlen=10000)
+        self.append_id = append_id
 
         # assign dependent values
         self.default_reward = 1
@@ -105,7 +108,9 @@ class Breakout(Environment):
         self.all_names = ["Action", "Paddle", "Ball"] + [b.name for b in self.blocks] + ['Done', "Reward"]
         self.instance_length = len(self.all_names)
         self.reset_rewards = True # resets rewards on the NEXT iteration
-        self.flat_obs = flat_obs
+        if self.flat_obs: self.observation_space = spaces.Box(low=-2, high=84, shape=self.get_state().shape, dtype=float)
+        else: self.observation_space = spaces.Box(low=0, high=255, shape=(84, 84), dtype=np.uint8) # raw space, gym.spaces
+
 
     def assign_assessment_stat(self):
         if self.dropped and self.variant != "proximity":
@@ -265,6 +270,7 @@ class Breakout(Environment):
         self.done = Done()
         self.reward = Reward()
         self.objects = [self.actions, self.paddle, self.ball] + self.blocks + self.walls + [self.done, self.reward]
+        self.num_objects = len(self.objects) - 1
 
         # zero out relevant values
         self.assessment_stat = 0 if self.variant != "proximity" else (0,0)
@@ -275,7 +281,7 @@ class Breakout(Environment):
         self.since_last_hit = 0
         self.total_score = 0
         self.render()
-        self.param = self.sampler.sample(self.get_state())
+        self.param = self.sampler.sample(self.get_full_state())
         self.param_idx = self.sampler.param_idx
         self.total_score = 0
         return self.get_state()
@@ -302,15 +308,31 @@ class Breakout(Environment):
             if block.attribute == live:
                 total += 1
         return total
-
-    def get_state(self, render=False):
+    
+    def get_full_state(self, render=False):
         if render: self.render()
         rdset = set(["Reward", "Done"])
         state =  {"raw_state": self.frame, "factored_state": numpy_factored({**{obj.name: obj.getMidpoint() + obj.vel.tolist() + [obj.getAttribute()] for obj in self.objects if obj.name not in rdset}, **{'Done': [self.done.attribute], 'Reward': [self.reward.attribute]}})}
         if self.variant == "proximity": state["factored_state"]["Param"] = self.param
+        return state
+
+    def get_state(self, render=False):
+        rdset = set(["Reward", "Done"])
         if self.flat_obs:
-            return (np.array(sum([(self.ball.pos - self.paddle.pos).tolist()] +[[0,0]] + [obj.getMidpoint() + obj.vel.tolist() + [obj.getAttribute()] for obj in self.objects]
-                                 , start=list())).flatten() / 84)
+            # return np.array(((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ 84.0).tolist()
+            #      + self.ball.vel.tolist() + (np.array(self.paddle.getMidpoint()) / 84.0).tolist() + (np.array(self.ball.getMidpoint()) / 84.0).tolist())
+            if self.append_id:
+                # print(np.array(((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ 84.0).tolist()+ [0,0,1] + [0,0,0,0,1,0]).shape, 
+                #                 [np.array((np.array(obj.getMidpoint()) / 84.0).tolist() + obj.vel.tolist() + [obj.getAttribute()] + obj.hot_id).shape for obj in self.objects if obj.name not in rdset]
+                #                  )
+                return (np.array(sum([((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ 84.0).tolist()+ [0,0,1] + [0,0,0,0,1,0]] + 
+                                [(np.array(obj.getMidpoint()) / 84.0).tolist() + obj.vel.tolist() + [obj.getAttribute()] + obj.hot_id for obj in self.objects if obj.name not in rdset]
+                                 , start=list())).flatten())
+            return (np.array(sum([((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ 84.0).tolist()+ [0,0,1]] + 
+                                [(np.array(obj.getMidpoint()) / 84.0).tolist() + obj.vel.tolist() + [obj.getAttribute()] for obj in self.objects if obj.name not in rdset]
+                                 , start=list())).flatten())
+        else:
+            return self.get_full_state(render=render)
         return state
 
     def get_info(self):
@@ -344,9 +366,13 @@ class Breakout(Environment):
                 if self.variant.find("center") != -1 or self.variant.find("edges") != -1 or self.variant.find("harden") != -1: # negative is used in this case to encode hard blocks
                     preattr = 0 if preattr == -1 else preattr
                 self.reward.attribute += preattr * self.default_reward
-                self.total_score += preattr * self.default_reward
+                # self.total_score += preattr * self.default_reward
             hit = True
         return hit
+    
+    def action_rates(self):
+        ar = np.array(self.action_record)
+        return [np.sum(ar==i) / len(ar) for i in range(self.num_actions)]
 
     def step(self, action, render=True, angle=-1): # TODO: remove render as an input variable
         self.done.attribute = False
@@ -405,7 +431,7 @@ class Breakout(Environment):
             self.dropped = self.ball.bottom_wall or self.top_dropping and self.ball.top_wall
             if self.dropped:
                 self.reward.attribute += self.timeout_penalty # negative reward for dropping the ball since done is not triggered
-                self.total_score += self.timeout_penalty
+                # self.total_score += self.timeout_penalty
                 needs_ball_reset = True
                 self.dropped = True
                 self.since_last_bounce = 0
@@ -418,7 +444,7 @@ class Breakout(Environment):
                 if self.ball.losses == 5:
                     print("Breakout episode score:", self.total_score + self.reward.attribute)
                     self.reset_rewards = True
-                print("eoe", self.total_score)
+                print("itr: ", self.itr, ", eoe", self.total_score, self.ball.losses, self.reward.attribute, self.action_rates())
                 if self.drop_stopping:
                     if self.variant == "big_block":
                         self.reset_rewards = True
@@ -430,7 +456,7 @@ class Breakout(Environment):
             # record hit information (end of episode)
             if hit:
                 self.hit_counter += 1
-                self.param = self.sampler.sample(self.get_state())
+                self.param = self.sampler.sample(self.get_full_state())
                 self.param_idx = self.sampler.param_idx
                 self.since_last_hit = 0
                 if self.variant == "prox":
@@ -480,8 +506,10 @@ class Breakout(Environment):
 
         # record state information before any resets
         self.itr += 1
-        full_state = self.get_state(render)
+        self.action_record.append(action)
+        full_state = self.get_full_state(render)
         frame, extracted_state = full_state['raw_state'], full_state['factored_state']
+        return_state = self.get_state(render) if self.flat_obs else full_state
         # print("done at assign", self.done.attribute, extracted_state["Done"])
         lives = 5-self.ball.losses
 
@@ -499,7 +527,7 @@ class Breakout(Environment):
         self.reward.attribute, self.done.attribute = rew, done
         # if self.reward.attribute != 0:
         #     print(self.reward.attribute, self.ball.interaction_trace, self.total_score)
-        return full_state, rew, done, info
+        return return_state, rew, done, info
 
     def compute_proximity_reward(self, target_block, block):
         dist = np.linalg.norm(target_block[:2] - block[:2], ord=1)

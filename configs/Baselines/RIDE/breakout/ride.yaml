@@ -1,0 +1,70 @@
+---
+arg_dict: ride
+record: 
+  save_dir: '/nfs/data/object_data/baselines/ride_rainbow'
+  load_dir: '/nfs/data/object_data/baselines/ride_rainbow'
+  log_filename: '/nfs/data/object_data/baselines/logs/ride_rainbow'
+environment: 
+  env: Breakout
+  render: False
+  frameskip: 1
+  variant: drop_stopping_no_penalty
+  horizon: -1
+  seed: -1
+torch: 
+  gpu: 2
+  cuda: True
+  torch_seed: -1
+train: 
+  train: True
+  num_iters: 5000
+  pretrain_frames: 1000
+  batch_size: 128
+  num_steps: 1000
+  # num_steps: 50
+RIDE: 
+  lr_scale: 1
+  reward_scale: 0.01
+  forward_loss_weight: 1 
+  training_num: 16
+  test_num: 4
+  pseudocount_lambda: 1
+collect: 
+  buffer_len: 200000
+  prioritized_replay: 0.5 0.4
+  display_frame: 0
+policy: 
+  learning_type: rainbow
+  epsilon_random: 0.01
+  rainbow: 
+    num_atoms: 51
+    is_dueling: True
+  learn: 
+    # grad_epoch: 0.03
+    grad_epoch: 0.3
+  discount_factor: 0.99
+  lookahead: 2
+  max_min_critic: -1.0, -1.0
+  reward_normalization: False
+  tau: 500
+  sac_alpha: 0.2
+  deterministic_eval: False
+  logging: 
+    # log_interval: 1
+    log_interval: 40
+    train_log_maxlen: 0
+    test_log_maxlen: 0
+    initial_trials: 10
+    test_trials: 10
+network:
+  embed_inputs: 128
+  hidden_sizes: 128 128 128
+  activation_final: tanh
+  optimizer:
+    lr: .0001
+    alt_lr: .0001
+    eps: .00001
+    alpha: 0.99
+    betas: 0.9 0.999
+    weight_decay: 0.0001
+...

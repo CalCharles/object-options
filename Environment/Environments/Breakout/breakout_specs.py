@@ -61,8 +61,9 @@ def get_instanced(num_rows, num_columns, random_exist, is_big_block):
 
 # var_form, num_rows, num_columns, hit_reset, negative_mode, bounce_cost, bounce_reset, completion_reward, timeout_penalty, drop_stopping
 # var_form, num_rows, num_columns, max_block_height, hit_reset, negative_mode, random_exist, bounce_cost, bounce_reset, completion_reward, timeout_penalty, drop_stopping
-breakout_variants = {"default": (0,5, 20,4, -1, "", -1, 0,0, 0,-10, False),
+breakout_variants = {"default": (0,5, 20,4, -1, "", -1, 0,0, 0,0, False),
                      "drop_stopping": (0,5, 20,4, -1, "", -1, 0,0, 0,-10, True),
+                     "drop_stopping_no_penalty": (0,5, 20,4, -1, "", -1, 0,0, 0,0, True),
                      "row":  (0,1,10,4,-1,"", -1, 0,0, 0,-10, False),
                      "small": (0,2,10,4,-1,"", -1, 0,0, 0,-10, False), 
                     "row_nobreak": (0,1,10,4,10,"", -1, 0,0, 0,-1, False), 

@@ -306,8 +306,8 @@ def get_args():
     if len(args.command.config) > 0:
         if args.command.config[-5:] == ".yaml":
             args = read_config(args.command.config)
-            if args.environment.seed == -1: args.environment.seed = np.random.randint(100000) # randomly assign seed
-            if args.torch.torch_seed == -1: args.torch.torch_seed = np.random.randint(100000) # randomly assign seed
+            # if args.environment.seed == -1: args.environment.seed = np.random.randint(100000) # randomly assign seed
+            # if args.torch.torch_seed == -1: args.torch.torch_seed = np.random.randint(100000) # randomly assign seed
         else:
             args = args.command
         args.config = config

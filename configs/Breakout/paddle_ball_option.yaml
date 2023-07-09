@@ -17,7 +17,7 @@
     no_cuda: False
   train:
     train: True
-    pretrain_frames: 20000 # 
+    pretrain_frames: 2000 # 
     # pretrain_frames: 10000 # 
     num_steps: 250 #
     num_frames: 1000
