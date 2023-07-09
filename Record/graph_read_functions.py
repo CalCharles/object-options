@@ -1,6 +1,23 @@
 # graph read files
 import numpy as np
 
+Epoch #658: test_reward: -372.000000 ± 279.241831, best_reward: -87.000000 ± 171.000000 in #89
+
+TeR = "test_reward: "
+
+def read_ts_format(filename):
+    file = open(filename, 'r')
+    steps = list()
+    values = list()
+    for line in file.readlines():
+        print(line)
+        if line.find(TeR) != -1:
+            steps.append(int(line.split(" ")[1][1:]) * 1000) 
+            values.append(v = float(line.split(" ")[3]))
+    return steps, values
+
+
+
 keys = ["Steps", "Hit", "train", "test"]
 S = "Steps"
 H = "Hit"

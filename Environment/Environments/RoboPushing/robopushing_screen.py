@@ -118,7 +118,7 @@ class RoboPushing(Environment):
         # obstacles and objects
         self.num_obstacles = num_obstacles
         self.objects = ["Action", "Gripper", "Block"] + ["Obstacle" + str(i) for i in range(num_obstacles)] + ["Target", "Reward", "Done"]
-        self.num_objects = 4 + num_obstacles + 2 # 4 for gripper and block target, 2 for relative gripper block target
+        self.num_objects = 3 + num_obstacles + 2 # 4 for gripper and block target, 2 for relative gripper block target
         self.object_instanced = instanced
         self.object_instanced["Obstacle"] = num_obstacles
         self.all_names = sum([[(name + str(i) if instanced[name] > 1 else name) for i in range(instanced[name])] for name in self.object_names], start = [])
@@ -194,11 +194,11 @@ class RoboPushing(Environment):
         factored_state = self.full_state['factored_state']
         if self.flat_obs:
             if self.append_id:
-                return np.array(sum([factored_state["Action"].tolist() + [1,0,0,0,0,0,0], factored_state["Gripper"].tolist() + [0,1,0,0,0,0,0], factored_state["Block"].tolist() +  [0,0,1,0,0,0,0], factored_state["Target"].tolist() + [0,0,0,1,0,0,0]]
+                return np.array(sum([factored_state["Gripper"].tolist() + [0,1,0,0,0,0,0], factored_state["Block"].tolist() +  [0,0,1,0,0,0,0], factored_state["Target"].tolist() + [0,0,0,1,0,0,0]]
                             + [factored_state['Obstacle' + str(i)].tolist() + [0,0,0,0,1,0,0] for i in range(self.num_obstacles)] + 
                             [(np.array(factored_state["Gripper"]) - np.array(factored_state["Block"])).tolist() + [0,0,0,0,0,1,0]] + 
                             [(np.array(factored_state["Block"]) - np.array(factored_state["Target"])).tolist() + [0,0,0,0,0,0,1]], start = list()))
-            return np.array(sum([factored_state["Action"].tolist(), factored_state["Gripper"].tolist(), factored_state["Block"].tolist(), factored_state["Target"].tolist()]
+            return np.array(sum([factored_state["Gripper"].tolist(), factored_state["Block"].tolist(), factored_state["Target"].tolist()]
                          + [factored_state['Obstacle' + str(i)].tolist() for i in range(self.num_obstacles)] + 
                          [(np.array(factored_state["Gripper"]) - np.array(factored_state["Block"])).tolist()] + 
                          [(np.array(factored_state["Block"]) - np.array(factored_state["Target"])).tolist()], start = list()))

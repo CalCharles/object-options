@@ -41,7 +41,7 @@ policy:
     is_dueling: True
   learn: 
     # grad_epoch: 0.03
-    grad_epoch: 0.7
+    grad_epoch: 0.1
   discount_factor: 0.99
   lookahead: 2
   max_min_critic: -1.0 -1.0
@@ -58,7 +58,7 @@ policy:
     test_trials: 10
 network:
   embed_inputs: 128
-  hidden_sizes: 1024 512 512 256 128
+  hidden_sizes: 512 256 128
   activation_final: tanh
   optimizer:
     lr: .0001

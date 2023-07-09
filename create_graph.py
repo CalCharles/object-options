@@ -76,6 +76,8 @@ if __name__=='__main__':
 
     filenames, ranges, pltting, color = name_keys[args.name]
     yrng, xlim = ranges
+    if args.name.find("ride") != -1:
+        results = [read_ts_format(filename) for filename in filenames]
     if args.name.find("cdl") != -1:
         results = [read_iterations_cdl(filename) for filename in filenames]
     elif args.name.find("full") != -1:

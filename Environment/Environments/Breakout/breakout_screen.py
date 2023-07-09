@@ -274,7 +274,7 @@ class Breakout(Environment):
         self.done = Done()
         self.reward = Reward()
         self.objects = [self.actions, self.paddle, self.ball] + self.blocks + self.walls + [self.done, self.reward]
-        self.num_objects = len(self.objects)
+        self.num_objects = len(self.objects) - 1
 
         # zero out relevant values
         self.assessment_stat = 0 if self.variant != "proximity" else (0,0)
@@ -324,6 +324,7 @@ class Breakout(Environment):
         rdset = set(["Reward", "Done"])
         # print([(np.array(self.sampler.param) / np.array([84,84,1,1,1])).tolist()], [((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ 84.0).tolist()+ [0,0,1]])
         if self.flat_obs:
+            rdaset = set(["Action", "Reward", "Done"])
             # return np.array(((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ 84.0).tolist()
             #      + self.ball.vel.tolist() + (np.array(self.paddle.getMidpoint()) / 84.0).tolist() + (np.array(self.ball.getMidpoint()) / 84.0).tolist())
             if self.append_id:
@@ -332,11 +333,11 @@ class Breakout(Environment):
                 #                  )
                 return (np.array(sum([((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ 84.0).tolist()+ [0,0,1] + [0,0,0,0,1,0]] + 
                                 [(np.array(self.sampler.param) / np.array([84,84,1,1,1])).tolist() + [0,0,0,0,1,0]] +
-                                [(np.array(obj.getMidpoint()) / 84.0).tolist() + obj.vel.tolist() + [obj.getAttribute()] + obj.hot_id for obj in self.objects if obj.name not in rdset]
+                                [(np.array(obj.getMidpoint()) / 84.0).tolist() + obj.vel.tolist() + [obj.getAttribute()] + obj.hot_id for obj in self.objects if obj.name not in rdaset]
                                  , start=list())).flatten())
             return (np.array(sum([((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ 84.0).tolist()+ [0,0,1]] + 
                                 [(np.array(self.sampler.param) / np.array([84,84,1,1,1])).tolist()] + 
-                                [(np.array(obj.getMidpoint()) / 84.0).tolist() + obj.vel.tolist() + [obj.getAttribute()] for obj in self.objects if obj.name not in rdset]
+                                [(np.array(obj.getMidpoint()) / 84.0).tolist() + obj.vel.tolist() + [obj.getAttribute()] for obj in self.objects if obj.name not in rdaset]
                                  , start=list())).flatten())
         else:
             return self.get_full_state(render=render)
