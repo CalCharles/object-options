@@ -8,7 +8,7 @@ environment:
   env: Breakout
   render: False
   frameskip: 1
-  variant: drop_stopping_no_penalty
+  variant: default
   horizon: -1
   seed: -1
 torch: 
@@ -24,7 +24,7 @@ train:
   # num_steps: 50
 RIDE: 
   lr_scale: 1
-  reward_scale: 0.01
+  reward_scale: 100
   forward_loss_weight: 1 
   training_num: 16
   test_num: 4
@@ -41,10 +41,10 @@ policy:
     is_dueling: True
   learn: 
     # grad_epoch: 0.03
-    grad_epoch: 0.3
+    grad_epoch: 0.7
   discount_factor: 0.99
   lookahead: 2
-  max_min_critic: -1.0, -1.0
+  max_min_critic: -1.0 -1.0
   reward_normalization: False
   tau: 500
   sac_alpha: 0.2
@@ -58,7 +58,7 @@ policy:
     test_trials: 10
 network:
   embed_inputs: 128
-  hidden_sizes: 128 128 128
+  hidden_sizes: 512 512 256 128
   activation_final: tanh
   optimizer:
     lr: .0001
