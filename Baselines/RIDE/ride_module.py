@@ -38,6 +38,7 @@ class RIDEPolicy(BasePolicy):
         reward_scale: float,
         forward_loss_weight: float,
         pseudocount_lambda: float, 
+        discrete_actions: bool=False,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
@@ -50,6 +51,7 @@ class RIDEPolicy(BasePolicy):
         self.pseudocount_lambda = pseudocount_lambda
         self.pseudo_count_dict = Counter()
         self.total_seen = 0
+        self.discrete_actions = discrete_actions
 
 
     def train(self, mode: bool = True) -> "ICMPolicy":
@@ -136,8 +138,12 @@ class RIDEPolicy(BasePolicy):
         res = self.policy.learn(batch, **kwargs)
         self.optim.zero_grad()
         act_hat = batch.policy.act_hat
-        act = to_torch(batch.act, dtype=torch.long, device=act_hat.device)
-        inverse_loss = F.cross_entropy(act_hat, act).mean()
+        if self.discrete_actions:
+            act = to_torch(batch.act, dtype=torch.long, device=act_hat.device)
+            inverse_loss = F.cross_entropy(act_hat, act).mean()
+        else:
+            act = to_torch(batch.act, dtype=torch.float32, device=act_hat.device)
+            inverse_loss = 0.5 * F.mse_loss(act_hat, act, reduction="none").sum(1).mean()
         forward_loss = batch.policy.mse_loss.mean()
         loss = (
             (1 - self.forward_loss_weight) * inverse_loss +

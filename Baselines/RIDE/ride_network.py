@@ -194,7 +194,7 @@ class RIDEModule(nn.Module):
         # print("pre_embed", s1.shape, s2.shape, self.feature_net)
         if self.num_objects > 0: s1, s2 = s1.reshape(s1.shape[0], self.num_objects, -1).transpose(-1,-2), s2.reshape(s2.shape[0], self.num_objects, -1).transpose(-1,-2)
         phi1, phi2 = self.feature_net(s1), self.feature_net(s2)
-        act = to_torch(act, dtype=torch.long, device=self.device)
+        act = to_torch(act, dtype=torch.long if self.discrete_actions else torch.float32, device=self.device)
         phi2_hat = self.forward_model(
             torch.cat([phi1, F.one_hot(act, num_classes=self.action_dim) if self.discrete_actions else act], dim=1)
         )
