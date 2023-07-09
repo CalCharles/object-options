@@ -5,11 +5,11 @@ metaparam:
   yaml_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_yamls/ride/inter/
   save_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam/ride/inter/
   graph_endpoint: /nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_graphs/ride/inter/
-  bash_path: ride_hyperparam_runs.sh
+  bash_path: bashes/ride_hyperparam_runs.sh
   base_config: configs/Baselines/RIDE/breakout/ride_hyperparam.yaml
   runfile: train_baselines.py
   gpu: 0
-  simul_run: 8
+  simul_run: 12
   match: 0
   num_trials: 1
   cycle_gpu: 4

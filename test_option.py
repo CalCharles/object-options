@@ -24,7 +24,7 @@ if __name__ == '__main__':
     args.object_names = object_names
 
     # initializes the graph or loads it from args.record.load_dir
-    graph = load_graph(args.record.load_dir, args.torch.gpu) # device is needed to load options properly
+    graph = load_graph(args.record.load_dir, args.torch.gpu, use_cuda=args.torch.cuda) # device is needed to load options properly
 
     target_name = object_names.target
     if len(args.train.override_name) > 0:
@@ -37,6 +37,7 @@ if __name__ == '__main__':
     option = graph.nodes[target_name].option
     if option.interaction_model is None: option.assign_interaction_model(interaction_model)
     test_buffer = ParamReplayBuffer(args.collect.buffer_len, stack_num=1)
+    option.test_sampler.distance = args.sample.sample_distance
 
     args.collect.env_reset = environment.self_reset
     collector = OptionCollector(option.policy, environment, test_buffer, False, option, None, True, interaction_model.multi_instanced, record, args)

@@ -5,7 +5,7 @@ import gym
 from Network.network_utils import pytorch_model
 from tianshou.data import Batch, ReplayBuffer, to_torch_as, to_numpy
 
-def load_option(load_dir, name, interaction_model=None, device=-1):
+def load_option(load_dir, name, interaction_model=None, device=-1, use_cuda = True):
     load_name = os.path.join(load_dir, name + "_option.opt")
     try: 
         option = torch.load(load_name)
@@ -15,6 +15,9 @@ def load_option(load_dir, name, interaction_model=None, device=-1):
         option.assign_interaction_model(interaction_model)
     if device != -1:
         option.cuda(device=device)
+    else: # device is -1
+        if not use_cuda:
+            option.cpu()
     return option
 
 class Option():
