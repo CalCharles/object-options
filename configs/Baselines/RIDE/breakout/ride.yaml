@@ -58,7 +58,7 @@ policy:
     test_trials: 10
 network:
   embed_inputs: 128
-  hidden_sizes: 512 512 256 128
+  hidden_sizes: 1024 512 512 256 128
   activation_final: tanh
   optimizer:
     lr: .0001
