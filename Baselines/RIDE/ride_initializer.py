@@ -149,6 +149,7 @@ def initialize_ride_continuous(args):
         hidden_sizes=hidden_sizes,
         device=device,
         num_objects=num_objects,
+        discrete_actions = False,
     )
 
     ride_optim = torch.optim.Adam(ride_net.parameters(), lr=args.network.optimizer.lr)
@@ -238,7 +239,8 @@ def initialize_ride_discrete(args):
         action_dim,
         hidden_sizes=hidden_sizes,
         device=device,
-        num_objects=num_objects
+        num_objects=num_objects,
+        discrete_actions = True,
     )
 
     ride_optim = torch.optim.Adam(ride_net.parameters(), lr=args.network.optimizer.lr)

@@ -20,8 +20,8 @@ train:
   num_iters: 5000
   pretrain_frames: 1000
   batch_size: 128
-  num_steps: 1000
-  # num_steps: 50
+  # num_steps: 1000
+  num_steps: 50
 RIDE: 
   lr_scale: 1
   reward_scale: 0.01

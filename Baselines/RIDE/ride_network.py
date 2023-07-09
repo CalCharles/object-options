@@ -155,6 +155,7 @@ class RIDEModule(nn.Module):
         hidden_sizes: Sequence[int] = (),
         device: Union[str, torch.device] = "cpu",
         num_objects: int = -1,
+        discrete_actions: bool = False,
     ) -> None:
         super().__init__()
         self.feature_net = feature_net
@@ -174,6 +175,7 @@ class RIDEModule(nn.Module):
         self.action_dim = action_dim
         self.device = device
         self.num_objects = num_objects
+        self.discrete_actions = discrete_actions
     
     def get_embedding(self, s1:  Union[np.ndarray, torch.Tensor]):
         s1 = to_torch(s1, dtype=torch.float32, device=self.device)
@@ -194,7 +196,7 @@ class RIDEModule(nn.Module):
         phi1, phi2 = self.feature_net(s1), self.feature_net(s2)
         act = to_torch(act, dtype=torch.long, device=self.device)
         phi2_hat = self.forward_model(
-            torch.cat([phi1, F.one_hot(act, num_classes=self.action_dim)], dim=1)
+            torch.cat([phi1, F.one_hot(act, num_classes=self.action_dim) if self.discrete_actions else act], dim=1)
         )
         mse_loss = 0.5 * F.mse_loss(phi2_hat, phi2, reduction="none").sum(1)
         act_hat = self.inverse_model(torch.cat([phi1, phi2], dim=1))
