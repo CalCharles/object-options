@@ -2,9 +2,9 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /nfs/data/calebc/object_data/all/randomdist/default/attn/log/inter.log
-    # load_dir: /nfs/data/calebc/object_data/all/breakout/attn/testrun/
-    save_dir: /nfs/data/calebc/object_data/all/randomdist/attn/default/
+    log_filename: /nfs/data/calebc/object_data/all/randomdist/default/multi/log/inter.log
+    # load_dir: /nfs/data/calebc/object_data/all/breakout/multi/testrun/
+    save_dir: /nfs/data/calebc/object_data/all/randomdist/multi/default/
   environment:
     env: RandomDistribution
     load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional
@@ -23,18 +23,18 @@
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    load_intermediate: /hdd/datasets/object_data/em/randomcond/attn/temp/
-    # save_intermediate: /hdd/datasets/object_data/em/randomcond/attn/temp/
+    # load_intermediate: /hdd/datasets/object_data/em/randomcond/multi/temp/
+    save_intermediate: /hdd/datasets/object_data/em/randomcond/multi/temp/
     compare_trace: True
     proximity_epsilon: 7
     use_active_as_passive: True
     passive:
-      # passive_iters: 20000
+      passive_iters: 20000
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
     interaction:
-      # interaction_pretrain: 20000
+      interaction_pretrain: 20000
       soft_train: 0.05
     active:
       active_steps: 1
@@ -57,7 +57,7 @@
     # train_names: phpt
   interaction_net:
     hidden_sizes: 256
-    net_type: maskattn
+    net_type: multiattn
     init_form: xnorm # -1 dim is num_queries
     embed_inputs: 256
     pair:

@@ -11,6 +11,11 @@ from Network.General.conv import ConvNetwork
 from Network.General.pair import PairNetwork
 
 class KeyPairNetwork(Network):
+    '''
+    first_obj_dim defines a set of keys, and the rest of the input are the queries.
+    Compares each of the keys with all of the queries by performing a pairnet computation
+    with each of the keys separately, then possibly aggregating back together
+    '''
     def __init__(self, args):
         super().__init__(args)
         self.object_dim = args.pair.object_dim # expects that object_dim is the same for the targets and the values
@@ -100,6 +105,9 @@ class KeyPairNetwork(Network):
         self.total_instances = num_objects
 
     def slice_mask_input(self, x, i, m):
+        # slices x into keys and queries, embeds them, masks the queries and then creates 
+        # a vector of [batchssize, num_queries (self.total_instances), key_embed_dim + query_embed_dim]
+        # assumes masks is already expanded to be the [batchsize, num_queries*self.embed_dim * self.total_instances]
         key = x[...,i * self.single_obj_dim: (i+1) * self.single_obj_dim]
         key = self.embed_key_layer(key)
         queries = x[...,self.first_obj_dim:]
@@ -116,7 +124,10 @@ class KeyPairNetwork(Network):
             # print(m.shape, self.embed_dim, self.total_instances, x.shape, self.first_obj_dim, queries.shape)
             # print(x.shape, total_obj_dim, self.embed_dim, self.total_instances, key.shape, queries.shape, m.shape, i)
             # print((queries * m[...,i * total_obj_dim:(i+1) * total_obj_dim])[0:10])
-            xi = torch.cat([key, queries * m[...,i * total_obj_dim:(i+1) * total_obj_dim]], dim=-1)
+            xi = torch.cat([key, queries * m[...,i * total_obj_dim:(i+1) * total_obj_dim]], dim=-1) # [batch, embed_dim + embed_dim * total_instances]
+        # print(key[0], queries[0], xi[0], x[0])
+        # print(m[0][:512])
+        # print(key.shape, queries.shape, xi.shape, self.first_obj_dim, m.shape, x.shape, i, self.single_obj_dim)
         return xi
     
     def reappend_queries(self, x, xi):
@@ -136,8 +147,8 @@ class KeyPairNetwork(Network):
             for j in range(self.num_layers):
                 l = self.conv_layers[0] if self.repeat_layers else self.conv_layers[j]
                 # print(self.first_obj_dim, self.object_dim, l.first_obj_dim, l.object_dim)
-                xil = l(xil)
-                if j < self.num_layers - 1: xil = self.reappend_queries(xi, xil)
+                xil = l(xil) # [batch, embed_dim]
+                if j < self.num_layers - 1: xil = self.reappend_queries(xi, xil) # [batch, embed + embed_dim + embed_dim * total_instances]
                 # print(j, self.num_layers - 1, xi.shape, xil.shape,self.embed_dim)
             # print(xil.shape, self.decode_layer)
             # print("xil", xil.shape, self.reappend_queries(xi, xil).shape)

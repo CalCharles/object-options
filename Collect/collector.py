@@ -272,7 +272,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
         random: bool = False,
         render: Optional[float] = None,
         no_grad: bool = True,
-        force: [np.array, int] = None,
+        force: np.array = None,
         new_param: bool = False,
         demonstrate: bool = False,
         debug_actions: list = None,

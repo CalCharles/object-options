@@ -21,7 +21,7 @@ def get_passive_weights(args, full_model, object_rollout):
     return weights
 
 
-def train_passive(full_model, args, rollouts, object_rollout, weights, active_optimizer, passive_optimizers):
+def train_passive(full_model, args, rollouts, object_rollout, weights, active_optimizer, passive_optimizer):
     logger = forward_logger("pretrain_passive", args.record.record_graphs, args.inter.passive.passive_log_interval, full_model, filename=args.record.log_filename)
     active_logger = forward_logger("pretrain_active", args.record.record_graphs, args.inter.passive.passive_log_interval, full_model)
 
@@ -52,7 +52,7 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
         # passive_log_probs = - full_model.dist(*passive_prediction_params).log_prob(target)
         # print(passive_prediction_params[1][0], passive_prediction_params[0][0])
         passive_loss = compute_likelihood(full_model, args.train.batch_size, passive_log_probs, done_flags=done_flags, is_full = True)
-        run_optimizer(active_optimizer, full_model.active_model, passive_loss) if args.full_inter.use_active_as_passive or full_model.cluster_mode else run_optimizer(passive_optimizers, full_model.passive_model, passive_loss)
+        run_optimizer(active_optimizer, full_model.active_model, passive_loss) if args.full_inter.use_active_as_passive or full_model.cluster_mode else run_optimizer(passive_optimizer, full_model.passive_model, passive_loss)
         # logging the passive model outputs
         logger.log(i, passive_loss, None, None, passive_log_probs  * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, weight_rate, batch.done,
                     passive_prediction_params, target  * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, full_model)
@@ -96,6 +96,10 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
             # print("aoptim", time.time() - aoptim)
             active_logger.log(i, active_loss, None, None, active_likelihood_full * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, weight_rate, batch.done,
                                 active_prediction_params, target, None, full_model)
+            if args.full_train.train_reconstruction:
+                mean_r, std_r, query_state = full_model.get_embed_recon(batch, reconstruction=True)
+                loss = mean_r.reshape(mean_r.shape[0], mean_r.shape[1], -1) - pytorch_model.wrap(batch.tarinter_state, cuda=full_model.iscuda)
+
         if i % args.inter.passive.passive_log_interval == 0:
             print("trace values", np.mean(batch.trace, axis=0))
             print(full_model.name,batch.tarinter_state[0]  ,  full_model.norm.reverse(full_batch.obs[0], form="inter", name=full_model.name), target[0], full_model.norm.reverse(target[0], name=full_model.name, form="dyn" if full_model.predict_dynamics else "target"))

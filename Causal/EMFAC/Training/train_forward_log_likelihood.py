@@ -26,7 +26,7 @@ def train_forward_log_likelihood(full_model, args,
     for j in range(max(1, args.EMFAC.E_step_iters)):
         full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollouts, active_weights)
         # print("target", batch.target_diff[:6])
-        weight_rate = np.sum(active_weights[idxes]) / len(idxes)
+        weight_rate = np.sum(active_weights[idxes]) / len(idxes) if active_weights is not None else 1.0
         # run the networks and get both the active and passive outputs (passive for interaction binaries)
         active_given_params, \
             computed_interaction_likelihood, hot_likelihood, returned_given_mask, \
@@ -41,7 +41,8 @@ def train_forward_log_likelihood(full_model, args,
         # combine likelihoods to get a single likelihood for losses TODO: a per-element binary?
         active_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - active_given_log_probs, done_flags=done_flags, is_full=True)
 
-        if args.inter.active.active_steps > 0: run_optimizer(active_optimizer, full_model.active_model, active_nlikelihood)
+        # print(given_mask, pytorch_model.unwrap(active_nlikelihood[0]), pytorch_model.unwrap(active_given_log_probs[0]), pytorch_model.unwrap(target[0]), pytorch_model.unwrap(active_given_params[0])[0], pytorch_model.unwrap(active_given_params[1])[0])
+        run_optimizer(active_optimizer, full_model.active_model, active_nlikelihood)
 
         # logging will probably break from the changing of the meaning of interactions
         # print(active_nlikelihood.shape, active_full_nlikelihood.shape, active_log_probs.shape, active_params[0].shape, np.expand_dims(np.sum(pytorch_model.unwrap(interaction_likelihood) - 1, axis=-1), axis=-1).shape, batch.trace.shape, np.expand_dims(np.sum(batch.trace - 1, axis=-1), axis=-1).shape)
@@ -62,6 +63,7 @@ def train_forward_log_likelihood(full_model, args,
                 active_weights, given_mask, normalize=normalize)
         test_dict = test_full(full_model, test_rollout, test_object_rollout, args, None, printouts=False)
         logger.log_testing(test_dict)
+        print("mask", given_mask)
     if given_mask is not None:
         test_like_active = get_error(full_model, rollouts, object_rollout=object_rollouts,
                                     error_type = error_types.ACTIVE_GIVEN_LIKELIHOOD, reduced=True, given_mask=given_mask)

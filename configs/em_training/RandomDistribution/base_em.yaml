@@ -8,31 +8,33 @@
   environment:
     env: RandomDistribution
     load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional
+    gym_to_gymnasium: False
   torch:
     gpu: 1
     no_cuda: False
   train:
     train: True
-    num_frames: 1000
+    num_frames: 10000
     train_test_order: time
     load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional
-    num_iters: 100
+    num_iters: 40
     batch_size: 256
   inter:
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    load_intermediate: /hdd/datasets/object_data/em/randomcond/base/temp/
+    # load_intermediate: /hdd/datasets/object_data/em/randomcond/base/temp/
     # save_intermediate: /hdd/datasets/object_data/em/randomcond/base/temp/
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 0
-      # passive_iters: 10000
+      # passive_iters: 0
+      passive_iters: 100000
       passive_log_interval: 100
       pretrain_active: True
     interaction:
-      interaction_pretrain: 0
+      interaction_pretrain: 100000
+      soft_train: 0.05
     active:
       active_steps: 1
       active_log_interval: 1
@@ -49,17 +51,20 @@
     mixed_interaction: mixed
     soft_distribution: Identity
     use_active_as_passive: True
+    lightweight_passive: False
     log_gradients: True
     # train_full_only: True
     # train_names: phpt
   interaction_net:
+    multi:
+      use_embedding: False
     hidden_sizes: 256 256 256 256
     embed_inputs: 256
-    net_type: keypair
+    net_type: linpair
     init_form: xnorm
     optimizer:
-      lr: .00001
-      alt_lr: .00001
+      lr: .00004
+      alt_lr: .00004
       eps: .00001
       alpha: 0.99
       betas: 0.9 0.999
@@ -67,9 +72,9 @@
   EMFAC:
     full_train: psxrpx
     num_masks: 3
-    E_step_iters: 3000
+    E_step_iters: 7000
     M_step_iters: 10
     refine_iters: 10
     binary_cost: 1
-
+    model_mask_weights: 0.0 0.0 0.0
 ...

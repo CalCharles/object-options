@@ -115,7 +115,7 @@ def get_given_gradients(full_model, args, rollouts, object_rollout, weights, giv
     # prints out the gradients of the interaction mask, the active inputs and the full inputs
     full_batch, batch, idxes = get_batch(512, full_model.form == "all", rollouts, object_rollout, weights)
     # print("target", batch.target_diff[:6])
-    weight_rate = np.sum(weights[idxes]) / len(idxes)
+    weight_rate = np.sum(weights[idxes]) / len(idxes) if weights is not None else 1.0
     # run the networks and get both the active and passive outputs (passive for interaction binaries)
     active_given_params, \
         computed_interaction_likelihood, hot_likelihood, returned_given_mask, \

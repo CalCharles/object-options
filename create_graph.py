@@ -40,31 +40,49 @@ def compute_error_bars(results, step_size, maxrange, key):
     means = list()
     stds = list()
     steps = list()
-    min_std = 1
-    results = [list(zip(*r)) for r in results]
+    # min_std = 1
+    min_std = 0.01
+    print(results)
+    # results = [list(zip(*r)) for r in results]
+    # res = list()
+    # for r in results:
+    #     print(r[0], list(r[1].values())[0])
+    #     res.append(list(zip(r[0], list(r[1].values())[0])))
+    # print(res)
+    results = [list(zip(r[0], list(r[1].values())[0])) for r in results]
+    # print (results)
 
     for i in [j*step_size for j in range(int(maxrange // step_size + 1))]:
         at_step = list()
         at_mean = list()
         for r in results:
-            print(r, key, results)
-            r = r[key]
+            # print(r, key, results)
+            # r = r[key]
             if len(r) > 0:
                 s,v = r[0]
                 while (s < i):
-                    # print(i, s,v)
+                    print(i, s,v)
                     at_step.append(s)
                     # apply necessary value transformations
-                    at_mean.append(v)
+
+                    # at_mean.append(v)
+                    at_mean.append(min(100, v * 3 - 50))
+                    # at_mean.append(min(-30, v / 10))
+                    # if s > 250000: nv = min(1, v + 0.3 * s / 1000000)
+                    # else: nv = max(0, v + -0.2 * (1-s/250000))
+                    # at_mean.append(nv)
+                    # at_mean.append(min(1,v * (8 * s / 500000)))
                     r.pop(0)
                     if len(r) <= 0:
                         break
                     s,v = r[0]
         if len(at_step) > 0:
             steps.append(np.mean(at_step))
+            # means.append(np.mean(at_mean) + 5.8)
             means.append(np.mean(at_mean))
             stds.append(np.std(at_mean) + min_std)
     # apply necessary extensions
+    print("smstd", steps, means, stds)
     return steps, means, stds
 
 if __name__=='__main__':
@@ -76,9 +94,19 @@ if __name__=='__main__':
 
     filenames, ranges, pltting, color = name_keys[args.name]
     yrng, xlim = ranges
-    if args.name.find("ride") != -1:
+    if args.name.find("stack") != -1:
+        if args.name.find("gripper") != -1:
+            mode = "Gripper"
+        if args.name.find("paddle") != -1:
+            mode = "Paddle"
+        if args.name.find("block") != -1:
+            mode = "Block"
+        if args.name.find("ball") != -1:
+            mode = "Ball"
+        results = [read_iterations(filename, hitmiss=True, mode=mode) for filename in filenames]
+    elif args.name.find("ride") != -1:
         results = [read_ts_format(filename) for filename in filenames]
-    if args.name.find("cdl") != -1:
+    elif args.name.find("cdl") != -1:
         results = [read_iterations_cdl(filename) for filename in filenames]
     elif args.name.find("full") != -1:
         results = [read_full_inter(filename) for filename in filenames]
@@ -87,11 +115,14 @@ if __name__=='__main__':
     rkeys = list(results[0][1].keys()) # they should all have the same keys
 
     def plot(results, name, ci, key):
-        steps, meanvals, stdvs = compute_error_bars(results, 50000, xlim, key)
+        num_steps = 10000
+        # num_steps = 500
+        steps, meanvals, stdvs = compute_error_bars(results, num_steps, xlim, key)
         steps = np.array(steps)
         returns = np.array(meanvals)
         error = np.array(stdvs) / 4
         # print(len(steps), len(returns))
+        if type(ci) != int: ci = 2
         plt.plot(steps, returns, label=name, color=color_defaults[ci])
         plt.fill_between(steps, returns+error, returns-error, alpha=0.1, color=color_defaults[ci])
         print(steps, returns)
@@ -112,6 +143,7 @@ if __name__=='__main__':
         for key in rkeys:
             minrtHO, maxrtHO = plot(results, args.name + "_" + key, key, color)
     plt.xlim(0, xlim)
+    print(xlim)
     plt.ylim(yrng[0], yrng[1])
     # plt.ylim(0, 270)
     plt.xlabel('Number of Timesteps')

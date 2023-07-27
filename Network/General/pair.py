@@ -51,6 +51,7 @@ class PairNetwork(Network):
                 self.encode_layer = ConvNetwork(encode_layer_args)
                 layers += [self.encode_layer]
 
+                # not entirely sure why it would be desirable to have multilayer pairnets
                 self.conv_layers = list()
                 conv_args = copy.deepcopy(args)
                 conv_args.object_dim = self.layer_conv_dim

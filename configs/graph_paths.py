@@ -173,16 +173,65 @@ full_attn_weighted_filenames = ["/nfs/data/calebc/object_data/full/hyperparam/hy
                         "/nfs/data/calebc/object_data/full/hyperparam/hyperparam_logs/attn_tests/test/attn_opt_0_0_trial_2.txt",
                         "/nfs/data/calebc/object_data/full/hyperparam/hyperparam_logs/attn_tests/test/attn_opt_0_0_trial_3.txt"]
 
+breakout_stack_filenames = ["logs/breakout/stack/main0.txt",
+                    "logs/breakout/stack/main1.txt",
+                    "logs/breakout/stack/main2.txt",
+                    "logs/breakout/stack/main4.txt",
+                    "logs/breakout/stack/main5.txt",
+                    "logs/breakout/stack/main7.txt",
+                    "logs/breakout/stack/main8.txt",
+                    "logs/breakout/stack/main9.txt",
+                    "logs/breakout/stack/main10.txt"]
 
-breakout_ranges = [(-50, 100), 2e6]
-robopush_ranges = [(-50,0), 5e6]
+robo_stack_filenames = ["logs/robopushing/stack/main0.txt",
+                    "logs/robopushing/stack/main1.txt",
+                    "logs/robopushing/stack/main2.txt",
+                    "logs/robopushing/stack/main3.txt",
+                    "logs/robopushing/stack/main4.txt",
+                    "logs/robopushing/stack/main5.txt",
+                    "logs/robopushing/stack/main6.txt",
+                    "logs/robopushing/stack/main7.txt",
+                    "logs/robopushing/stack/main8.txt",
+                    "logs/robopushing/stack/main9.txt",]
+
+ride_robo_filenames = ["/nfs/data/object_data/baselines/robo/hyperparam/hyperparam_logs/ride/ride_runs0_trial_0.txt",
+                       "/nfs/data/object_data/baselines/robo/hyperparam/hyperparam_logs/ride/ride_runs0_trial_1.txt",
+                       "/nfs/data/object_data/baselines/robo/hyperparam/hyperparam_logs/ride/ride_runs0_trial_2.txt",
+                       "/nfs/data/object_data/baselines/robo/hyperparam/hyperparam_logs/ride/ride_runs0_trial_3.txt",
+                       "/nfs/data/object_data/baselines/robo/hyperparam/hyperparam_logs/ride/ride_runs0_trial_4.txt",
+                       "/nfs/data/object_data/baselines/robo/hyperparam/hyperparam_logs/ride/ride_runs0_trial_5.txt",
+                       "/nfs/data/object_data/baselines/robo/hyperparam/hyperparam_logs/ride/ride_runs0_trial_6.txt",
+                       "/nfs/data/object_data/baselines/robo/hyperparam/hyperparam_logs/ride/ride_runs0_trial_7.txt",]
+
+ride_break_filenames = ["/nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_logs/ride3/ride_runs30_trial_0.txt",
+                       "/nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_logs/ride3/ride_runs30_trial_1.txt",
+                       "/nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_logs/ride3/ride_runs30_trial_2.txt",
+                       "/nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_logs/ride3/ride_runs30_trial_3.txt",
+                       "/nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_logs/ride3/ride_runs30_trial_4.txt",
+                       "/nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_logs/ride3/ride_runs30_trial_5.txt",
+                       "/nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_logs/ride3/ride_runs30_trial_6.txt",
+                       "/nfs/data/object_data/baselines/breakout/hyperparam/hyperparam_logs/ride3/ride_runs30_trial_7.txt",]
+
+breakout_ranges = [(-50, 100), 2.7e6]
+robopush_ranges = [(-50,0), 2e6]
 big_ranges = [(-20,0), 5e5]
 single_ranges = [(-5,0), 5e5]
 center_ranges = [(-50,0),2e6]
 prox_ranges = [(-1,0.6), 1e6]
 hard_ranges = [(-10,0), 1e6]
 neg_ranges = [(-3,1.5), 1e6]
+
+robo_gripper_ranges = [(0,1), 1e5]
+robo_block_ranges = [(0,1), 5e5]
+break_paddle_ranges = [(0,1), 1e4]
+break_ball_ranges = [(0,1), 1e6]
 name_keys = {
+"robo_gripper_stack": [robo_stack_filenames, robo_gripper_ranges, True, 4],
+"robo_block_stack": [robo_stack_filenames, robo_block_ranges, True, 4],
+"break_paddle_stack": [breakout_stack_filenames, break_paddle_ranges, True, 4],
+"break_ball_stack": [breakout_stack_filenames, break_ball_ranges, True, 4],
+"ride_robo": [ride_robo_filenames, robopush_ranges, True, 2],
+"ride_break": [ride_break_filenames, breakout_ranges, True, 2],
 "prox": [hype_grad_prox_filenames, prox_ranges, True, 4],
 "big": [hype_grad_big_filenames, big_ranges, True, 4],
 "single": [hype_grad_single_filenames, single_ranges, True, 4],

@@ -148,7 +148,7 @@ class MultiHeadAttentionBase(Network):
         # keys = self.final_layer(keys)
         return keys
 
-class MaskedAttentionNetwork(Network):
+class MultiMaskedAttentionNetwork(Network):
     def __init__(self, args):
         super().__init__(args)
         self.object_dim = args.pair.object_dim # the object dim is the dimension of the value input

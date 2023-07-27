@@ -13,6 +13,7 @@ network_args = {
         "num_masks": -1, # should be set outside of network_args
         "embedding_sizes": list(), # number and shape of hidden layers
         "embedding_output": 256,
+        "use_embedding": True,
     },
     "pair": {
         "drop_first": False,
@@ -130,6 +131,7 @@ full_args = {
         "mixed_interaction": "weighting",
         "use_active_as_passive": False,
         "proximal_weights": False,
+        "reconstruct_embedding": False, # trains the factor-specific embeddings with reconstruction, only implemented for linpair net
         "log_gradients": False,
         "train_full_only": False,
         "lightweight_passive": True,
@@ -155,6 +157,7 @@ full_args = {
         "interaction": {
             "interaction_pretrain": 0,
             "subset_training": 0,
+            "soft_train": 0, # adds this constant to the trace values then renormalizes
         },
         "active": {
             "active_steps": 1,
@@ -173,10 +176,11 @@ full_args = {
         "full_train": "",
         "num_masks": 1,
         "is_EMFAC": False,
-        "E_step_iters": 1,
-        "M_step_iters": 1,
+        "E_step_iters": 1, # steps of forward model training
+        "M_step_iters": 1, # steps of interaction model training
         "refine_iters": 1,
-        "binary_cost": 1
+        "binary_cost": 1,
+        "model_mask_weights": [0,0,0.4], # weight for the forward model performance, weight for the mask magnitude, weight lambda regularization
     },
     "mask": {
         "min_sample_difference": 1,

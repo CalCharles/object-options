@@ -60,6 +60,7 @@ if __name__ == '__main__': # TODO: combine with the train_all/train_full code
         #     model.cpu().cuda(device = args.torch.gpu)
         passive_weights = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_weights.pkl"))
     # training the passive/active models
+    model.active_model.set_full() # set the model to the full model
     if args.train.train and args.inter.passive.passive_iters > 0: outputs, passive_weights = run_train_passive(model, train_all_buffer, train_object_rollout, test_all_buffer, test_object_rollout, args, environment)
     # pretraining with the true traces, not used for the main algorithm
     if args.train.train and args.inter.interaction.interaction_pretrain > 0: run_train_interaction(model, train_all_buffer, train_object_rollout, test_all_buffer, test_object_rollout, args, environment)
@@ -74,4 +75,4 @@ if __name__ == '__main__': # TODO: combine with the train_all/train_full code
     model.regenerate(extractor, normalization, environment)
     
     if args.train.train: train_EMFAC(model, args, train_all_buffer, train_object_rollout, test_all_buffer, test_object_rollout)
-    test_full(all_model, test_all_buffer, args, environment)
+    test_full(model, test_all_buffer, args, environment)

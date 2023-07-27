@@ -35,7 +35,7 @@ def hot_traces(traces, num_clusters):
             return_traces.append(copy.deepcopy(hots[i]))
     return np.array(return_traces)
 
-def train_binaries(full_model, rollouts, object_rollout, args, interaction_optimizer, traces, inter_logger, weights):
+def train_binaries(full_model, rollouts, object_rollout, args, interaction_optimizer, traces, inter_logger, weights, indices=None):
     binaries = object_rollout.sample(0)[0].weight_binary if object_rollout is not None else rollouts.sample(0)[0].weight_binary
     inter_loss = nn.BCELoss()
     for i in range(args.inter.interaction.interaction_pretrain):
@@ -53,14 +53,14 @@ def train_binaries(full_model, rollouts, object_rollout, args, interaction_optim
             if args.inter.interaction.subset_training > 0:
                 idxes = np.random.choice(np.arange(len(rollouts)), replace=True, p=weights, size=args.train.batch_size)
                 full_batch = rollouts[idxes]
-                batch = object_rollout[idxes] if object_rollout is not None else rollout[idxes]
+                batch = object_rollout[idxes] if object_rollout is not None else rollouts[idxes]
             else:
                 full_batch, idxes = rollouts.sample(args.train.batch_size, weights=weights)
-                batch = object_rollout[idxes] if object_rollout is not None else rollout[idxes]
+                batch = object_rollout[idxes] if object_rollout is not None else rollouts[idxes]
             batch.tarinter_state = np.concatenate([batch.obs, full_batch.obs], axis=-1)
         batch.inter_state = full_batch.obs
-        trace = traces[idxes].reshape(len(batch), -1) # in the all mode, this should be the full trace
-
+        trace = traces[idxes].reshape(len(batch), -1)# in the all mode, this should be the full trace
+        trace = np.clip(trace, args.inter.interaction.soft_train,1.0 - args.inter.interaction.soft_train)
         # get the network outputs
         # outputs the binary over all instances, in order of names, instance number
         if args.full_inter.selection_train == "separate": # get the selection output
@@ -82,7 +82,7 @@ def train_binaries(full_model, rollouts, object_rollout, args, interaction_optim
         inter_logger.log(i, trace_loss, interaction_likelihood, interaction_likelihood, pytorch_model.unwrap(done_flags), weight_rate,
                 trace=trace)
         # change the weighting if necesary
-        if i % args.inter.active.active_log_interval == 0:
+        if i % args.inter.passive.passive_log_interval == 0:
             print(np.concatenate((trace, pytorch_model.unwrap(interaction_likelihood)), axis=-1)[:5])
             weights = get_weights(args.inter.active.weighting[2], binaries.squeeze())
             if args.inter.interaction.subset_training > 0: # replace the subsets with the values
@@ -91,13 +91,14 @@ def train_binaries(full_model, rollouts, object_rollout, args, interaction_optim
 
 def train_interaction(full_model, rollouts, object_rollout, args, interaction_optimizer):
     outputs = list()
-    inter_logger = interaction_logger("trace_" + full_model.name, args.record.record_graphs, args.inter.active.active_log_interval, full_model, filename=args.record.log_filename)
+    inter_logger = interaction_logger("trace_" + full_model.name, args.record.record_graphs, args.inter.passive.passive_log_interval, full_model, filename=args.record.log_filename)
     # in the multi-instanced case, if ANY interaction occurs, we want to upweight that state
     # trw encodes binaries of where interactions occur, which are converted into normalized weights
     binaries = object_rollout.sample(0)[0].weight_binary if object_rollout is not None else rollouts.sample(0)[0].weight_binary
     weights = get_weights(ratio_lambda=args.inter.active.weighting[2], binaries=binaries)
     print(weights.shape)
     # forms of training:
+    indices=None
     traces = object_rollout.sample(0)[0].trace if object_rollout is not None else rollouts.sample(0)[0].trace
     if args.full_inter.selection_train == "separate":
         traces = hot_traces(traces, args.interaction_net.cluster.num_clusters)
@@ -125,5 +126,5 @@ def train_interaction(full_model, rollouts, object_rollout, args, interaction_op
     #### weights the values (above)
     
     # training
-    train_binaries(full_model, rollouts, object_rollout, args, interaction_optimizer, traces, inter_logger, weights)        
+    train_binaries(full_model, rollouts, object_rollout, args, interaction_optimizer, traces, inter_logger, weights ,indices=indices)        
     return outputs, binaries

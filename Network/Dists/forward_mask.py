@@ -112,3 +112,13 @@ class DiagGaussianForwardPadMaskNetwork(Network):
         # var = (torch.sigmoid(meanvar[...,int(meanvar.shape[-1]//2):]) + self.base_variance)
         # print("forward",time.time() - start)
         return (mean, var), m
+
+    def embeddings(self, x):
+        mean_e, recon = self.mean(x, return_embeddings=True)
+        std_e, recon = self.std(x, return_embeddings=True)
+        return mean_e, std_e, recon
+
+    def reconstruction(self, x):
+        mean_r, recon = self.mean(x, return_reconstruction=True)
+        std_r, recon = self.std(x, return_reconstruction=True)
+        return mean_r, std_r, recon

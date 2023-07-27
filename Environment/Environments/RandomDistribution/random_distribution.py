@@ -156,6 +156,7 @@ class RandomDistObject():
 class RandomDistribution(Environment):
     def __init__(self, frameskip = 1, variant="default", fixed_limits=False):
         # generates "objects" as conditional distributions of each other
+        self.self_reset = True
         self.variant = variant
         self.fixed_limits = fixed_limits
         self.discrete_actions, self.allow_uncontrollable, self.num_objects, self.multi_instanced, self.num_related, self.relate_dynamics, self.conditional, self.conditional_weight, self.distribution, self.noise_percentage, self.require_passive = variants[self.variant]

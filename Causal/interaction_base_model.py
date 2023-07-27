@@ -41,8 +41,8 @@ def load_interaction(pth, name, device=-1):
         return model
     return None
 
-KEYNETS = ["keypair", "keyembed", "maskattn", "rawattn"]
-PAIR=  ["pair", "keypair", "keyembed", "maskattn", "rawattn"]
+KEYNETS = ["linpair", "keypair", "keyembed", "maskattn", "rawattn", "multiattn"]
+PAIR=  ["pair", "linpair", "keypair", "keyembed", "maskattn", "rawattn", "multiattn"]
 
 MASKING_FORMS = {
     "weighting": 0,
@@ -455,6 +455,12 @@ class NeuralInteractionForwardModel(nn.Module):
         if all: return self.active_model.get_all_mask(batch_size, n_keys, n_queries)
         return self.active_model.get_hot_full_mask(batch_size, n_keys, n_queries)
 
+    def get_embed_recon(self, batch, normalize=False, reconstruction=False):
+        if normalize: batch = self.normalize_batch
+        active_input = pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda)
+        if reconstruction: mean, std, recon = self.active_model.reconstruction(active_input)
+        else: mean, std, recon = self.active_model.embeddings(active_input)
+        return mean, std, recon
 
     # likelihood functions (below) get the gaussian distributions output by the active and passive models for all mask forms
     def _likelihoods(self, batch, normalize=False, 

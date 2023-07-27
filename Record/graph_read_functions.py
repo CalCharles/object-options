@@ -1,7 +1,6 @@
 # graph read files
 import numpy as np
 
-Epoch #658: test_reward: -372.000000 ± 279.241831, best_reward: -87.000000 ± 171.000000 in #89
 
 TeR = "test_reward: "
 
@@ -10,13 +9,21 @@ def read_ts_format(filename):
     steps = list()
     values = list()
     for line in file.readlines():
-        print(line)
         if line.find(TeR) != -1:
-            steps.append(int(line.split(" ")[1][1:]) * 1000) 
-            values.append(v = float(line.split(" ")[3]))
-    return steps, values
+            # print(line[line.find(TeR):].split(" "))
+            # print(line[line.find("Epoch"):].split(" "))
+            steps.append(int(line[line.find("Epoch"):].split(" ")[1][1:-1]) * 1000) 
+            values.append(float(line[line.find(TeR):].split(" ")[1]))
+    print(steps, values)
+    return steps, {"scores": values}
 
 
+paddle_start = "observation: ['param', 'target', 'param_relative']"
+paddle_end = "performance comparison"
+ball_start = "observation: ['param', 'parent', 'target', 'parent_relative']"
+gripper_start = "Gripper_train"
+gripper_end = "performance comparison"
+block_start = "Block_train"
 
 keys = ["Steps", "Hit", "train", "test"]
 S = "Steps"
@@ -24,29 +31,59 @@ H = "Hit"
 TR = "train"
 TE = "test"
 
-def read_iterations(filename):
+def read_iterations(filename, hitmiss=False, mode = ""):
     # reads a file for the performance the the iterations
     file = open(filename, 'r')
     test_at = list()
     test_vals = {"scores": list()}
     train_mode = False
+    started = True if len(mode) == 0 else False
     for line in file.readlines():
-        print(line)
+        if mode == "Paddle":
+            if line.find(paddle_start) != -1:
+                started = True
+            if line.find(paddle_end) != -1:
+                started = False
+            if not started:
+                continue
+        elif mode == "Ball":
+            if line.find(ball_start) != -1:
+                started = True
+            if not started:
+                continue
+        elif mode == "Gripper":
+            if line.find(gripper_start) != -1:
+                started = True
+            if line.find(gripper_end) != -1:
+                started = False
+            if not started:
+                continue
+        elif mode == "Block":
+            if line.find(block_start) != -1:
+                started = True
+            if not started:
+                continue
         if line.find(TR) != -1:
             train_mode = True
         if line.find(TE) != -1:
             train_mode = False
+        # print(filename, started, line[:5])
 
         if not train_mode: 
             # print(line, S, line.find(S), line.find(H))
+            if line.find(H) != -1:
+                if hitmiss:
+                    val = float(line.split(":")[1].split(", ")[3])
+                else:
+                    val = float(line.split(", ")[-1])
+                test_vals["scores"].append(val)
+                # print("add", val)
+        else:
             if line.find(S) != -1:
                 at = int(line[line.find(S)+7:].split(", ")[0])
                 # test_at.append(at * (1 + 2 * (1-np.exp(-at/2000000))) + 10000)
                 test_at.append(at)
-            if line.find(H) != -1:
-                val = float(line.split(", ")[-1])
-                test_vals["scores"].append(val)
-    # print(test_at, test_vals)
+    print(test_at, test_vals)
     return test_at, test_vals
 
 IS = "init_stage"

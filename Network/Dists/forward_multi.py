@@ -23,37 +23,39 @@ class DiagGaussianForwardMultiMaskNetwork(Network):
     def __init__(self, args):
         super().__init__(args)
         self.index = 0
-        self.num_networks = args.multi.num_masks
+        self.num_networks = args.multi.num_masks + 1
 
         self.object_dim = args.pair.object_dim
-        self.embedding_output = args.multi.embedding_output
+        self.use_embedding = args.multi.use_embedding
+        self.embedding_output = args.multi.embedding_output if self.use_embedding else args.pair.object_dim
         self.first_obj_dim = args.pair.first_obj_dim
         self.symmetric_key_query = args.symmetric_key_query
 
         # create embedding network as a 1d convolution (used on the queries)
-        embed_args = copy.deepcopy(args)
-        embed_args.query_aggregate = False
-        embed_args.hidden_sizes = args.multi.embedding_sizes
-        embed_args.pair.object_dim = self.object_dim
-        embed_args.output_dim = self.embedding_output # must have embed_inputs
-        embed_args.activation_final = embed_args.activation
-        embed_args.pair.aggregate_final = False
-        embed_args.include_last = True
-        self.embedding = ConvNetwork(embed_args)
+        if self.use_embedding:
+            embed_args = copy.deepcopy(args)
+            embed_args.query_aggregate = False
+            embed_args.hidden_sizes = args.multi.embedding_sizes
+            embed_args.pair.object_dim = self.object_dim
+            embed_args.output_dim = self.embedding_output # must have embed_inputs
+            embed_args.activation_final = embed_args.activation
+            embed_args.pair.aggregate_final = False
+            embed_args.include_last = True
+            self.embedding = ConvNetwork(embed_args)
 
         self.forward_models = list()
         forward_args = copy.deepcopy(args)
-        forward_args.pair.object_dim = args.multi.embedding_output
+        forward_args.pair.object_dim = self.embedding_output
         forward_args.symmetric_key_query = False # the symmetric key query is applied at the embed level
         if self.symmetric_key_query:
-            forward_args.pair.first_obj_dim = int(args.pair.first_obj_dim // self.object_dim * args.multi.embedding_output)
-            forward_args.pair.single_obj_dim = args.multi.embedding_output
-        for i in range(forward_args.multi.num_masks):
+            forward_args.pair.first_obj_dim = int(args.pair.first_obj_dim // self.object_dim * self.embedding_output) if self.use_embedding else self.first_obj_dim // self.object_dim
+            forward_args.pair.single_obj_dim = self.embedding_output
+        for i in range(self.num_networks):
             self.forward_models.append(DiagGaussianForwardPadMaskNetwork(forward_args))
         self.forward_models = nn.ModuleList(self.forward_models)
-        print(forward_args.multi.num_masks)
+        print(self.num_networks)
 
-        self.model = [self.embedding, self.forward_models]
+        self.model = [self.embedding, self.forward_models] if self.use_embedding else [self.forward_models]
 
 
         self.train()
@@ -68,6 +70,9 @@ class DiagGaussianForwardMultiMaskNetwork(Network):
 
     def set_index(self, idx):
         self.index = idx
+    
+    def set_full(self):
+        self.index = self.num_networks - 1 # the last network is the full mask  
     
     def reset_index(self, idx, optimizer_args, embedding_optimizer=False):
         self.index= idx
@@ -89,7 +94,7 @@ class DiagGaussianForwardMultiMaskNetwork(Network):
         # start = time.time()
         x = pytorch_model.wrap(x, cuda=self.iscuda)
         # print("mask", m, x, self.iscuda)
-        q = self.embedding(self.get_queries(x).transpose(-2,-1)).transpose(-2,-1) # embedding replaces the queries
+        q = self.embedding(self.get_queries(x).transpose(-2,-1)).transpose(-2,-1) if self.use_embedding else self.get_queries(x) # embedding replaces the queries
         if self.symmetric_key_query: x = torch.cat([(q.clone()).reshape(x.shape[0], -1), (q).reshape(x.shape[0], -1)], dim=-1) # apply the queries, and mask if symmetric
         else: x = torch.cat([x[...,:self.first_obj_dim],q.reshape(x.shape[0], -1)], dim=1) # reappend the embedded queries
         # print("mqx", m.shape, q.shape, x.shape)
