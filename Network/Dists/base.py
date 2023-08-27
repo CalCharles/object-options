@@ -11,6 +11,7 @@ from Network.General.pair import PairNetwork
 import copy, time
 
 
+
 class DiagGaussianForwardNetwork(Network):
     def __init__(self, args):
         super().__init__(args)

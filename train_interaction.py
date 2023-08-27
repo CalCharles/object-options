@@ -37,6 +37,7 @@ def train_interaction(args):
 
     # build the selectors for the passive (target), interaction or active (parent + target), parent (just parent) states
     args.controllable = None # this is filled in with controllable features of the target
+    args.EMFAC.is_emfac = False
 
     # initialize the full model
     full_model = NeuralInteractionForwardModel(args, environment)

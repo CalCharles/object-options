@@ -33,6 +33,7 @@ class forward_logger(Logger):
     def reset(self):
         self.weight_rates = list()
         self.trace_rates = list()
+        self.valid_rates = list()
         self.loss = list()
         self.raw_likelihood = list()
         self.weighted_likelihood = list()
@@ -53,7 +54,7 @@ class forward_logger(Logger):
 
     def log(self, i, loss, raw_likelihood, weighted_likelihood, 
                     raw_likelihood_expanded, trace, weight_rate, dones,
-                    params, targets, interaction_likelihoods, full_model, no_print=False):
+                    params, targets, interaction_likelihoods, full_model, valid=None, no_print=False):
         self.loss.append(pytorch_model.unwrap(loss))
         if raw_likelihood is not None: self.raw_likelihood.append(pytorch_model.unwrap(raw_likelihood))
         if weighted_likelihood is not None: self.weighted_likelihood.append(pytorch_model.unwrap(weighted_likelihood))
@@ -72,7 +73,7 @@ class forward_logger(Logger):
             self.l1_average_true_error.append(np.sum(l1_error * trace, axis=0) / np.sum(trace) )
         if weight_rate is not None: self.weight_rates.append(weight_rate)
         if trace is not None: self.trace_rates.append(np.sum(trace) / max(1,len(trace)))
-        
+        if valid is not None: self.valid_rates.append(np.sum(valid) / max(1,len(valid)))
         # weighted error according to trace, or according to interaction
         if interaction_likelihoods is not None:
             unwrapped_likelihoods = pytorch_model.unwrap(interaction_likelihoods)
@@ -91,8 +92,10 @@ class forward_logger(Logger):
             if len(self.l1_average_weighted_error) > 0: logging_str += f'\nl1 weighted: {np.mean(self.l1_average_weighted_error, axis=0)}'
             if len(self.l1_average_true_error) > 0: logging_str += f'\nl1 true: {np.mean(self.l1_average_true_error, axis=0)}'
             if len(self.weight_rates) > 0: logging_str += f'\npercent (weight, trace): {np.mean(self.weight_rates)}, {np.mean(self.trace_rates)}'
+            if len(self.valid_rates) > 0: logging_str += f'\npercent valid:, {np.mean(self.valid_rates)}'
             target = full_model.norm.reverse(pytorch_model.unwrap(targets[0]), form='dyn' if full_model.predict_dynamics else 'target', name=name) if self.denorm else pytorch_model.unwrap(targets[0])
-            logging_str += f"\ntarget: {target}, {dones[0]}\n"
+            valid_use = valid[0] if valid is not None else None
+            logging_str += f"\ntarget: {target}, {dones[0]}, {valid_use}\n"
             mean = full_model.norm.reverse(pytorch_model.unwrap(params[0][0]), form='dyn' if full_model.predict_dynamics else 'target', name=name) if self.denorm else pytorch_model.unwrap(params[0][0])
             logging_str += f"mean: {mean}\n"
             var = full_model.norm.reverse(pytorch_model.unwrap(params[1][0]), form='dyn' if full_model.predict_dynamics else 'diff', name=name) if self.denorm else pytorch_model.unwrap(params[1][0])

@@ -8,7 +8,7 @@ class AllReplayBuffer(ReplayBuffer):
     _all_keys = ("obs", "act", "rew", "done", "terminated", "truncated", "obs_next", 
             "info", "policy", "true_reward", "true_done", 
             "time","option_choice", "option_resample", "terminate",
-            "target", "inter","next_target", "target_diff", "trace", "proximity", "weight_binary")
+            "target", "inter","next_target", "target_diff", "trace", "proximity", "weight_binary", "valid")
     _reserved_keys = _all_keys
     _input_keys = _all_keys
 
@@ -51,6 +51,7 @@ class AllReplayBuffer(ReplayBuffer):
             trace = self.trace[indice], 
             proximity = self.proximity[indice], 
             weight_binary = self.weight_binary[indice],
+            valid = self.valid[indice]
         )
 
     def sample_indices(self, batch_size: int, weights: np.ndarray=None) -> np.ndarray:

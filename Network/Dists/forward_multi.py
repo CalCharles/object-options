@@ -45,6 +45,7 @@ class DiagGaussianForwardMultiMaskNetwork(Network):
 
         self.forward_models = list()
         forward_args = copy.deepcopy(args)
+        forward_args.pair.real_object_dim = args.pair.object_dim
         forward_args.pair.object_dim = self.embedding_output
         forward_args.symmetric_key_query = False # the symmetric key query is applied at the embed level
         if self.symmetric_key_query:
@@ -89,7 +90,7 @@ class DiagGaussianForwardMultiMaskNetwork(Network):
         queries = x[...,first_dim:].reshape(-1, num_obj, self.object_dim)
         return queries
 
-    def forward(self, x, m=None, soft=False, mixed=False, flat=False, full=False):
+    def forward(self, x, m=None, soft=False, mixed=False, flat=False, full=False, valid=None):
         # keyword hyperparameters are used only for consistency with the mixture of experts model
         # start = time.time()
         x = pytorch_model.wrap(x, cuda=self.iscuda)
@@ -100,5 +101,5 @@ class DiagGaussianForwardMultiMaskNetwork(Network):
         # print("mqx", m.shape, q.shape, x.shape)
         # else: q = (q * m.unsqueeze(-1)).reshape(x.shape[0], -1) # apply the mask if not symmetric
 
-        meanvar, m = self.forward_models[self.index](x, m=m, soft=soft, mixed=mixed, flat=flat, full=full)
+        meanvar, m = self.forward_models[self.index](x, m=m, soft=soft, mixed=mixed, flat=flat, full=full, valid=valid)
         return meanvar, m

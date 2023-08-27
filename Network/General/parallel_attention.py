@@ -16,106 +16,108 @@ class MultiHeadAttentionParallelLayer(Network):
         super().__init__(args)
         self.softmax =  nn.Softmax(-1)
         self.model_dim = args.mask_attn.model_dim # the dimension of the keys and queries after network
-        assert(args.embed_inputs == args.mask_attn.model_dim * args.mask_attn.num_heads or args.mask_attn.merge_function != "cat")
+        # assert(args.embed_inputs == args.mask_attn.model_dim * args.mask_attn.num_heads or args.mask_attn.merge_function != "cat")
         self.key_dim = args.embed_inputs # the dimension of the key inputs, must equal model_dim * num_heads
         self.query_dim = args.embed_inputs
         self.num_heads = args.mask_attn.num_heads
-        # assert args.embed_inputs % self.num_heads == 0, f"head and key not divisible, key: {args.key_dim}, head: {self.num_heads}"
-        self.head_dim = int(args.embed_inputs // self.num_heads) # should be key_dim / num_heads, integer divisible
         self.merge_function = args.mask_attn.merge_function
+        concatenated_values = self.merge_function == "cat"
+        # assert args.embed_inputs % self.num_heads == 0 or (not concatenated_values), "head and key not divisible, key: {args.embed_inputs}, head: {self.num_heads}"
+        self.head_dim = int(args.embed_inputs // self.num_heads) # should be key_dim / num_heads, integer divisible
+        self.append_keys = args.mask_attn.append_keys
+        self.no_hidden = args.mask_attn.no_hidden
+        self.gumbel = args.mask_attn.gumbel_attention
 
-        # process all keys at a time
+        # process all keys at once
         key_args = copy.deepcopy(args)
         key_args.num_inputs = self.key_dim
+        key_args.object_dim = self.query_dim
+        key_args.num_outputs = self.model_dim * self.num_heads
         key_args.output_dim = self.model_dim * self.num_heads
-        key_args.object_dim = self.key_dim
-        key_args.hidden_sizes = [hs*self.num_heads for hs in key_args.hidden_sizes]
-        # key_args.dropout = args.mask_attn.attention_dropout
-        # key_args.use_layer_norm = True
+        key_args.hidden_sizes = list() if self.no_hidden else [hs*self.num_heads for hs in key_args.hidden_sizes]
         key_args.aggregate_final = False
         key_args.activation_final = "none"
-        self.key_network = MLPNetwork(key_args)
+        self.key_network = ConvNetwork(key_args)
 
         query_args = copy.deepcopy(args)
         query_args.num_inputs = self.query_dim
         query_args.output_dim = self.model_dim * self.num_heads
         query_args.object_dim = self.query_dim
-        query_args.hidden_sizes = [hs*self.num_heads for hs in query_args.hidden_sizes]
-        # query_args.dropout = args.mask_attn.attention_dropout
-        # query_args.use_layer_norm = True
+        query_args.hidden_sizes = list() if self.no_hidden else [hs*self.num_heads for hs in query_args.hidden_sizes]
         query_args.aggregate_final = False
         query_args.activation_final = "none"
         self.query_network = ConvNetwork(query_args)
 
         value_args = copy.deepcopy(args)
         value_args.num_outputs = self.model_dim * self.num_heads
-        value_args.pair.object_dim = self.query_dim
-        value_args.pair.first_obj_dim = self.key_dim
-        value_args.hidden_sizes = [hs*self.num_heads for hs in value_args.hidden_sizes]
-        # value_args.dropout = args.mask_attn.attention_dropout
-        # value_args.use_layer_norm = True
-        value_args.pair.aggregate_final = False
-        value_args.activation_final = "none"
+        value_args.object_dim = self.query_dim + int(self.append_keys) * self.key_dim
+        value_args.hidden_sizes = list() if self.no_hidden else [hs*self.num_heads for hs in value_args.hidden_sizes]
+        value_args.activation_final = value_args.activation
         value_args.output_dim = self.model_dim * self.num_heads
         value_args.num_inputs = self.query_dim
-        self.value_network = PairNetwork(value_args) # the pairnet is used as a keypair network
-        # self.value_network = ConvNetwork(value_args)
+        self.value_network = ConvNetwork(value_args) # values append keys internally
 
-        # returns k keys by applying a convolution
         final_args = copy.deepcopy(args)
-        concatenated_values = self.merge_function == "cat"
+        final_args.num_inputs = self.model_dim * self.num_heads if concatenated_values else self.model_dim
         final_args.object_dim = self.model_dim * self.num_heads if concatenated_values else self.model_dim
+        final_args.num_outputs = self.key_dim
         final_args.output_dim = self.key_dim
         final_args.dropout = args.mask_attn.attention_dropout
-        # final_args.use_layer_norm = True
+        final_args.use_layer_norm = True
         final_args.hidden_sizes = [(hs*self.num_heads if concatenated_values else hs) for hs in final_args.pair.final_layers] # these should be wide enough to support model_dim * self.num_heads
         final_args.activation_final = final_args.activation
-        final_args.pair.aggregate_final = False
         self.final_network = ConvNetwork(final_args)
 
         self.model = [self.key_network, self.query_network, self.value_network, self.final_network]
+    
+    def append_values(self, keys, queries):
+        # appends the keys to the queries, expanding the values to batch x keys x queries x (key_dim + query_dim)
+        if self.append_keys:
+            values = list()
+            for i in range(keys.shape[1]):
+                key = torch.broadcast_to(keys[:,i].unsqueeze(1),  (keys.shape[0], queries.shape[1], keys.shape[-1]))
+                values.append(torch.cat([key, queries], dim=-1))
+            return torch.stack(values, dim = 1)
+        else: return torch.stack([queries.clone() for _ in range(keys.shape[1])], dim=1) 
 
-    def mask_softmax(self, softmax, mask):
-        # print(softmax.shape, mask.shape)
-        # print(softmax, mask, (softmax.transpose(-2,-1) * mask.unsqueeze(-1)).transpose(-2,-1))
-        # print(softmax[0], (softmax.transpose(-2,-1) * mask.unsqueeze(-1)).transpose(-2,-1)[0])
-        return (softmax.transpose(-2,-1) * mask.unsqueeze(-1)).transpose(-2,-1)
+    def forward(self, keys, queries, mask, query_final=False, valid=None):
+        # keys of shape: batch x num_keys x key_dim
+        # queries of shape: batch x num_queries x query_dim
+        # mask and valid shape: batch x num_keys x num_queries x 1
+        # query final returns batch x num_keys x num_queries x model dim, otherwise batch x num_keys x model_dim
 
-    def forward(self, input_keys, input_queries, mask, query_final=False, valid=None):
-        # applies the mask at the queries and the values
-        # alteratively, apply the mask after the softmax
-        # queries: batch x num_queries x model dim
-        # input_keys: batch x num_keys x model dim
         start = time.time()
-        batch_size = input_keys.shape[0]
-        input_queries = queries * mask.unsqueeze(-1)
-        # value_inputs = torch.cat([key.unsqueeze(1)] + [queries], dim=1).reshape(batch_size, -1) # todo: relative state operations here
-        # value_inputs = queries # todo: relative state operations here
-        # uncomment below if queries = queries * mask.unsqueeze(-1) is commented, or we want safer operations that mask out the whole value
-        # value_inputs = (torch.cat([key.unsqueeze(1)] + [queries], dim=1) * mask.unsqueeze(-1)).reshape(batch_size, -1) # todo: relative state operations here
-        keys = self.key_network(input_keys.transpose(-2,-1)).transpose(-2,-1) # batch x num_keys x model dim * num_heads
-        queries = self.query_network(queries.transpose(-2,-1)).transpose(-2,-1) # batch x num_keys x model dim * num_heads
-        keys, queries = keys.view(batch_size, -1, self.num_heads, self.model_dim).transpose(1,2), queries.view(batch_size, -1, self.num_heads, self.model_dim).transpose(1,2).transpose(-1,-2)
-        # print(value_inputs.shape, self.value_network)
-        values = list()
-        for i in range(input_keys.shape[1]): # batch x num keys x model dim
-            values.append(self.value_network(torch.cat([input_keys[:,i], input_queries.reshape(batch_size, -1)])))
-        values = torch.stack(values, dim=1).tranpose(2,3).transpose(1,2) # batch x num_keys x num_queries x model_dim * num_heads
-        values = values.reshape(batch_size, self.num_heads, self.model_dim, keys.shape[1], queries.shape[1]).transpose(2,3).tranpose(3,4)
-        # softmax = batch x heads x keys x model dim * batch x heads x model_dim x queries = batch x heads x keys x queries
-        if query_final:
-            # batch x heads x queries x keys x 1 * batch x heads x queries x keys x model_dim
-            weights = evaluate_key_query(self.softmax, keys, queries, mask, valid, single_key=False)
+        batch_size = keys.shape[0]
+        num_keys = keys.shape[1]
+        num_queries = queries.shape[1]
+        value_inputs = self.append_values(keys, queries)
+        # print(keys.shape, queries.shape, value_inputs.shape)
+        keys = self.key_network(keys.transpose(-2,-1)).transpose(-2,-1) # batch x num_keys x key_dim * num_heads
+        queries = self.query_network(queries.transpose(-2,-1)).transpose(-2,-1) # batch x num_queries x query_dim * num_heads
+        keys, queries = keys.reshape(batch_size, -1, self.num_heads, self.model_dim).transpose(1,2).transpose(2,3), queries.reshape(batch_size, -1, self.num_heads, self.model_dim).transpose(1,2)
+
+        # TODO: confirm that the reshapes below actually have the right format
+        values = self.value_network(value_inputs.reshape(batch_size, num_keys * num_queries, -1).transpose(-1,-2)).transpose(-1,-2) # batch x num_keys * num_queries x num_heads * model_dim
+        values = values.reshape(batch_size, num_keys * num_queries, self.num_heads, self.model_dim).transpose(1,2) # batch x num_heads x num_keys * num_queries x model_dim
+        values = values.transpose(-1,-2).reshape(batch_size, self.num_heads, self.model_dim, num_keys, num_queries).transpose(2,3).transpose(3,4) # batch x num_heads x num_keys x num_queries x model_dim
+        # print(values.shape, keys.shape, queries.shape, mask.shape, valid)
+
+        if query_final: # uses a sigmoid for weights
+            weights = evaluate_key_query(torch.sigmoid, keys, queries, mask, valid, single_key=False) # batch x heads x keys x queries
+            # batch x heads x keys x queries x 1 * batch x heads x keys x queries x model_dim = batch x heads x keys x queries x model_dim
             values = (weights.unsqueeze(-1) * values )
-            values = reduce_function("max", values.transpose(1,2).transpose(2,3), dim=3).transpose(1,2) # keys x queries x model_dim only merges heads using max
-        else:
-            # values = batch x heads x keys x 1 x queries * batch x heads x keys x queries x model_dim = batch x heads x keys x model_dim
-            weights = evaluate_key_query(self.softmax, keys, queries, mask, valid, single_key=False)
-            values = torch.matmul(weights.unsqueeze(-2), values)
-            # swap dimensions: batch x heads x keys x model_dim -> batch x model_dim * num_heads x keys
-            values = reduce_function(self.merge_function, values.transpose(-1,-2), dim=1).transpose(-1,-2)
-            values = self.final_network(values).tranpose(-1,-2) # batch x model_dim x keys
-        return values
+            values = reduce_function(self.merge_function, values, dim=1) # batch x keys x queries x model_dim (merges the heads)
+        else: # sum along the query dimension (already normalized by weights) and apply the final network
+            weights = evaluate_key_query(self.softmax, keys, queries, mask, valid, single_key=False) # batch x heads x keys x queries
+            # batch x heads x keys x queries x 1 * batch x heads x keys x queries x model_dim = batch x heads x keys x queries x model_dim
+            values = (weights.unsqueeze(-1) * values )
+            # print("after", values)
+            values = values.sum(dim=-2) # batch x heads x keys x model_dim
+            # cat requires the heads and value dimension to get concatenated
+            if self.merge_function == "cat": values = values = reduce_function(self.merge_function, values.transpose(1,2), dim=2)
+            else: values = reduce_function(self.merge_function, values, dim=1)
+            values = self.final_network(values.transpose(-2,-1)).transpose(-2,-1) # batch x keys x model_dim
+        return values, weights
 
 class MultiHeadAttentionBase(Network):
     def __init__(self, args):
@@ -123,7 +125,6 @@ class MultiHeadAttentionBase(Network):
         # just handles the final reasoning logic and multiple layers (on a single key, it reprocesses the key input for each layer)
         self.num_layers = args.mask_attn.num_layers
         self.repeat_layers = args.pair.repeat_layers
-        self.query_aggregate = args.embedpair.query_aggregate
         if self.repeat_layers: 
             self.multi_head_attention = MultiHeadAttentionParallelLayer(args)
             layers = [self.multi_head_attention]
@@ -131,27 +132,29 @@ class MultiHeadAttentionBase(Network):
             layers = [MultiHeadAttentionParallelLayer(args) for i in range(self.num_layers)]
             self.multi_head_attention = nn.ModuleList(layers)
         self.embed_dim = args.embed_inputs * args.mask_attn.num_heads
+        self.query_aggregate = args.embedpair.query_aggregate
 
         # final_args = copy.deepcopy(args)
         # final_args.include_last = True
-        # final_args.num_inputs = final_argsargs.mask_attn.merge_function == "cat".embed_inputs * args.mask_attn.num_heads
+        # final_args.num_inputs = final_args.embed_inputs * args.mask_attn.num_heads
         # final_args.num_outputs = final_args.embed_inputs * args.mask_attn.num_heads
         # final_args.hidden_sizes = final_args.pair.final_layers # TODO: hardcoded final hidden sizes for now
         # self.final_layer = MLPNetwork(final_args)
 
         self.model = layers # + [self.final_layer]
 
-    def forward(self, keys, queries, m, valid=None):
-        batch_size = keys.shape[0]
+    def forward(self, keys, queries, m, valid=ModuleNotFoundError):
+        weights = list()
         for i in range(self.num_layers):
             start = time.time()
-            if self.repeat_layers: keys = self.multi_head_attention(keys, queries, m, query_final=i==self.num_layers-1 and self.query_aggregate, valid=valid)
-            else: keys = self.multi_head_attention[i](keys, queries, m, query_final=i==self.num_layers-1 and self.query_aggregate, valid=valid)
+            if self.repeat_layers: keys, weight = self.multi_head_attention(keys, queries, m, query_final=i==self.num_layers-1 and (not self.query_aggregate), valid=valid)
+            else: keys, weight = self.multi_head_attention[i](keys, queries, m, query_final=i==self.num_layers-1 and (not self.query_aggregate), valid=valid)
             # print("layer compute", time.time() - start)
+            weights.append(weight)
         # keys = self.final_layer(keys)
-        return keys
+        return keys, weights
 
-class MultiMaskedAttentionNetwork(Network):
+class ParallelMaskedAttentionNetwork(Network):
     def __init__(self, args):
         super().__init__(args)
         self.object_dim = args.pair.object_dim # the object dim is the dimension of the value input
@@ -163,13 +166,16 @@ class MultiMaskedAttentionNetwork(Network):
 
         self.model_dim = args.mask_attn.model_dim
         self.embed_dim = args.embed_inputs
+        concatenate_values = args.mask_attn.merge_function == "cat"
         if self.embed_dim <= 0:
-            concatenated_values = args.mask_attn.merge_function == "cat" # if we use a difference reduction function, then the embed dim is independent of the number of heads
-            if concatenated_values:
+            if concatenate_values:
                 self.embed_dim = self.model_dim * args.mask_attn.num_heads
             else:
                 self.embed_dim = self.model_dim
         args.embed_inputs = self.embed_dim
+
+        self.final_dim = self.embed_dim if concatenate_values else self.model_dim
+        
         
         self.return_mask = args.mask_attn.return_mask
         self.total_obj_dim = args.pair.total_obj_dim
@@ -205,7 +211,7 @@ class MultiMaskedAttentionNetwork(Network):
         if args.pair.aggregate_final:
             final_args = copy.deepcopy(args)
             final_args.include_last = True
-            final_args.num_inputs = final_args.embed_inputs
+            final_args.num_inputs = self.final_dim
             final_args.num_outputs = self.num_outputs
             final_args.hidden_sizes = final_args.pair.final_layers # TODO: hardcoded final hidden sizes for now
             self.final_layer = MLPNetwork(final_args)
@@ -213,7 +219,7 @@ class MultiMaskedAttentionNetwork(Network):
         else:
             final_args = copy.deepcopy(args)
             final_args.output_dim = self.num_outputs
-            final_args.object_dim = self.embed_dim
+            final_args.object_dim = self.embed_dim if self.query_aggregate else self.final_dim
             final_args.use_layer_norm = False
             final_args.hidden_sizes = final_args.pair.final_layers
             self.final_layer = ConvNetwork(final_args)
@@ -223,7 +229,7 @@ class MultiMaskedAttentionNetwork(Network):
         self.reset_network_parameters()
 
     def reset_environment(self, class_index, num_objects, first_obj_dim):
-        self.first_obj_dim = first_obj_dim # this is the only one that matters
+        self.first_obj_dim = first_obj_dim # this is the only one that matters, single_object_dim and object_dim should not change
         self.total_instances = num_objects
 
     def slice_input(self, x):
@@ -244,7 +250,7 @@ class MultiMaskedAttentionNetwork(Network):
         # print("slice opt", time.time() - start)
         return m
 
-    def forward(self, x, m=None, valid=None):
+    def forward(self, x, m=None, valid=None, return_weights=False):
         # x is an input of shape [batch, flattened dim of all target objects + flattened all query objects]
         # m is the batch, key, query mask
         # iterate over each instance
@@ -252,42 +258,35 @@ class MultiMaskedAttentionNetwork(Network):
         if self.needs_encoding:
             batch_size = x.shape[0]
             keys, queries = self.slice_input(x) # [batch, n_k, single_obj_dim], [batch, n_k, obj_dim]
-            # print(keys, queries, self.gpu, self.key_encoding.model[0].weight.device, self.iscuda)
-            keys = self.key_encoding(keys) # [batch, d_k, n_k]
-            queries = self.query_encoding(queries) # [batch, d_q, n_q]
-            queries = queries.transpose(-2,-1)
+            # print("kq", keys, queries)
+            keys = self.key_encoding(keys).transpose(-2,-1) # [batch, n_k, d]
+            queries = self.query_encoding(queries).transpose(-2,-1) # [batch, n_q, d]
+            # print("kq encoded", keys, queries)
         else:
             keys, queries, m = x # assumes the encodings are already done
             batch_size = keys.shape[0]
-        # print(m.shape, keys.shape, queries.shape, self.needs_encoding)
-        # print(keys.shape)
         # slice = time.time()
         if m is None:
             # mgen = time.time()
-            m = pytorch_model.wrap(torch.ones((batch_size, queries.shape[1], keys.shape[-1])), cuda=self.iscuda) # create ones of [batch, n_q]
-            # print("mgen", time.time() - mgen)
-        else: 
-            # print("preslice", m.shape)
-            # print("mask slice", batch_size, m, keys.shape, queries.shape)
-            m = self.slice_masks(m, batch_size, keys.shape[-1])
-        # print("slice", time.time() - slice)
-        # mha = time.time()
-        # print(m)
-        # print(pytorch_model.wrap(torch.ones((batch_size, queries.shape[1], keys.shape[-1])), cuda=self.iscuda).shape)
-        values = self.multi_head_attention(keys, queries, m, valid=valid) # batch x num_keys (x num_queries) x model_dim
-        if self.query_aggregate:
-            x = values.view(batch_size, -1, self.model_dim).tranpose(1,2)
-            x = self.final_layer(x).tranpose(1,2)
-        elif self.aggregate_final:
-            x = reduce_function(self.reduce_fn, values) # reduce the stacked values along axis 2
+            m = pytorch_model.wrap(torch.ones((batch_size, keys.shape[1], queries.shape[1])), cuda=self.iscuda) # create ones of [batch, n_k, n_q]
+        else:
+            m = self.slice_masks(m, batch_size, keys.shape[1])
+        # print(self.needs_encoding, m.shape)
+        x, weights = self.multi_head_attention(keys, queries, m, valid=valid) # batch, keys, (queries), final_dim
+        if not self.query_aggregate:
+            x = x.reshape(batch_size, -1, self.final_dim).transpose(1,2)
+            x = self.final_layer(x).transpose(1,2)
+            return x.view(batch_size, -1)
+        if self.aggregate_final: # reduce all the keys
+            x = reduce_function(self.reduce_fn, x) # reduce the stacked values along axis 2
             x = x.view(-1, self.embed_dim)
-            # print(x.shape)
             x = self.final_layer(x)
         else:
-            x = self.final_layer(values.transpose(1,2))
+            x = self.final_layer(x.transpose(2,1))
             x = x.transpose(2,1)
             x = x.reshape(batch_size, -1)
             m = m.transpose(2,1)
             m = m.reshape(batch_size, -1)
         # print("total compute", time.time() - start)
+        if return_weights: return x,weights
         return x

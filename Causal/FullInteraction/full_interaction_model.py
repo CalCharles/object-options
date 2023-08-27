@@ -161,9 +161,11 @@ class FullNeuralInteractionForwardModel(NeuralInteractionForwardModel):
         n_keys, n_queries = self.count_keys_queries(state)
         passive_mask = np.zeros((state.shape[0], n_keys, self.num_inter, )).astype(float)
         if type(state) == torch.Tensor: passive_mask = pytorch_model.wrap(passive_mask, cuda=self.iscuda)
+        # return passive_mask.reshape(state.shape[0], -1) # forces passive to be zero mask
         if self.name in ["Reward", "Done"]: return passive_mask
         for i in range(n_keys):
             passive_mask[:,i, self.name_index + i] = 1.0
+            # passive_mask[:,i, (self.name_index + i + np.random.randint(5)) % self.num_inter] = 1.0
         passive_mask = passive_mask.reshape(state.shape[0], -1) # [batch_size, num_keys x num_instances]
         # print("passive_mask", passive_mask)
         return passive_mask

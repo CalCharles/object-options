@@ -32,7 +32,7 @@ def train_EMFAC_step(full_model, args, rollout, object_rollout, test_rollout, te
         mperf = train_mask_forward(full_model, model_index, args, mask, soft_masks, rollout, object_rollout, test_rollout, test_object_rollout,weights[model_index], forward_loggers[model_index], i)
         model_performances.append(mperf)
     model_performances = np.concatenate(model_performances, axis=-1)
-    interaction_masks = generate_masks(args, k_masks, passive_mask, model_performances)
+    interaction_masks = generate_masks(args, k_masks, np.expand_dims(passive_mask[0], axis=0), model_performances)
     mask_train_interaction(full_model, args, interaction_masks, soft_masks, rollout, object_rollout, test_rollout, test_object_rollout, interaction_optimizer, inter_logger)
     train_forward_combined(full_model, args, rollout, object_rollout, test_rollout, test_object_rollout, full_optimizer, full_logger, i)
     return model_performances

@@ -5,8 +5,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 import copy, time
-from Network.network import Network, network_type
 from Network.network_utils import pytorch_model, get_acti
+MASK_ATTENTION_TYPES = ["maskattn", "parattn", "rawattn", "multiattn"] # currently only one kind of mask attention net
 
 def apply_symmetric(symmetric_key_query, tobs, masked=None):
     if symmetric_key_query: return torch.cat([tobs.clone(), tobs], dim=-1)
@@ -40,7 +40,6 @@ def get_passive_mask(batch_size, num_keys, num_queries, num_objects, class_index
 def expand_mask(m, batch_size, object_dim): # only for padded networks
     # m = batch x num_keys*num_objects OR
     # batch x num_keys*num_objects if broadcast over keys
-    # TODO: make this not a for loop
     return torch.broadcast_to(m.unsqueeze(-1), (batch_size, m.shape[-1], object_dim)).reshape(batch_size, object_dim*m.shape[-1])
     # comb = list()
     # for i in range(m.shape[-1]):

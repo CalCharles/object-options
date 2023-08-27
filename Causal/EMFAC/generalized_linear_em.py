@@ -73,7 +73,7 @@ class GeneralizedLinearEMAlgorithm():
     def __init__(self, dim, num_distributions, logdir):
         self.dim = dim
         self.num_distributions = num_distributions
-        writer = SummaryWriter(logdir=)
+        self.writer = SummaryWriter(logdir=logdir)
 
     
     def init_assignments(self, data):
@@ -131,15 +131,27 @@ def load_factored_data(buffer, target_name, target_diff=True):
     return
 
 if __name__ == "__main__":
-    DIM= 10
-    OUTPUT_DIM = 10
-    NUM_DIST= 3
-    NUM_VAR = 3
-    RATE =0.5
-    SWITCH=False
-    AFFINE=False
-    LOGDIR = "logs/lem/"
-    env = GeneralizedLinearEnvironment(DIM,OUTPUT_DIM, NUM_DIST, NUM_VAR, RATE, SWITCH, AFFINE)
-    data = env.generate_data(10000)
-    em = GeneralizedLinearEMAlgorithm(DIM, NUM_DIST)
-    em.run(data, 5000)
+    LOAD_DATA = False
+
+    if LOAD_DATA:
+        environment, record = initialize_environment(args.environment, args.record)
+        extractor, normalization = regenerate(True, environment, all=all_train)
+        target_name = args.full_inter.train_names[0]
+        
+        data = train_all_buffer
+        em = GeneralizedLinearEMAlgorithm(DIM, NUM_DIST, LOGDIR)
+        em.run(data, 5000)
+    else:
+        # environment variables
+        DIM= 10
+        OUTPUT_DIM = 10
+        NUM_DIST= 3
+        NUM_VAR = 3
+        RATE =0.5
+        SWITCH=False
+        AFFINE=False
+        LOGDIR = "logs/lem/"
+        env = GeneralizedLinearEnvironment(DIM,OUTPUT_DIM, NUM_DIST, NUM_VAR, RATE, SWITCH, AFFINE)
+        data = env.generate_data(10000)
+        em = GeneralizedLinearEMAlgorithm(DIM, NUM_DIST, LOGDIR)
+        em.run(data, 5000)

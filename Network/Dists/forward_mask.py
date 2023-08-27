@@ -39,8 +39,9 @@ class DiagGaussianForwardMaskNetwork(Network):
             comb.append(m[...,i] * pytorch_model.wrap(torch.ones(self.total_object_sizes[i]), cuda=self.iscuda))
         return torch.cat(comb, dim=-1)
 
-    def forward(self, x, m):
+    def forward(self, x, m, valid=None):
         x = pytorch_model.wrap(x, cuda=self.iscuda)
+        if valid is not None: m = m * valid # valid should be [batch, num_objects], m: [batch, num_objects]
         if not self.hot: x = x * self.expand_mask(m)
         mask, mean = self.mean(x)
         _, var = self.std(x)
@@ -89,21 +90,21 @@ class DiagGaussianForwardPadMaskNetwork(Network):
         else:
             return self
 
-    def forward(self, x, m=None, soft=False, mixed=False, flat=False, full=False):
+    def forward(self, x, m=None, soft=False, mixed=False, flat=False, full=False, valid =None):
         # keyword hyperparameters are used only for consistency with the mixture of experts model
         # start = time.time()
         x = pytorch_model.wrap(x, cuda=self.iscuda)
         x = apply_symmetric(self.symmetric_key_query, x)
-        if not (self.cluster_mode or self.maskattn or self.attention_mode or self.keyembed_mode): m = expand_mask(m, x.shape[0], self.embed_dim) # self.object_dim
-        else: m = expand_mask(m, x.shape[0], 1)
+        # if not (self.cluster_mode or self.maskattn or self.attention_mode or self.keyembed_mode): m = expand_mask(m, x.shape[0], self.embed_dim) # self.object_dim
+        # else: m = expand_mask(m, x.shape[0], 1)
         # print("mask",time.time() - start)
         if self.attention_mode:
-            mean, m1 = self.mean(x, m, hard = not soft)
-            var, m2 = self.std(x, m, hard = not soft)
-            m = torch.stack([m1,m2], dim=-1).max(dim=-1)[0] 
+            mean, m1 = self.mean(x, m, hard = not soft, valid=valid)
+            var, m2 = self.std(x, m, hard = not soft, valid=valid)
+            m = torch.stack([m1,m2], dim=-1).max(dim=-1)[0]
         else:
-            mean = self.mean(x, m)
-            var = self.std(x, m)
+            mean = self.mean(x, m, valid=valid)
+            var = self.std(x, m, valid=valid)
         # print("meanvar",time.time() - start)
         mean = (torch.tanh(mean))
         var = (torch.sigmoid(var) + self.base_variance)
@@ -113,12 +114,17 @@ class DiagGaussianForwardPadMaskNetwork(Network):
         # print("forward",time.time() - start)
         return (mean, var), m
 
-    def embeddings(self, x):
-        mean_e, recon = self.mean(x, return_embeddings=True)
-        std_e, recon = self.std(x, return_embeddings=True)
+    def embeddings(self, x, valid=None):
+        mean_e, recon = self.mean(x, return_embeddings=True, valid=valid)
+        std_e, recon = self.std(x, return_embeddings=True, valid=valid)
         return mean_e, std_e, recon
 
-    def reconstruction(self, x):
-        mean_r, recon = self.mean(x, return_reconstruction=True)
-        std_r, recon = self.std(x, return_reconstruction=True)
+    def reconstruction(self, x, valid=None):
+        mean_r, recon = self.mean(x, return_reconstruction=True, valid=valid)
+        std_r, recon = self.std(x, return_reconstruction=True, valid=valid)
         return mean_r, std_r, recon
+
+    def weights(self, x, valid=None):
+        mean_w, weights = self.mean(x, return_weights=True, valid=valid)
+        std_w, weights = self.std(x, return_weights=True, valid=valid)
+        return mean_w, std_w, weights

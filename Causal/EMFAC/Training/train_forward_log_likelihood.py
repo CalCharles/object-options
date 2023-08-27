@@ -40,6 +40,7 @@ def train_forward_log_likelihood(full_model, args,
 
         # combine likelihoods to get a single likelihood for losses TODO: a per-element binary?
         active_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - active_given_log_probs, done_flags=done_flags, is_full=True)
+        active_nlikelihood = (active_weights[idxes] / np.mean(active_weights)) * active_nlikelihood if args.EMFAC.weight_forward else active_nlikelihood
 
         # print(given_mask, pytorch_model.unwrap(active_nlikelihood[0]), pytorch_model.unwrap(active_given_log_probs[0]), pytorch_model.unwrap(target[0]), pytorch_model.unwrap(active_given_params[0])[0], pytorch_model.unwrap(active_given_params[1])[0])
         run_optimizer(active_optimizer, full_model.active_model, active_nlikelihood)

@@ -175,6 +175,8 @@ class Environment(gym.Env):
         estring = "ITR:" + str(self.itr) + "\t"
         for i, obj in enumerate(self.objects):
             estring += obj.name + ":" + " ".join(map(str, extracted_state[obj.name])) + "\t" # TODO: attributes are limited to single floats
+        if "VALID_NAMES" in extracted_state: # TODO: stores valid names in the factored state for now
+            estring += "VALID_NAMES:" + " ".join(map(str, extracted_state['VALID_NAMES'])) + "\t"
         # estring += "Reward:" + str(float(extracted_state["Reward"])) + "\t"
         # estring += "Done:" + str(int(extracted_state["Done"])) + "\t"
         return estring

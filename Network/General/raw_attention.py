@@ -9,6 +9,7 @@ from Network.network_utils import reduce_function, get_acti, pytorch_model, cuda
 from Network.General.mlp import MLPNetwork
 from Network.General.conv import ConvNetwork
 from Network.General.pair import PairNetwork
+from Network.General.attn_utils import evaluate_key_query
 
 class MultiHeadAttentionInteractionParallelLayer(Network):
     def __init__(self, args):
@@ -22,7 +23,7 @@ class MultiHeadAttentionInteractionParallelLayer(Network):
         self.merge_function = args.mask_attn.merge_function
         if self.model_dim < 0:
             self.model_dim = args.embed_inputs // self.num_heads
-        assert args.embed_inputs % self.num_heads == 0, f"head and key not divisible, key: {args.key_dim}, head: {self.num_heads}"
+        # assert args.embed_inputs % self.num_heads == 0, f"head and key not divisible, key: {args.key_dim}, head: {self.num_heads}"
         self.head_dim = int(args.embed_inputs // self.num_heads) # should be key_dim / num_heads, integer divisible
 
         # process one key at a time
@@ -68,7 +69,7 @@ class MultiHeadAttentionInteractionParallelLayer(Network):
 
         self.model = [self.key_network, self.query_network, self.value_network, self.final_network]
 
-    def forward(self, key, queries, mask=None, hard=False):
+    def forward(self, key, queries, mask=None, hard=False, valid=None):
         # generates the mask from the softmax
         # alternatively, broadcasts the mask into the shape of 
         batch_size = key.shape[0]
@@ -89,8 +90,8 @@ class MultiHeadAttentionInteractionParallelLayer(Network):
         key = self.key_network(key)
         queries = self.query_network(queries.transpose(-2,-1)).transpose(-2,-1)
         key, queries = key.reshape(batch_size, self.num_heads, self.model_dim, 1), queries.reshape(batch_size, self.num_heads, -1, self.model_dim)
-        full_head_mask = self.softmax(torch.matmul(queries, key)[...,0] / np.sqrt(self.model_dim)) # Batch, heads, num queries
-
+        # full_head_mask = self.softmax(torch.matmul(queries, key)[...,0] / np.sqrt(self.model_dim)) # Batch, heads, num queries
+        full_head_mask = evaluate_key_query(self.softmax, key, queries, mask, valid, single_key=True)
 
         if mask is not None: # if the mask is None,we replace the key-query computation
             # print(mask.shape, batch_size, self.num_heads, mask.shape[-1])
@@ -158,12 +159,12 @@ class MultiHeadInteractionAttentionBase(Network):
 
         self.model = layers#  + [self.final_layer]
 
-    def forward(self, key, queries, mask=None, hard=False):
+    def forward(self, key, queries, mask=None, hard=False, valid=None):
         batch_size = key.shape[0]
         cur_mask = None
         for i in range(self.num_layers):
             # start = time.time()
-            if self.repeat_layers: key, out_mask = self.multi_head_attention(key, queries, mask, hard)
+            if self.repeat_layers: key, out_mask = self.multi_head_attention(key, queries, mask, hard, valid=valid)
             else: key, out_mask = self.multi_head_attention[i](key, queries, mask, hard)
             # print(key.shape, out_mask.shape)
             if cur_mask is not None: cur_mask = torch.stack([cur_mask, out_mask], dim = -1).max(dim=-1)[0]
@@ -253,7 +254,7 @@ class RawAttentionNetwork(Network):
         keys, queries = keys.transpose(-2,-1), queries.transpose(-2,-1)
         return keys, queries
 
-    def forward(self, x, m=None, hard=False):
+    def forward(self, x, m=None, hard=False, valid=None):
         # x is an input of shape [batch, flattened dim of all target objects + flattened all query objects]
         # m is the batch, key, query mask
         # iterate over each instance
@@ -273,7 +274,7 @@ class RawAttentionNetwork(Network):
         values, masks = list(), list() # the final output values
         for i in range(int(self.first_obj_dim // self.single_object_dim)):
             key = keys[...,i]
-            value, mask = self.multi_head_attention(key, queries, m, hard=hard)
+            value, mask = self.multi_head_attention(key, queries, m, hard=hard, valid=valid)
             values.append(value)
             masks.append(mask)
         m = torch.stack(masks, dim=2)

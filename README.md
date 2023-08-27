@@ -62,6 +62,10 @@ python generate_random.py --env RandomDistribution --record-rollouts /hdd/datase
 python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_passive_only/ --num-frames 1000 --variant passive_only
 python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_passive_only_noise/ --num-frames 1000 --variant passive_only_noise
 
+# multi random conditionals
+python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/multi_random/ --num-frames 1000 --variant multi_passive
+
+
 
 # Run Breakout Training:
 python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/breakout/random/ --variant drop_stopping

@@ -21,7 +21,9 @@ def fill_all_buffer(full_model, environment, data, args, object_names, norm, pre
         # "inter", "obs_diff", "trace", "proximity", "weight_binary"
         inter = np.ones((environment.instance_length, environment.instance_length)) # n x n matrix of interactions
         obs_diff = args.inter_select({name: norm(full_model.target_selectors[name](next_factored_state) - full_model.target_selectors[name](factored_state), name=name, form="dyn") for name in environment.all_names})
-        
+        if "VALID_NAMES" in factored_state: valid = factored_state["VALID_NAMES"][:-2] # don't include reward or done in validity vector
+        else: valid = np.ones((len(environment.all_names)))[:-2]
+
         full_traces = environment.get_full_trace(factored_state, act)
         trace = np.stack([full_traces[name] for name in environment.all_names], axis=0).astype(float)
         trace = np.pad(trace, (0, 2))[:trace.shape[0]]
@@ -38,7 +40,7 @@ def fill_all_buffer(full_model, environment, data, args, object_names, norm, pre
         buffer.add(Batch(obs = obs, obs_next=obs_next, act=act, done=use_done, terminated=False, truncated=use_done, true_done=use_done, rew=rew, true_reward=rew,
             info = info, policy=policy, time = time, option_choice=option_choice, option_resample=option_resample,
             target=target, next_target=next_target, target_diff=target_diff,
-            inter=inter, trace=trace, obs_diff = obs_diff, proximity = proximity, weight_binary=weight_binary))
+            inter=inter, trace=trace, obs_diff = obs_diff, proximity = proximity, weight_binary=weight_binary, valid=valid))
         # print(buffer.done.shape, factored_state["Done"])
         factored_state = next_factored_state
     return buffer

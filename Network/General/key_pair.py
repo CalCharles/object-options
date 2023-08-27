@@ -9,6 +9,7 @@ from Network.network_utils import reduce_function, get_acti
 from Network.General.mlp import MLPNetwork
 from Network.General.conv import ConvNetwork
 from Network.General.pair import PairNetwork
+from Network.Dists.mask_utils import expand_mask
 
 class KeyPairNetwork(Network):
     '''
@@ -133,11 +134,15 @@ class KeyPairNetwork(Network):
     def reappend_queries(self, x, xi):
         return torch.cat([xi, x[...,self.embed_dim:]], dim=-1)
 
-    def forward(self, x, m=None):
+    def forward(self, x, m=None, valid=None):
         # iterate over each instance
         batch_size = x.shape[0]
         value = list()
         # print(self.first_obj_dim, self.single_obj_dim)
+        if m is not None:
+            if valid is not None:
+                m = m * valid # invalidate through the mask
+            m = expand_mask(m, batch_size, self.embed_dim)
         for i in range(int(self.first_obj_dim // self.single_obj_dim)):
             xi = self.slice_mask_input(x, i, m)
             # print(i, x.shape, xi.shape, self.query_aggregate, self.single_obj_dim, self.first_obj_dim, x.shape[-1] - self.first_obj_dim, self.first_obj_dim // self.single_obj_dim)

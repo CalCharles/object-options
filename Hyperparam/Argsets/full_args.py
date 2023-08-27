@@ -9,6 +9,7 @@ network_args = {
     "activation_final": "none",
     "scale_logits": -1,
     "scale_final": 1, # scales the final layer in MLPs
+    "use_bias": True, # uses a bias in MLPs and 1D conv
     "multi": {
         "num_masks": -1, # should be set outside of network_args
         "embedding_sizes": list(), # number and shape of hidden layers
@@ -26,6 +27,7 @@ network_args = {
         "preencode": False,
     },
     "embedpair": {
+        "new_embedding": True, # indicates if the network needs a new embedding, or the inputs are already embedded
         "query_aggregate": True, # in keypair networks, aggregates the queries (for prediction)
         "preembed_dim": 64, # the embedding size for the internal pair network
     },
@@ -44,9 +46,11 @@ network_args = {
         "num_heads": 0,
         "num_layers": 1,
         "attention_dropout": 0.0,
+        "gumbel_attention": -1.0, # if a gumbel softmax is used at the attention level
         "needs_encoding": True, # should be set in init, default value here
         "merge_function": "cat", # the function for merging together the heads
         "append_keys": False, # appends the keys to the values
+        "no_hidden": False, # adds no hidden layers to the key, query or value operations
     },
     "input_expand": {
         "include_relative": False,
@@ -149,6 +153,7 @@ full_args = {
         "proximity_epsilon": -1,
         "compare_trace": False,
         "passive": {
+            "train_passive": True, # trains the passive model (might only want to train the active model)
             "load_passive": "",
             "passive_iters": 0,
             "passive_log_interval": 1000,
@@ -181,6 +186,13 @@ full_args = {
         "refine_iters": 1,
         "binary_cost": 1,
         "model_mask_weights": [0,0,0.4], # weight for the forward model performance, weight for the mask magnitude, weight lambda regularization
+        "weight_forward": False, # Weights the losses by the sampling weights, TODO: might need more options
+        "train_reconstruction": False # trains the embedding to perform reconstruction
+    },
+    "multi_inter": {
+        "evaluate": False, # evaluation mode, where a trained model is tested for how well it can predict actual cause using null assumption
+        "max_combination": 1, # searches for up to this many different parent sets (num factors combinations max_combination) when looking for simultanious interactions
+        "dist_epsilon": 1e-1, # the minimum closeness of the distributions to e considered a null component
     },
     "mask": {
         "min_sample_difference": 1,

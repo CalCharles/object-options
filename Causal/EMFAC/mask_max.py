@@ -36,9 +36,11 @@ def mask_likelihood_probabilities(masks, soft_masks, passive_mask, model_mask_we
     '''
     idxes = np.random.randint(len(soft_masks), size = (10,))
     mask_likelihoods = list()
-    for mask in masks:
+    for i, mask in enumerate(masks):
         likelihoods = np.mean(np.log(mask * soft_masks + ((1-mask) * (1-soft_masks)) + 1e-6), axis=-1) # log probability of datapoint, averaged per element
-        if model_likelihoods is not None: likelihoods = likelihoods + model_likelihoods * model_mask_weights[0]
+        if model_likelihoods is not None: 
+            # print(model_mask_weights[0], likelihoods.shape, model_likelihoods.shape)
+            likelihoods = likelihoods + model_likelihoods[:, i] * model_mask_weights[0]
         # print(mask, soft_masks[idxes], likelihoods[idxes])
         likelihoods = likelihoods + model_mask_weights[1] * np.sum(np.abs(mask - passive_mask))
         mask_likelihoods.append(likelihoods)
@@ -65,12 +67,12 @@ def generate_masks(args, k_masks, passive_mask, model_performances):
     argmax model performance and the mask cost
     TODO: generate masks using a confidence strategy
     '''
-    print(k_masks, np.sum(k_masks * args.EMFAC.binary_cost, axis=-1), k_masks.shape, model_performances[:10], model_performances.shape)
+    print(k_masks, np.sum(k_masks * args.EMFAC.binary_cost, axis=-1), k_masks.shape, model_performances[:10], model_performances.shape, passive_mask.shape)
     mask_cost_performances = np.sum(np.abs(k_masks - passive_mask) * args.EMFAC.binary_cost, axis=-1) + model_performances
     mask_choices = np.argmin(mask_cost_performances, axis=-1)
     print("mp", mask_cost_performances[np.arange(len(model_performances)), mask_choices][:10], mask_choices[:10] )
     # confidence computed by the difference between the best mask and the one chosen
     # assumes that the best mask is from the full mask
-    mask_confidences = np.max(model_performances, axis=-1) - model_performances[:, mask_choices]
+    mask_confidences = np.max(model_performances, axis=-1) - model_performances[np.arange(len(model_performances)), mask_choices]
 
     return k_masks[mask_choices]

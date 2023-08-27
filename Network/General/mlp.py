@@ -14,17 +14,17 @@ class MLPNetwork(Network):
         self.scale_final = args.scale_final
         if len(self.hs) == 0:
             if self.use_layer_norm:
-                layers = [nn.LayerNorm(self.num_inputs), nn.Linear(self.num_inputs, self.num_outputs, bias=BIAS)]
+                layers = [nn.LayerNorm(self.num_inputs), nn.Linear(self.num_inputs, self.num_outputs, bias=args.use_bias)]
             else:
-                layers = [nn.Linear(self.num_inputs, self.num_outputs, bias=BIAS)]
+                layers = [nn.Linear(self.num_inputs, self.num_outputs, bias=args.use_bias)]
         elif self.use_layer_norm:
-            layers = ([nn.LayerNorm(self.num_inputs), nn.Linear(self.num_inputs, self.hs[0], bias=BIAS), get_inplace_acti(args.activation),nn.LayerNorm(self.hs[0])] + 
-                  sum([[nn.Linear(self.hs[i-1], self.hs[i], bias=BIAS), get_inplace_acti(args.activation), nn.LayerNorm(self.hs[i])] for i in range(1, len(self.hs))], list()) + 
+            layers = ([nn.LayerNorm(self.num_inputs), nn.Linear(self.num_inputs, self.hs[0], bias=args.use_bias), get_inplace_acti(args.activation),nn.LayerNorm(self.hs[0])] + 
+                  sum([[nn.Linear(self.hs[i-1], self.hs[i], bias=args.use_bias), get_inplace_acti(args.activation), nn.LayerNorm(self.hs[i])] for i in range(1, len(self.hs))], list()) + 
                 [nn.Linear(self.hs[-1], self.num_outputs)])
         else:
-            layers = ([nn.Linear(self.num_inputs, self.hs[0], bias=BIAS), get_inplace_acti(args.activation)] + 
-                  sum([[nn.Linear(self.hs[i-1], self.hs[i], bias=BIAS), get_inplace_acti(args.activation)] for i in range(1, len(self.hs))], list()) + 
-                [nn.Linear(self.hs[-1], self.num_outputs, bias=BIAS)])
+            layers = ([nn.Linear(self.num_inputs, self.hs[0], bias=args.use_bias), get_inplace_acti(args.activation)] + 
+                  sum([[nn.Linear(self.hs[i-1], self.hs[i], bias=args.use_bias), get_inplace_acti(args.activation)] for i in range(1, len(self.hs))], list()) + 
+                [nn.Linear(self.hs[-1], self.num_outputs, bias=args.use_bias)])
         if "dropout" in args and args.dropout > 0:
             layers = [nn.Dropout(args.dropout)] + layers
         self.model = nn.Sequential(*layers)

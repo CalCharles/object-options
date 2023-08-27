@@ -39,7 +39,7 @@ class InteractionMaskNetwork(Network):
     def forward(self, x):
         x = pytorch_model.wrap(x, cuda=self.iscuda)
         x = apply_symmetric(self.symmetric_key_query, x)
-        v = self.inter.forward(x)
+        v = self.inter(x)
         # print(v[:10])
         if self.softmax_output:
             # print(v.shape)

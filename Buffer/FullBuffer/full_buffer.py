@@ -6,7 +6,7 @@ from tianshou.data import Batch, ReplayBuffer, PrioritizedReplayBuffer
 
 class FullReplayBuffer(ReplayBuffer):
     # obs, obs_next contain the flattened full state from the environment
-    _all_keys = ("obs", "act", "rew", "done", "terminated", "truncated", "obs_next", "info", "policy", "true_reward", "true_done", "time","option_choice", "option_resample")
+    _all_keys = ("obs", "act", "rew", "done", "terminated", "truncated", "obs_next", "info", "policy", "true_reward", "true_done", "time","option_choice", "option_resample", "valid")
     _reserved_keys = _all_keys
     _input_keys = _all_keys
 
@@ -44,6 +44,7 @@ class FullReplayBuffer(ReplayBuffer):
             time = self.time[indice],
             option_choice = self.option_choice[indice],
             option_resample = self.option_resample[indice], # when the option being run is resampled
+            valid = self.valid[indice] # a vector of len(all_names) denoting which names are valid
         )
 
     def sample_indices(self, batch_size: int, weights: np.ndarray=None) -> np.ndarray:
@@ -95,7 +96,7 @@ class FullReplayBuffer(ReplayBuffer):
 class ObjectReplayBuffer(ParamPrioWeightedReplayBuffer): # not using double inheritance so exactly the same as above.
     _all_keys = ("obs", "act", "rew", "done", "terminated", "truncated", "obs_next", "info", "policy",# the following obs, obs_next, correspond to target, next_target, act corresponds to param
         "param", "policy_mask", "param_mask", "target_diff", "terminate", "mapped_act", "inter", "trace",
-        "proximity", "weight_binary")
+        "proximity", "weight_binary", "valid")
     _reserved_keys = _all_keys
     _input_keys = _all_keys
 
@@ -138,4 +139,5 @@ class ObjectReplayBuffer(ParamPrioWeightedReplayBuffer): # not using double inhe
             trace = self.trace[indice],
             proximity = self.proximity[indice],
             weight_binary = self.weight_binary[indice],
+            valid = self.valid[indice],
         )

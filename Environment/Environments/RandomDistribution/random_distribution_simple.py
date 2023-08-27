@@ -39,25 +39,9 @@ class rel_func():
         y = get_state([self.target], factored_state)
         return float(np.sum(self.c * self.add(factored_state)) > self.tau)
 
-class passive_func():
-    # implements an add function
-    def __init__(self, parents, target, feature_dim, forward_step, idxes):
-        # parents is list of target names
-        # target is target name
-        self.parents = parents
-        self.target = target
-        print(self.parents, self.target)
-        self.add = add_func(parents, target, feature_dim, forward_step)
-        self.idxes = idxes
-
-    def __call__(self, factored_state):
-        x = get_state(self.parents, factored_state)
-        y = get_state([self.target], factored_state)
-        return 1, self.add(factored_state)
-
 class cond_func():
     # implements c^top (Ax + By) > tau = i, y' = (Cx + Dy)i
-    def __init__(self, parents, target, feature_dim, forward_step, rel_step, tau, idxes):
+    def __init__(self, parents, target, feature_dim, forward_step, rel_step, tau, idxes, passive=False):
         # parents is list of parent names
         # target is target name
         # feature dim is size of padded feature
@@ -67,13 +51,12 @@ class cond_func():
         print(self.parents, self.target)
         self.rel = rel_func(parents, target, feature_dim, rel_step, tau)
         self.add = add_func(parents, target, feature_dim, forward_step)
+        self.passive = add_func([target], target, feature_dim, forward_step)
         self.idxes = idxes
 
     def __call__(self, factored_state):
-        x = get_state(self.parents, factored_state)
-        y = get_state([self.target], factored_state)
         i = self.rel(factored_state)
-        return i, i * self.add(factored_state)
+        return i, i * self.add(factored_state) + (1-i) * self.passive(factored_state)
 
 class RandomDistribution():
     def __init__(self, num_cond, max_parents, num_objects, tau, passive, noise=0.0001, episode_length = 50):
@@ -107,9 +90,6 @@ class RandomDistribution():
             parent_names.pop(self.names.index(target))
             parent_names = np.random.choice(parent_names, size = np.random.randint(1,num_objects-1), replace=False).tolist()
             self.conditions.append(cond_func(parent_names, target, self.feature_dim, self.forward_step, 1, tau, self.get_indices(parent_names+ [target])))
-        if passive:
-            for n in self.names:
-                if n != "Action": self.conditions.append(passive_func([n], n, self.feature_dim, self.forward_step, self.get_indices([target])))
         self.episode_length = episode_length
         self.reset()
         self.stats = np.zeros(len(self.conditions))

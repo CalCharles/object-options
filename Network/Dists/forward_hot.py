@@ -9,11 +9,7 @@ from Network.General.mlp import MLPNetwork
 from Network.General.conv import ConvNetwork
 from Network.General.pair import PairNetwork
 import copy, time
-from Network.Dists.mask_utils import expand_mask, apply_probabilistic_mask, count_keys_queries, get_hot_mask, get_active_mask, get_passive_mask, apply_symmetric
-
-
-MASK_ATTENTION_TYPES = ["maskattn"] # currently only one kind of mask attention net
-
+from Network.Dists.mask_utils import expand_mask, apply_probabilistic_mask, count_keys_queries, get_hot_mask, get_active_mask, get_passive_mask, apply_symmetric, MASK_ATTENTION_TYPES
 
 class DiagGaussianForwardPadHotNetwork(Network):
     def __init__(self, args):
@@ -80,6 +76,7 @@ class DiagGaussianForwardPadHotNetwork(Network):
             forward_args.pair.object_dim = self.embed_dim 
             forward_args.pair.first_obj_dim = int(self.embed_dim * (self.first_obj_dim / self.single_obj_dim))
         # print("num_first", self.first_obj_dim / self.single_obj_dim, self.embed_dim, forward_args.pair.first_obj_dim)
+        # network_type must be a network that handles keys, values and valid
         self.means = nn.ModuleList([network_type[args.net_type](forward_args) for i in range(self.num_clusters)])
         self.stds = nn.ModuleList([network_type[args.net_type](forward_args) for i in range(self.num_clusters)])
 
@@ -162,7 +159,7 @@ class DiagGaussianForwardPadHotNetwork(Network):
         # print(all_masks[2,0])
         return all_masks, (all_masks * m).sum(0).reshape(x.shape[0], -1)
 
-    def compute_clusters(self, cluster_nets, keys, queries, masks, m, full=False):
+    def compute_clusters(self, cluster_nets, keys, queries, masks, m, full=False, valid=None):
         # keys of shape n_batch, n_keys, d_keys
         # queries of shape n_batch n_queries d_queries
         # masks pf shape n_batch n_keys n_queries
@@ -172,7 +169,7 @@ class DiagGaussianForwardPadHotNetwork(Network):
         for i in range(self.num_clusters): # we could probably do this in parallel
             # print("inp mask", masks[i], m, m.shape, keys.shape, queries.shape, masks.shape)
             if self.needs_key_query:
-                total_out.append(cluster_nets[i]((keys, queries, masks[i])).reshape(keys.shape[0], keys.shape[-1],-1)) # [batch, num_keys, single_obj_dim] x num_clusters
+                total_out.append(cluster_nets[i]((keys, queries, masks[i]), valid=valid).reshape(keys.shape[0], keys.shape[-1],-1)) # [batch, num_keys, single_obj_dim] x num_clusters
             else:
                 mask_dim = self.embed_dim if self.embed_dim > 0 else self.object_dim
                 # print("cluster in", keys.shape, masks[i].shape, masks[i].reshape(masks[i].shape[0],-1).shape, expand_mask(masks[i].reshape(masks[i].shape[0],-1), mask_dim,-1).shape)
@@ -181,7 +178,7 @@ class DiagGaussianForwardPadHotNetwork(Network):
                 exp_mask = expand_mask(masks[i].reshape(masks[i].shape[0],-1), masks[i].shape[0], mask_dim)
                 # print("cluster in", exp_mask, keys)
                 total_out.append(cluster_nets[i](keys, 
-                                exp_mask)
+                                exp_mask, valid=valid)
                                 .reshape(keys.shape[0], queries.shape[1],-1)) # queries is the keys
             # print(i, masks[i][:3], total_out[i][:3])
         # print(torch.stack(total_out, dim=-1).shape, m.unsqueeze(-2).shape, (torch.stack(total_out, dim=-1) * m.unsqueeze(-2)).sum(-1).shape)
@@ -191,7 +188,7 @@ class DiagGaussianForwardPadHotNetwork(Network):
         if full: return torch.stack(total_out, dim=1).reshape(keys.shape[0], -1) # batch size x n_keys * single_obj_dim * num_clusters
         return (torch.stack(total_out, dim=-1) * m.unsqueeze(-2)).sum(-1).reshape(keys.shape[0], -1) # batch size x n_keys * single_obj_dim
 
-    def forward(self, x, m, soft=False, mixed=False, flat=False, full=False):
+    def forward(self, x, m, soft=False, mixed=False, flat=False, full=False, valid=None):
         # x: batch size, single_obj_dim * num_keys (first_obj_dim) + object_dim * num_queries
         # m: batch size, num_keys * num_clusters
         # print("soft, mixed, flat, full", soft, mixed, flat, full)
@@ -200,7 +197,7 @@ class DiagGaussianForwardPadHotNetwork(Network):
         keys, queries = self.slice_input(x) # [batch size, object dim, num queries], [batch size, single object dim, num keys]
         keys = self.key_encoding(keys) # [batch size, embed dim, num keys]
         queries = self.query_encoding(queries) # [batch size, embed dim, num queries]
-        inter_masks, total_mask = self.compute_cluster_masks(x, m, keys.shape[-1], queries.shape[-1], soft=soft, mixed=mixed, flat=flat)
+        inter_masks, total_mask = self.compute_cluster_masks(x, m, keys.shape[-1], queries.shape[-1], soft=soft, mixed=mixed, flat=flat, valid=valid)
         # if full: print(inter_masks.mean(1).squeeze(), soft, mixed)
         if not self.needs_key_query:
             x = torch.cat([keys, queries], dim=-1).transpose(1,2).reshape(keys.shape[0], -1) # [batch size, embed dim * (nk + nq)]
@@ -215,8 +212,8 @@ class DiagGaussianForwardPadHotNetwork(Network):
         # var = self.stds[0]((keys, queries, inter_masks[0]))
         # print(keys.shape, queries.shape)
         # in the full case, the cluster heads are established as the last layer
-        mean = self.compute_clusters(self.means, keys, queries, inter_masks, m, full=full)
+        mean = self.compute_clusters(self.means, keys, queries, inter_masks, m, full=full, valid=valid)
         # print("mean", mean[:3])
-        var = self.compute_clusters(self.stds, keys, queries, inter_masks, m, full=full)
+        var = self.compute_clusters(self.stds, keys, queries, inter_masks, m, full=full, valid=valid)
         # print(mean.shape, var.shape)
         return (torch.tanh(mean), torch.sigmoid(var) + self.base_variance), total_mask

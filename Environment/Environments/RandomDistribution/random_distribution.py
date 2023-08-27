@@ -23,31 +23,34 @@ class Action():
         self.interaction_trace = list()
 
     def get_state(self):
-        return np.array([self.attribute]) if self.discrete else self.attribute
+        if self.discrete: return np.eye(self.num_actions)[np.array([[self.attribute]])]
+        return self.attribute
 
     def step_state(self):
         return
 
 class conditional_add_func():
-    def __init__(self, parents, target, parent_size, target_size, use_target_bias=False, num_sets=10, conditional=False, conditional_weight=0, passive=None):
+    def __init__(self, parents, target, parent_size, target_size, use_bias=False, num_sets=10, conditional=False, conditional_weight=0, passive=None):
         self.parents = parents
         self.target = target
         self.target_size = target_size
-        self.interaction_dynamics = rel_func(parents, target, parent_size, target_size, use_target_bias=False, num_sets=2, conditional=True, conditional_weight=conditional_weight) 
-        self.add_dynamics = add_func(parents, target, parent_size, target_size, use_target_bias=True, num_sets=5, conditional=False, scale=2)
+        self.use_bias = use_bias
+        self.interaction_dynamics = rel_func(parents, target, parent_size, target_size, use_bias=False, num_sets=num_sets, conditional=True, conditional_weight=conditional_weight) 
+        self.add_dynamics = add_func(parents, target, parent_size, target_size, use_bias=self.use_bias, num_sets=num_sets, conditional=False, scale=2)
         self.passive = passive
         self.params = self.interaction_dynamics.params + self.add_dynamics.params
 
-    def __call__(self, ps, ts):
-        inter, _ = self.interaction_dynamics(ps, ts)
+    def __call__(self, ps, ts, require_passive=False):
+        
         # print("target, inter", self.target, inter)
-        if inter:
-            return inter, self.add_dynamics(ps, ts)[1]
+        if not require_passive:
+            inter, _ = self.interaction_dynamics(ps, ts)
+            if inter:
+                return inter, self.add_dynamics(ps, ts)[1]
+        if self.passive is None: # if we have a passive function, it replaces the interaction dynamics on non-interaction
+            return False, np.zeros(self.target_size)
         else:
-            if self.passive is None: # if we have a passive function, it replaces the interaction dynamics on non-interaction
-                return False, np.zeros(self.target_size)
-            else:
-                return False, self.passive(ps, ts)[1]
+            return False, self.passive(ps, ts)[1]
 
 class passive_func():
     def __init__(self, target, target_size, use_target_bias):
@@ -57,20 +60,22 @@ class passive_func():
         self.target_matrix = 2 * (np.random.rand(target_size, target_size) - .5) * DYNAMICS_STEP / TARGET_REDUCE_FACTOR
         self.params = [self.target_bias, self.target_matrix]
 
-    def __call__(self, ps, ts):
+    def __call__(self, ps, ts, require_passive=False):
         return True, (np.matmul(self.target_matrix, np.expand_dims(ts,-1))[...,0] + self.target_bias)[...,0]
 
 class add_func():
-    def __init__(self, parents, target, parent_size, target_size, use_target_bias, num_sets=10, conditional=False, conditional_weight = 0, scale=1):
+    def __init__(self, parents, target, parent_size, target_size, use_bias, target_dependent =True, num_sets=1, conditional=False, conditional_weight = 0, scale=1, passive=None):
         self.parents = parents
         self.target = target
         self.scale = scale
+        self.use_bias = use_bias
+        self.target_dependent = target_dependent
         dstep = 1 if conditional else DYNAMICS_STEP
         prf = 1 if conditional else PARENT_REDUCE_FACTOR
         trf = 1 if conditional else TARGET_REDUCE_FACTOR
-        self.parent_weight_sets = [2 * (np.random.rand(parent_size) - .5) * dstep / np.sqrt(num_sets + parent_size) * prf for k in range(num_sets)] # right now just creates 10 no matter what
-        self.parent_bias = np.expand_dims(2 * (np.random.rand(parent_size) - .5) * dstep / np.sqrt(num_sets + parent_size) * prf, axis=-1)
-        self.target_bias = np.expand_dims(2 * (np.random.rand(target_size) - .5) * dstep / np.sqrt(num_sets + target_size) * trf, axis=-1)
+        self.parent_weight_sets = [2 * (np.random.rand(parent_size) - .5) * dstep / np.sqrt(num_sets + parent_size) * prf for k in range(num_sets)]
+        self.parent_bias = np.expand_dims(2 * (np.random.rand(parent_size) - .5) * dstep / np.sqrt(num_sets + parent_size) * prf, axis=-1) * float(self.use_bias)
+        self.target_bias = np.expand_dims(2 * (np.random.rand(target_size) - .5) * dstep / np.sqrt(num_sets + target_size) * trf, axis=-1) * float(self.use_bias)
         self.target_weights = np.expand_dims(2 * (np.random.rand(target_size) - .5) * dstep / np.sqrt(num_sets + target_size) * trf, axis=-1)
         self.parent_weight_matrix = np.stack([np.zeros(len(self.parent_weight_sets[0])) for _ in range(len(self.target_weights))], axis=0)
         self.conditional = False
@@ -79,8 +84,11 @@ class add_func():
             for i, w in enumerate(ws):
                 self.parent_weight_matrix[np.random.randint(len(self.target_weights))][i] += w
         self.params = [self.parent_weight_matrix, self.parent_bias, self.target_bias, self.target_weights]
+        self.passive = passive
 
-    def __call__(self, ps, ts):
+    def __call__(self, ps, ts, require_passive=False):
+        if require_passive:
+            return False, self.passive(ps, ts)[1]
         ps = np.expand_dims(ps, -1)
         ts = np.expand_dims(ts, -1)
         # print(self.parent_weight_matrix.shape, ps.shape, self.parent_bias.shape, self.target_weights.shape, self.target_bias.shape, ts.shape)
@@ -88,23 +96,24 @@ class add_func():
         # print(np.matmul(self.parent_weight_matrix, ps - self.parent_bias).shape, ps - self.parent_bias, (self.target_weights * ts).shape, self.target_weights.shape)
         # print((np.matmul(self.parent_weight_matrix, ps - self.parent_bias), self.target_weights * ts, self.target_bias))
         # sum_val = np.matmul(self.parent_weight_matrix, ps - self.parent_bias).squeeze()
-        sum_val = (np.matmul(self.parent_weight_matrix, ps - self.parent_bias) * self.scale + self.target_weights * ts + self.target_bias)[...,0]
+        sum_val = (np.matmul(self.parent_weight_matrix, ps - self.parent_bias) * self.scale + (self.target_weights * ts - self.target_bias) * float(self.target_dependent))[...,0]
         if self.conditional:
             return np.sum(sum_val, axis=-1) > self.conditional_weight, None
         # print(ts, "sumval", sum_val, "parent effect", np.matmul(self.parent_weight_matrix, ps - self.parent_bias) * self.scale, "taret_effect", self.target_weights * ts + self.target_bias)
         return True, sum_val
 
 class rel_func():
-    def __init__(self, parents, target, parent_size, target_size, use_target_bias, num_sets=10, conditional=False, conditional_weight=0):
+    def __init__(self, parents, target, parent_size, target_size, use_bias, num_sets=1, conditional=False, conditional_weight=0):
         self.parents = parents
         self.target = target
+        self.use_bias = use_bias
         if conditional:
             self.parent_weight_sets = [2 * (np.random.rand(parent_size) - .5) / np.sqrt(num_sets + parent_size) for k in range(num_sets)] # right now just creates 10 no matter what
             self.target_weight_sets = [2 * (np.random.rand(target_size) - .5) / np.sqrt(num_sets + target_size) for k in range(num_sets)] # right now just creates 10 no matter what
         else:
             self.parent_weight_sets = [2 * (np.random.rand(parent_size) - .5) * DYNAMICS_STEP / np.sqrt(num_sets + parent_size) for k in range(num_sets)] # right now just creates 10 no matter what
             self.target_weight_sets = [2 * (np.random.rand(target_size) - .5) * DYNAMICS_STEP / np.sqrt(num_sets + parent_size) for k in range(num_sets)] # right now just creates 10 no matter what
-        self.parent_bias = np.expand_dims(2 * (np.random.rand(parent_size) - .5) * DYNAMICS_STEP / np.sqrt(num_sets + target_size), axis=-1)
+        self.parent_bias = np.expand_dims(2 * (np.random.rand(parent_size) - .5) * DYNAMICS_STEP / np.sqrt(num_sets + target_size), axis=-1) * float(self.use_bias)
         self.conditional = conditional
         self.conditional_weight = conditional_weight
 
@@ -120,7 +129,7 @@ class rel_func():
         self.params = [self.parent_weight_matrix, self.parent_bias, self.target_weight_matrix]
 
 
-    def __call__(self, ps, ts):
+    def __call__(self, ps, ts, require_passive=False):
         ps = np.expand_dims(ps, -1)
         ts = np.expand_dims(ts, -1)
         # print(ts, ps, np.matmul(self.target_weight_matrix, ts),self.parent_bias, np.matmul(self.parent_weight_matrix, ps - np.matmul(self.target_weight_matrix, ts) - self.parent_bias))
@@ -132,7 +141,8 @@ class rel_func():
 
 
 object_relational_functions = ["add", "func", "rel", "const", "rotation"]
-DYNAMICS_STEP = 0.02
+DYNAMICS_STEP = 0.01
+DYNAMICS_CLIP = 0.02
 OBJECT_MAX_DIM = 4
 PARENT_REDUCE_FACTOR = 1.5
 # PARENT_REDUCE_FACTOR = 1
@@ -153,15 +163,18 @@ class RandomDistObject():
         self.state = np.clip(self.next_state, self.lims[0], self.lims[1])
         # print(self.next_state, self.lims[0], self.lims[1])
 
+def get_object_name(n):
+    return n.strip("0123456789")
+
 class RandomDistribution(Environment):
     def __init__(self, frameskip = 1, variant="default", fixed_limits=False):
         # generates "objects" as conditional distributions of each other
         self.self_reset = True
         self.variant = variant
         self.fixed_limits = fixed_limits
-        self.discrete_actions, self.allow_uncontrollable, self.num_objects, self.multi_instanced, self.num_related, self.relate_dynamics, self.conditional, self.conditional_weight, self.distribution, self.noise_percentage, self.require_passive = variants[self.variant]
+        self.discrete_actions, self.allow_uncontrollable, self.num_objects, self.multi_instanced, self.num_related, self.max_control, self.relate_dynamics, self.conditional, self.conditional_weight, self.distribution, self.noise_percentage, self.require_passive, self.num_valid_min, self.num_valid_max = variants[self.variant]
         
-        print(self.discrete_actions, self.allow_uncontrollable, self.num_objects, self.multi_instanced, self.num_related, self.relate_dynamics, self.conditional, self.conditional_weight, self.distribution, self.noise_percentage, self.require_passive, self.variant)
+        print(self.discrete_actions, self.allow_uncontrollable, self.num_objects, self.multi_instanced, self.num_related, self.max_control, self.relate_dynamics, self.conditional, self.conditional_weight, self.distribution, self.noise_percentage, self.require_passive, self.variant)
         self.set_objects()
         self.num_actions = self.discrete_actions # this must be defined, -1 for continuous. Only needed for primitive actions
         self.name = "RandomDistribution" # required for an environment 
@@ -203,12 +216,10 @@ class RandomDistribution(Environment):
         self.object_range = {n: (- np.ones(self.object_sizes[n]), np.ones(self.object_sizes[n])) for n in self.object_names}
         self.object_mean = {n: (self.object_range[n][0] + self.object_range[n][1]) / 2 for n in self.object_names}
         self.object_var = {n: (self.object_range[n][1] - self.object_range[n][0]) for n in self.object_names}
-        self.object_dynamics = {n: (np.ones(self.object_sizes[n])*-DYNAMICS_STEP, np.ones(self.object_sizes[n])*DYNAMICS_STEP) for n in self.object_names}
         self.object_proximal = {n: True for n in self.object_names} # name of object to whether that object has valid proximity
         self.object_proximal["Action"], self.object_proximal["Reward"], self.object_proximal["Done"] = True, True, True
         self.instance_length = len(self.all_names) # the total number of instances for the mask
         self.object_range_true = self.object_range
-        self.object_dynamics_true = self.object_dynamics
 
         onames = self.object_names[:-2]
         nonames = self.object_names[1:-2]
@@ -219,15 +230,9 @@ class RandomDistribution(Environment):
         print(self.object_sizes, self.object_instanced)
         self.internal_statistics = dict()
         
-        self.passive_functions = dict()
-        for name in self.object_names[1:-2]: # not actions or done/reward
-            if self.require_passive:
-                self.passive_functions[name] = passive_func(name, self.object_sizes[name], use_target_bias=True)
-                self.internal_statistics[(" ".join(self.passive_functions[name].parents), self.passive_functions[name].target)] = 0
-            else:
-                self.passive_functions[name] = None # create a placeholder
-        for i in range(self.num_related): # create relational links
-            if self.allow_uncontrollable: parents = np.random.choice(onames, size=min(len(nonames) - 1, np.random.randint(1, 4)), replace = False).tolist()
+        def create_parents():
+            if self.allow_uncontrollable: 
+                parents = np.random.choice(onames, size=min(len(onames), np.random.randint(1, self.max_control+1)), replace = False).tolist()
             else:
                 ronames = copy.deepcopy(onames)
                 if i > 0: 
@@ -236,21 +241,33 @@ class RandomDistribution(Environment):
                 ctrl_choice = np.random.choice(controllable)
                 ronames.remove(ctrl_choice)
                 print("ctrl options", ctrl_choice, controllable, ronames)
-                parents = [ctrl_choice] + np.random.choice(ronames, size=min(len(nonames) - 1, np.random.randint(2)), replace = False).tolist()
+                parents = [ctrl_choice] + np.random.choice(ronames, size=min(len(nonames), np.random.randint(self.max_control)), replace = False).tolist()
+            return parents
+        
+        self.passive_functions = dict()
+        for name in self.object_names[1:-2]: # not actions or done/reward
+            if self.require_passive:
+                self.passive_functions[name] = passive_func(name, self.object_sizes[name], use_target_bias=True)
+                self.internal_statistics[(" ".join(self.passive_functions[name].parents), self.passive_functions[name].target)] = 0
+            else:
+                self.passive_functions[name] = None # create a placeholder
+        for i in range(self.num_related): # create relational links
             target = nonames[np.random.randint(len(nonames))]
+            parents = create_parents()
             while target in parents or target in used:
-                target = nonames[np.random.randint(len(nonames))]
+                parents = create_parents()
             if not (self.relate_dynamics and self.conditional): used.append(target)
             if target in unused: unused.remove(target)
             if target not in controllable: controllable.append(target)
             self.object_relational_sets.append((parents, target))
-            parent_size = np.sum([self.object_sizes[p] for p in parents])
-            if self.conditional and i != 0:
+            parent_size = int(np.sum([self.object_sizes[p] for p in parents]))
+            if self.conditional and (i != 0 or self.allow_uncontrollable):
+                print(parent_size, self.object_sizes, parents)
                 orf = conditional_add_func(parents,
                             target,
                             parent_size,
                             self.object_sizes[target],
-                            use_target_bias = False,
+                            use_bias = True,
                             conditional=True,
                             conditional_weight=self.conditional_weight,
                             passive=self.passive_functions[target],
@@ -260,8 +277,9 @@ class RandomDistribution(Environment):
                             target,
                             parent_size,
                             self.object_sizes[target],
-                            use_target_bias = True,
-                            conditional=False)
+                            use_bias = True,
+                            conditional=False,
+                            passive=self.passive_functions[target])
             print(orf.parents, orf.target, orf.params)
             self.object_relational_functions.append(orf)
             self.internal_statistics[(" ".join(orf.parents), orf.target)] = 0
@@ -272,12 +290,38 @@ class RandomDistribution(Environment):
                 self.object_relational_functions.append(self.passive_functions[target])
                 self.internal_statistics[(" ".join([target]), target)] = 0
         print(self.internal_statistics)
-        # error
+
+        # has to be set after we know how many ORFs have the object as target
+        
+        self.object_dynamics = dict()
+        for n in self.object_names:
+            orf_num = 0
+            for orf in self.object_relational_functions:
+                if orf.target == n:
+                    total_parent_combinations = np.prod([self.object_instanced[p] for p in orf.parents])
+                    orf_num += total_parent_combinations
+
+            orf_num = max(1,orf_num)
+            dynamics_step = DYNAMICS_CLIP * orf_num
+            self.object_dynamics[n] = (np.ones(self.object_sizes[n])*-dynamics_step, np.ones(self.object_sizes[n])*dynamics_step)
+        self.object_dynamics_true = self.object_dynamics
 
     def reset(self):
         self.object_name_dict= dict()
         self.objects = list()
-        for n in self.object_names:
+        if self.num_valid_max > 0:
+            num_valid = np.random.randint(self.num_valid_min, self.num_valid_max + 1 ) 
+            if self.allow_uncontrollable:
+                valid_choices = np.random.choice(np.arange(len(self.all_names) - 2), replace=False, size = (num_valid, ))
+                self.valid_names = np.array(self.all_names)[valid_choices].tolist() + ["Done", "Reward"]
+            else:
+                valid_choices = np.random.choice(np.arange(len(self.all_names))[1:], replace=False, size = (num_valid - 1, ))
+                self.valid_names = ["Action"] + np.array(self.all_names)[valid_choices].tolist() + ["Done", "Reward"]
+        else:
+            object_names = self.object_names
+            self.valid_names = self.all_names
+        # print(self.valid_names, self.allow_uncontrollable, valid_choices)
+        for n in self.all_names:
             if n == "Action":
                 self.object_name_dict["Action"] = Action(self.discrete_actions, self.num_actions if self.discrete_actions else self.object_sizes["Action"])
                 self.objects.append(self.object_name_dict["Action"])
@@ -291,15 +335,10 @@ class RandomDistribution(Environment):
                 self.objects.append(self.object_name_dict["Reward"])
                 self.reward = self.object_name_dict["Reward"]
             else:
-                if self.object_instanced[n] > 1:
-                    for i in range(self.object_instanced[n]):
-                        next_obj = RandomDistObject(n + str(i), np.random.rand(self.object_sizes[n]) * self.object_var[n] + self.object_range[n][0], self.object_range[n])
-                        self.object_name_dict[n + str(i)] = next_obj
-                        self.objects.append(next_obj)
-                else:
-                    next_obj = RandomDistObject(n, np.random.rand(self.object_sizes[n]) * self.object_var[n] + self.object_range[n][0], self.object_range[n])
-                    self.object_name_dict[n] = next_obj
-                    self.objects.append(next_obj)
+                objn = get_object_name(n)
+                next_obj = RandomDistObject(n, (np.random.rand(self.object_sizes[objn]) + self.object_range[objn][0])/ 2, self.object_range[objn])
+                self.object_name_dict[n] = next_obj
+                self.objects.append(next_obj)
         return self.get_state()
 
     def get_state(self):
@@ -311,7 +350,7 @@ class RandomDistribution(Environment):
         #     else:
         #         state[n] = self.object_name_dict[n].get_state()
         # print({n: self.object_name_dict[n].get_state() for n in self.object_names})
-        return {"raw_state": None, "factored_state": {n: self.object_name_dict[n].get_state() for n in self.all_names}}
+        return {"raw_state": None, "factored_state": {**{n: self.object_name_dict[n].get_state() for n in self.all_names}, **{"VALID_NAMES": np.array([(1 if n in self.valid_names else 0) for n in self.all_names])}}}
 
     def get_named_state(self, names):
         # print(names, [([n] if self.object_instanced[n] <= 1 else [n + str(i) for i in range(self.object_instanced[n])]) for n in names])
@@ -337,19 +376,41 @@ class RandomDistribution(Environment):
             for i, orf in enumerate(self.object_relational_functions):
                 target_class = orf.target
                 n, orf_average, orf_passive_average = 0,0,0
+                require_passive = False
+                if self.num_valid_max > 0:
+                    # don't use relations for nonexistent variables
+                    possible_names = set([get_object_name(n) for n in self.valid_names])
+                    if get_object_name(orf.target) not in possible_names: # missing a target
+                        continue # move on to the next object relational function
+                    if sum([(get_object_name(p) not in possible_names) for p in orf.parents]): # missing a parent
+                        require_passive = True
                 for tidx in range(self.object_instanced[target_class]): # for each instance of the target
                     target = target_class + str(tidx) if self.object_instanced[target_class] > 1 else target_class
+                    if self.num_valid_max > 0: 
+                        if target not in self.valid_names: continue
+                        parent_mesh = list()
+                        for p in orf.parents:
+                            plist = list()
+                            for pidx in range(self.object_instanced[p]):
+                                pname = p + str(pidx) if self.object_instanced[p] > 1 else p
+                                if pname in self.valid_names:
+                                    plist.append(pidx)
+                            parent_mesh.append(np.array(plist))
+                        parent_mesh = np.array(np.meshgrid(*parent_mesh)).T.reshape(-1,len(parent_mesh))
+                        if require_passive: parent_mesh = [[1]] # passive dynamics only require the target, ps will be ignored
+
                     # print("orf", orf.parents, orf.target)
-                    parent_nums = [self.object_instanced[p] for p in orf.parents]
-                    parent_mesh = [np.arange(i) for i in parent_nums]
-                    parent_mesh = np.array(np.meshgrid(*parent_mesh)).T.reshape(-1,len(parent_mesh))
+                    else:
+                        parent_nums = [self.object_instanced[p] for p in orf.parents]
+                        parent_mesh = [np.arange(i) for i in parent_nums]
+                        parent_mesh = np.array(np.meshgrid(*parent_mesh)).T.reshape(-1,len(parent_mesh))
 
                     for pmesh in parent_mesh: # for each combination of instances of the parents
                         instanced_names = [(p+str(i) if self.object_instanced[p] > 1 else p) for i,p in zip(pmesh, orf.parents)]
 
                         ps = self.get_all_state(instanced_names)
                         ts = self.get_all_state([target])
-                        inter, nds = orf(ps, ts)
+                        inter, nds = orf(ps, ts, require_passive)
                         if inter:
                             self.object_name_dict[target].interaction_trace += orf.parents
                         
@@ -360,7 +421,7 @@ class RandomDistribution(Environment):
                         # print(orf.parents, orf.target, inter)
                         # print(orf.target, nds)
                         if self.relate_dynamics: 
-                            self.object_name_dict[target].next_state += np.clip(nds, -DYNAMICS_STEP, DYNAMICS_STEP)
+                            self.object_name_dict[target].next_state += np.clip(nds, -DYNAMICS_CLIP, DYNAMICS_CLIP)
                         else:
                             self.object_name_dict[target].next_state = nds
                             # if i < 3: print(self.itr, self.done.attribute, orf.parents, orf.target, self.get_state()["factored_state"][orf.target])
@@ -381,8 +442,8 @@ class RandomDistribution(Environment):
         if self.itr % 50 == 0:
             self.reset()
             self.done.attribute = True
-            return self.get_state(), self.reward.attribute, self.done.attribute, {'Timelimit.truncated': True}
-        return self.get_state(), self.reward.attribute, self.done.attribute, {'Timelimit.truncated': False}
+            return self.get_state(), self.reward.attribute, self.done.attribute, {'Timelimit.truncated': True, "valid_names": self.valid_names}
+        return self.get_state(), self.reward.attribute, self.done.attribute, {'Timelimit.truncated': False, "valid_names": self.valid_names}
 
     def set_from_factored_state(self, factored_state, seed_counter=-1, render=False):
         '''

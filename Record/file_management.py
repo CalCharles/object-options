@@ -11,6 +11,7 @@ def load_from_pickle(pth):
 
 def save_to_pickle(pth, val):
     try:
+        if len(pth) <= 0: return
         splt_path = os.path.split(pth)[0]#.split("/")[:-1]
         target = os.path.join(*splt_path)
         if splt_path[0] == "":

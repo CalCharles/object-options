@@ -61,6 +61,7 @@ def train_binaries(full_model, rollouts, object_rollout, args, interaction_optim
         batch.inter_state = full_batch.obs
         trace = traces[idxes].reshape(len(batch), -1)# in the all mode, this should be the full trace
         trace = np.clip(trace, args.inter.interaction.soft_train,1.0 - args.inter.interaction.soft_train)
+        trace = batch.valid * trace # zero out invalid values
         # get the network outputs
         # outputs the binary over all instances, in order of names, instance number
         if args.full_inter.selection_train == "separate": # get the selection output

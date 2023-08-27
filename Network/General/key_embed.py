@@ -88,19 +88,23 @@ class EmbedPairNetwork(Network):
         queries = queries.view(queries.shape[0], self.total_instances, -1)
         if m is not None: # unmasked if m is None
             # print(x[0], xi[0])
-            queries = queries * m[:,i].unsqueeze(-1)
+            queries = queries * m[...,i].unsqueeze(-1)
         return queries, prequeries
     
     def reappend_queries(self, x, xi):
         return torch.cat([xi, x[...,self.embed_dim:]], dim=-1)
 
-    def forward(self, x, m=None):
+    def forward(self, x, m=None, valid=None):
         # iterate over each instance
         batch_size = x.shape[0]
         value = list()
         # print(self.first_obj_dim, self.single_obj_dim)
         num_keys = int(self.first_obj_dim // self.single_obj_dim)
-        if m is not None: m = m.view(m.shape[0], num_keys, self.total_instances)
+        if m is not None: 
+            m = m.view(m.shape[0], num_keys, self.total_instances) # make masks key dimensioned
+            if valid is not None:
+                m = m * valid.unsqueeze(1) # invalidate through the mask
+        
         for i in range(num_keys):
             xi, pq = self.slice_mask_input(x, i, m)
             # print(m, xi, pq)

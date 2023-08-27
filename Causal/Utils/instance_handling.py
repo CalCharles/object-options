@@ -20,20 +20,31 @@ def flat_instances(state, obj_dim):
         state = state.reshape(batch_size, state.shape[1] * state.shape[2])
     return state
 
-def compute_likelihood(full_model, batch_size, likelihood_full, done_flags=None, reduced=True, is_full=False):
+def compute_likelihood(full_model, batch_size, likelihood_full, done_flags=None, reduced=True, is_full=False, valid=None):
     # computes either the multi-instanced likelihood, or the normal summed likelihood, regulated by the done flags
+    # valid is used to determine which instances should contribute loss
     obj_dim = full_model.single_obj_dim if is_full else full_model.obj_dim
     if done_flags is None: done_flags = np.ones((batch_size, 1))
     if type(likelihood_full) == torch.Tensor:
         if full_model.multi_instanced:
             loss = likelihood_full.reshape(batch_size, -1, obj_dim).sum(dim=-1)
+            if valid is not None: loss = loss * pytorch_model.wrap(valid, cuda=full_model.iscuda)
             if reduced:
                 loss = likelihood_full.reshape(batch_size, -1, obj_dim).sum(dim=-1).max(dim=-1)[0].unsqueeze(1)  * pytorch_model.wrap(done_flags, cuda=full_model.iscuda)# only take the worst object performance
             return loss
-        else: loss = likelihood_full.sum(dim=-1).unsqueeze(1) * pytorch_model.wrap(done_flags, cuda=full_model.iscuda)
+        else: 
+            loss = likelihood_full.sum(dim=-1).unsqueeze(1)
+            if valid is not None: loss = loss * pytorch_model.wrap(valid, cuda=full_model.iscuda)
+            loss = loss * pytorch_model.wrap(done_flags, cuda=full_model.iscuda)
     else: # assumes it's a numpy array and perform the same operation
-        if full_model.multi_instanced: loss = np.expand_dims(np.max(np.sum(likelihood_full.reshape(batch_size, -1, obj_dim), axis=-1), axis=-1), axis=-1)  * done_flags
-        else: loss = np.expand_dims(np.sum(likelihood_full, axis=-1), axis=-1) * done_flags
+        if full_model.multi_instanced: 
+            loss = np.sum(likelihood_full.reshape(batch_size, -1, obj_dim), axis=-1)
+            if valid is not None: loss = loss * valid
+            loss = np.expand_dims(np.max(loss, axis=-1), axis=-1)  * done_flags
+        else: 
+            loss = np.expand_dims(np.sum(likelihood_full, axis=-1), axis=-1)
+            if valid is not None: loss = loss * valid
+            loss = loss * done_flags
     # print("ce", loss.shape, done_flags.shape)
     return loss
 
@@ -60,16 +71,24 @@ def decide_multioption():
     self.additional_dim = environment.object_sizes[self.names.additional[0]] if len(self.names.additional) > 0 else 0# all additional objects must have the same dimension
 
 def get_batch(batch_size, all, rollouts, object_rollouts, weights):
-    if all:
+    if type(batch_size) == tuple: # treat as start and end points in the buffer
+        full_batch, idxes = rollouts.sample(0, weights=weights)
+        full_batch, idxes = full_batch[batch_size[0]:batch_size[1]], idxes[batch_size[0]:batch_size[1]]
+    elif type(batch_size) == list or type(batch_size) == np.ndarray: # treat as indices
+        full_batch, idxes = rollouts[batch_size], batch_size
+    else:
         full_batch, idxes = rollouts.sample(batch_size, weights=weights)
+    if all:
         batch = full_batch
         batch.tarinter_state = full_batch.obs
         batch.inter_state = full_batch.obs
-        batch.next_inter_state = full_batch.obs_next          
+        batch.next_inter_state = full_batch.obs_next 
     else:
-        full_batch, idxes = rollouts.sample(batch_size, weights=weights)
         batch = object_rollouts[idxes]
         batch.tarinter_state = np.concatenate([batch.obs, full_batch.obs], axis=-1)
         batch.inter_state = full_batch.obs
-        batch.next_inter_state = full_batch.obs_next          
+        batch.next_inter_state = full_batch.obs_next     
     return full_batch, batch, idxes
+
+def get_valid(valid, indices):
+    return valid[...,indices]
