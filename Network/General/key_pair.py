@@ -108,24 +108,24 @@ class KeyPairNetwork(Network):
     def slice_mask_input(self, x, i, m):
         # slices x into keys and queries, embeds them, masks the queries and then creates 
         # a vector of [batchssize, num_queries (self.total_instances), key_embed_dim + query_embed_dim]
-        # assumes masks is already expanded to be the [batchsize, num_queries*self.embed_dim * self.total_instances]
+        # assumes masks is [batchsize, num_queries*self.embed_dim * self.total_instances]
         key = x[...,i * self.single_obj_dim: (i+1) * self.single_obj_dim]
-        key = self.embed_key_layer(key)
-        queries = x[...,self.first_obj_dim:]
+        key = self.embed_key_layer(key) # batch x embed dim
+        queries = x[...,self.first_obj_dim:] # batch, embed dim
         # print(key.shape, self.embed_query_layer, x.shape, queries.shape,queries.reshape(x.shape[0], -1, self.object_dim).transpose(1,2).shape, self.object_dim, self.first_obj_dim, self.single_obj_dim)
-        queries = queries.reshape(x.shape[0], -1, self.object_dim).transpose(1,2)
+        queries = queries.reshape(x.shape[0], -1, self.object_dim).transpose(1,2) # batch, object_dim, num_queries 
         # print(queries.shape, self.first_obj_dim, x.shape, self.object_dim, self.single_obj_dim)
-        queries = self.embed_query_layer(queries).transpose(2,1).reshape(x.shape[0], -1)
+        queries = self.embed_query_layer(queries).transpose(2,1) # batch, num_queries, embed dim
         # print(queries.transpose(2,1).reshape(x.shape[0], -1)[0])
         if m is None: # unmasked if m is None
-            xi = torch.cat([key, queries], dim=-1)
+            xi = torch.cat([key, queries.reshape(x.shape[0], -1)], dim=-1)
             # print(x[0], xi[0])
         else:
-            total_obj_dim  = self.embed_dim * self.total_instances
+            # total_obj_dim  = self.embed_dim * self.total_instances
             # print(m.shape, self.embed_dim, self.total_instances, x.shape, self.first_obj_dim, queries.shape)
             # print(x.shape, total_obj_dim, self.embed_dim, self.total_instances, key.shape, queries.shape, m.shape, i)
             # print((queries * m[...,i * total_obj_dim:(i+1) * total_obj_dim])[0:10])
-            xi = torch.cat([key, queries * m[...,i * total_obj_dim:(i+1) * total_obj_dim]], dim=-1) # [batch, embed_dim + embed_dim * total_instances]
+            xi = torch.cat([key, (queries * m[:,i].reshape(x.shape[0], -1, 1)).reshape(x.shape[0], -1)], dim=-1) # [batch, embed_dim + embed_dim * total_instances]
         # print(key[0], queries[0], xi[0], x[0])
         # print(m[0][:512])
         # print(key.shape, queries.shape, xi.shape, self.first_obj_dim, m.shape, x.shape, i, self.single_obj_dim)
@@ -134,7 +134,7 @@ class KeyPairNetwork(Network):
     def reappend_queries(self, x, xi):
         return torch.cat([xi, x[...,self.embed_dim:]], dim=-1)
 
-    def forward(self, x, m=None, valid=None):
+    def forward(self, x, m=None, valid=None, return_weights=False):
         # iterate over each instance
         batch_size = x.shape[0]
         value = list()
@@ -177,5 +177,8 @@ class KeyPairNetwork(Network):
         # if m is not None: 
         #     print(x.shape, m.shape, )
         #     print(x[0:10], m[0])
-        if self.return_mask: return m, x
+        if self.return_mask or return_weights: return m, x
         return x
+
+    def weights(self, x, m=None, valid=None):
+        return self.forward(x, m=m, valid=valid, return_weights=return_weights)

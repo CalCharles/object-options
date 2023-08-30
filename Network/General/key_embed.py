@@ -88,7 +88,7 @@ class EmbedPairNetwork(Network):
         queries = queries.view(queries.shape[0], self.total_instances, -1)
         if m is not None: # unmasked if m is None
             # print(x[0], xi[0])
-            queries = queries * m[...,i].unsqueeze(-1)
+            queries = queries * m.unsqueeze(-1)
         return queries, prequeries
     
     def reappend_queries(self, x, xi):

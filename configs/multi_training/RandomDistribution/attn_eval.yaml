@@ -31,6 +31,7 @@
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
     # load_intermediate: /hdd/datasets/object_data/multi/randomcond/attn_nop3/temp/
+    # load_intermediate: /hdd/datasets/object_data/multi/randomcond/attn_np_small/temp/
     load_intermediate: /hdd/datasets/object_data/multi/randomcond/attn_np_small/temp/
     # load_intermediate: /hdd/datasets/object_data/multi/randomcond/attn/temp3/
     # save_intermediate: /hdd/datasets/object_data/multi/randomcond/attn/temp3/

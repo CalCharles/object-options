@@ -190,7 +190,7 @@ full_args = {
         "train_reconstruction": False # trains the embedding to perform reconstruction
     },
     "multi_inter": {
-        "evaluate": False, # evaluation mode, where a trained model is tested for how well it can predict actual cause using null assumption
+        "evaluate": False, # evaluation mode, where a trained model is tested for how well it can predict actual cause using null assumption, if 0, no evaluation, if 1, only evaluation, if 2, both train and eval
         "max_combination": 1, # searches for up to this many different parent sets (num factors combinations max_combination) when looking for simultanious interactions
         "dist_epsilon": 1e-1, # the minimum closeness of the distributions to e considered a null component
     },

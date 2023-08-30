@@ -56,8 +56,9 @@ class passive_func():
     def __init__(self, target, target_size, use_target_bias):
         self.parents = [target]
         self.target = target
-        self.target_bias = np.expand_dims(2 * (np.random.rand(target_size) - .5) * DYNAMICS_STEP / TARGET_REDUCE_FACTOR, axis=-1)
-        self.target_matrix = 2 * (np.random.rand(target_size, target_size) - .5) * DYNAMICS_STEP / TARGET_REDUCE_FACTOR
+        self.target_bias = np.expand_dims(2 * (np.random.rand(target_size) - .5) * DYNAMICS_STEP / TARGET_REDUCE_FACTOR / np.sqrt(target_size), axis=-1)
+        # self.target_bias = np.ones(target_size) * DYNAMICS_STEP
+        self.target_matrix = 2 * (np.random.rand(target_size, target_size) - .5) * DYNAMICS_STEP / TARGET_REDUCE_FACTOR / np.sqrt(target_size)
         self.params = [self.target_bias, self.target_matrix]
 
     def __call__(self, ps, ts, require_passive=False):
@@ -146,7 +147,7 @@ DYNAMICS_CLIP = 0.02
 OBJECT_MAX_DIM = 4
 PARENT_REDUCE_FACTOR = 1.5
 # PARENT_REDUCE_FACTOR = 1
-TARGET_REDUCE_FACTOR = 0.5
+TARGET_REDUCE_FACTOR = 1
 
 class RandomDistObject():
     def __init__(self, name, state, lims):
@@ -249,6 +250,7 @@ class RandomDistribution(Environment):
             if self.require_passive:
                 self.passive_functions[name] = passive_func(name, self.object_sizes[name], use_target_bias=True)
                 self.internal_statistics[(" ".join(self.passive_functions[name].parents), self.passive_functions[name].target)] = 0
+                self.internal_statistics[(" ".join(self.passive_functions[name].parents), self.passive_functions[name].target +"_clip")] = 0
             else:
                 self.passive_functions[name] = None # create a placeholder
         for i in range(self.num_related): # create relational links
@@ -283,12 +285,13 @@ class RandomDistribution(Environment):
             print(orf.parents, orf.target, orf.params)
             self.object_relational_functions.append(orf)
             self.internal_statistics[(" ".join(orf.parents), orf.target)] = 0
+            self.internal_statistics[(" ".join(orf.parents), orf.target + "_clip")] = 0
         print(unused)
         self.unused = unused
         for target in unused:
             if self.require_passive:
                 self.object_relational_functions.append(self.passive_functions[target])
-                self.internal_statistics[(" ".join([target]), target)] = 0
+                self.internal_statistics[(" ".join([target]), target + "_clip")] = 0
         print(self.internal_statistics)
 
         # has to be set after we know how many ORFs have the object as target
@@ -375,7 +378,7 @@ class RandomDistribution(Environment):
                 self.object_name_dict[target].next_state = self.object_name_dict[target].get_state()
             for i, orf in enumerate(self.object_relational_functions):
                 target_class = orf.target
-                n, orf_average, orf_passive_average = 0,0,0
+                n, orf_average, orf_passive_average, clip_average = 0,0,0,0
                 require_passive = False
                 if self.num_valid_max > 0:
                     # don't use relations for nonexistent variables
@@ -417,6 +420,8 @@ class RandomDistribution(Environment):
                         orf_average = (int(inter) + (orf_average * n)) / (n + 1)
                         if self.require_passive and not inter:
                             orf_passive_average = (1 + (orf_passive_average * n)) / (n + 1)
+
+                        clip_average = (int(np.any(np.abs(nds) > DYNAMICS_CLIP)) + (clip_average * n)) / (n + 1)
                             
                         # print(orf.parents, orf.target, inter)
                         # print(orf.target, nds)
@@ -427,6 +432,7 @@ class RandomDistribution(Environment):
                             # if i < 3: print(self.itr, self.done.attribute, orf.parents, orf.target, self.get_state()["factored_state"][orf.target])
                         n += 1
                 self.internal_statistics[ (" ".join(orf.parents), orf.target)] += orf_average
+                self.internal_statistics[ (" ".join(orf.parents), orf.target  + "_clip")] += clip_average
                 if self.require_passive and hasattr(orf, "passive"): self.internal_statistics[ (" ".join(orf.passive.parents), orf.passive.target)] += orf_passive_average
             for obj in self.object_name_dict.values():
                 # print("adding noise", obj.next_state)

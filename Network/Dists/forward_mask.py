@@ -124,7 +124,7 @@ class DiagGaussianForwardPadMaskNetwork(Network):
         std_r, recon = self.std(x, return_reconstruction=True, valid=valid)
         return mean_r, std_r, recon
 
-    def weights(self, x, valid=None):
-        mean_w, weights = self.mean(x, return_weights=True, valid=valid)
-        std_w, weights = self.std(x, return_weights=True, valid=valid)
+    def weights(self, x, m, valid=None):
+        mean_w, weights = self.mean(x, m, return_weights=True, valid=valid)
+        std_w, weights = self.std(x, m, return_weights=True, valid=valid)
         return mean_w, std_w, weights

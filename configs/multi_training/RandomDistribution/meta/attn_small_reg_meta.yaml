@@ -1,0 +1,21 @@
+---
+metaparam: 
+  multi_filename: multi_attn_opt_
+  log_endpoint: /hdd/datasets/object_data/multi/hyperparam/hyperparam_logs/attn_small_tests/
+  yaml_endpoint: /hdd/datasets/object_data/multi/hyperparam/hyperparam_yamls/attn_small_tests/
+  save_endpoint: /hdd/datasets/object_data/multi/hyperparam/hyperparam/attn_small_tests/
+  graph_endpoint: /hdd/datasets/object_data/multi/hyperparam/hyperparam_graphs/attn_small_tests/
+  bash_path: bashes/multi_attn_runs.sh
+  base_config: configs/multi_training/RandomDistribution/attn_small.yaml
+  runfile: train_multi_interaction.py
+  gpu: 2
+  match: 0
+  simul_run: 4
+  num_trials: 1
+  cycle_gpu: 4
+interaction_net:
+    mask_attn:
+      merge_function: max,cat,sum
+      gumbel_attention: -1,1,3,5
+    net_type: parattn,keypair
+...

@@ -39,7 +39,7 @@ if __name__ == '__main__': # TODO: combine with the train_all/train_full code
     args.target_select, args.inter_select = extractor.get_selectors(all=all_train)
 
     # initialize the all/full model
-    if args.multi_inter.evaluate: # TODO: change this to load from the actual saved, not intermediate
+    if args.multi_inter.evaluate == 1: # TODO: change this to load from the actual saved, not intermediate
         model = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_inter_model.pkl"))
         model.cpu().cuda(device=args.torch.gpu)         
     else:
@@ -56,7 +56,7 @@ if __name__ == '__main__': # TODO: combine with the train_all/train_full code
             train_object_rollout, test_object_rollout = train_object_rollouts[args.EMFAC.full_train], test_object_rollouts[args.EMFAC.full_train]
     if len(args.inter.save_intermediate) > 0: save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_traintest.pkl"), (train_all_buffer, train_object_rollout, test_all_buffer, test_object_rollout))
 
-    if args.multi_inter.evaluate:
+    if args.multi_inter.evaluate == 1:
         evaluate_null_interaction(model, train_all_buffer, train_object_rollout, test_all_buffer, test_object_rollout, args, environment)
     else:
         passive_weights = dict()
@@ -69,5 +69,8 @@ if __name__ == '__main__': # TODO: combine with the train_all/train_full code
             passive_weights = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_weights.pkl"))
         # training the passive/active models
         if args.train.train and args.inter.passive.passive_iters > 0: outputs, passive_weights = run_train_passive(model, train_all_buffer, train_object_rollout, test_all_buffer, test_object_rollout, args, environment)
+        if args.multi_inter.evaluate == 2:
+            evaluate_null_interaction(model, train_all_buffer, train_object_rollout, test_all_buffer, test_object_rollout, args, environment)
         if len(args.inter.save_intermediate) > 0:
             save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_inter_model.pkl"), model)
+

@@ -21,7 +21,7 @@ def get_passive_weights(args, full_model, object_rollout):
         valid = get_valid(object_rollout.sample(0)[0].valid, full_model.valid_indices)
         invalid = (1-valid).squeeze().nonzero()
         binaries[invalid] = 0
-        print(np.concatenate([np.expand_dims(binaries, axis=-1), valid], axis=-1))
+        # print(np.concatenate([np.expand_dims(binaries, axis=-1), valid], axis=-1))
     weights = get_weights(-1, binaries)
     return weights
 

@@ -29,7 +29,7 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
             target = norm(denorm_target, name=name)
             next_target = norm(full_model.target_selectors[name](next_factored_state), name=name)
             target_diff = norm(full_model.target_selectors[name](next_factored_state) - full_model.target_selectors[name](factored_state), name=name, form="dyn")
-            # if name == "nindtb": print(target_diff, valid)
+            # if name == "ybb": print(target_diff, valid)
             # get the trace, valid for this object class
             if environment.object_instanced[name] > 1: # if there are multiple instances of the object, it is object_instance x other objects for the mask
                 full_trace = np.concatenate([full_traces[name + str(i)] for i in range(environment.object_instanced[name])], axis=0)

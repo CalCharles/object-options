@@ -2,28 +2,29 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    # log_filename: /nfs/data/calebc/object_data/all/randomdist/default/attn/log/inter.log
+    # log_filename: /hdd/datasets/object_data/multi/randomdist/attn/small/log/inter.log
     # load_dir: /nfs/data/calebc/object_data/all/breakout/attn/testrun/
     # save_dir: /nfs/data/calebc/object_data/all/randomdist/attn/default/
   environment:
     env: RandomDistribution
     # load_environment: /hdd/datasets/object_data/RandomDistribution/multi_random_small
-    load_environment: /hdd/datasets/object_data/RandomDistribution/multi_small/
+    load_environment: /hdd/datasets/object_data/RandomDistribution/multi_passive_small/
     gym_to_gymnasium: False
   torch:
     gpu: 0
     no_cuda: False
   train:
     train: True
-    num_frames: 10000
-    train_test_order: time
+    # num_frames: 1000
+    num_frames: 1000000
+    # train_test_order: time
     # load_rollouts: /hdd/datasets/object_data/RandomDistribution/multi_random_small
-    load_rollouts: /hdd/datasets/object_data/RandomDistribution/multi_small/
+    load_rollouts: /hdd/datasets/object_data/RandomDistribution/multi_passive_small/
     num_iters: 40
     batch_size: 256
     # batch_size: 2
   multi_inter:
-    # evaluate: True
+    evaluate: 2
     max_combination: 1
     dist_epsilon: 0.1
   inter:
@@ -31,13 +32,13 @@
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
     # load_intermediate: /hdd/datasets/object_data/multi/randomcond/attn_np_small/temp/
-    save_intermediate: /hdd/datasets/object_data/multi/randomcond/attn_np_small/temp/
+    # save_intermediate: /hdd/datasets/object_data/multi/randomcond/attn_np_small/temp/
     # save_intermediate: /hdd/datasets/object_data/multi/randomcond/attn_small/temp/
     compare_trace: True
     proximity_epsilon: 7
     use_active_as_passive: True
     passive:
-      passive_iters: 50000
+      passive_iters: 100000
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
@@ -52,7 +53,7 @@
     # train_full_only: True
     # train_names: phpt
   interaction_net:
-    hidden_sizes: 256
+    hidden_sizes: 256 512
     net_type: parattn
     init_form: xnorm # -1 dim is num_queries
     pair:
@@ -65,11 +66,12 @@
       # num_heads: 3 # 16
       model_dim: 128
       num_heads: 16
-      num_layers: 2
+      num_layers: 3
       cluster: False
       num_clusters: 0
-      attention_dropout: 0.1
+      attention_dropout: 0.3
       merge_function: cat
+      gumbel_attention: -1
       append_keys: True
       no_hidden: True
     optimizer:
@@ -81,7 +83,7 @@
       weight_decay: 0.00
   EMFAC:
     # full_train: rxfbzvns
-    full_train: nindtb
+    full_train: ybb
     num_masks: 3
     E_step_iters: 100
     M_step_iters: 10

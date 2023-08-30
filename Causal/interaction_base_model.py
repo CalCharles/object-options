@@ -41,8 +41,8 @@ def load_interaction(pth, name, device=-1):
         return model
     return None
 
-KEYNETS = ["linpair", "keypair", "keyembed", "maskattn", "rawattn", "multiattn"]
-PAIR=  ["pair", "linpair", "keypair", "keyembed", "maskattn", "rawattn", "multiattn"]
+KEYNETS = ["linpair", "keypair", "keyembed", "maskattn", "rawattn", "multiattn", "parattn"]
+PAIR=  ["pair", "linpair", "keypair", "keyembed", "maskattn", "rawattn", "multiattn", "parattn"]
 
 MASKING_FORMS = {
     "weighting": 0,
@@ -100,6 +100,7 @@ class NeuralInteractionForwardModel(nn.Module):
         self.num_clusters = self.active_model_args.cluster.num_clusters # uses a mixture of experts implementation, which shoudl return different interaction masks
         self.selection_mask = args.full_inter.selection_mask
         self.population_mode = args.EMFAC.is_emfac
+        self.valid_indices = list()
 
         # set the distributions
         self.dist = assign_distribution("Gaussian") # TODO: only one kind of dist at the moment
@@ -484,6 +485,7 @@ class NeuralInteractionForwardModel(nn.Module):
         use_active = use_hard or use_soft or use_full or use_flat or use_given
 
         # logic for handling input gradients, if needed
+        valid = pytorch_model.wrap(batch.valid, cuda=self.iscuda)
         iv = pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda)
         active_hard_input = pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda) if use_hard and input_grad else iv
         active_soft_input = pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda) if use_soft and input_grad else iv
@@ -503,25 +505,25 @@ class NeuralInteractionForwardModel(nn.Module):
                     hot_inter_soft, hot_inter_hard = self.apply_cluster_mask(inter, cluster_hard=False), self.apply_cluster_mask(inter, cluster_hard=True) 
                     use_hot_mask = hot_inter_soft if soft_select else hot_inter_hard # in general, the selection mask (soft_select) should be hard
                     mixed = MASKING_FORMS[self.mixing] == 2
-                    if use_hard: active_hard_params, hard_inter_mask = self.active_model(active_hard_input, hot_inter_hard, soft=False, mixed=False, flat=False)
-                    if use_flat: active_flat_params, flat_inter_mask = self.active_model(active_hard_input, hot_inter_hard, soft=False, mixed=False, flat=True)
-                    if use_soft: active_soft_params, soft_inter_mask = self.active_model(active_soft_input, use_hot_mask, soft=True, mixed=mixed, flat=False)
+                    if use_hard: active_hard_params, hard_inter_mask = self.active_model(active_hard_input, hot_inter_hard, soft=False, mixed=False, flat=False, valid=valid)
+                    if use_flat: active_flat_params, flat_inter_mask = self.active_model(active_hard_input, hot_inter_hard, soft=False, mixed=False, flat=True, valid=valid)
+                    if use_soft: active_soft_params, soft_inter_mask = self.active_model(active_soft_input, use_hot_mask, soft=True, mixed=mixed, flat=False, valid=valid)
                     if use_given: hot_given_soft, hot_given_hard = self.apply_cluster_mask(given_inter_mask, cluster_hard=False), self.apply_cluster_mask(given_inter_mask, cluster_hard=True) 
-                    if use_given: active_given_params, given_inter_mask = self.active_model(active_given_input, hot_given_soft, soft=True, mixed=mixed, flat=False)
+                    if use_given: active_given_params, given_inter_mask = self.active_model(active_given_input, hot_given_soft, soft=True, mixed=mixed, flat=False, valid=valid)
                     inter = soft_inter_mask
                 # the full output either outputs all of the inputs
                 if use_full:
                     full_mask = self.get_cluster_full_mask(batch.tarinter_state) # should be unused
-                    active_full_params, m = self.active_model(active_full_input, full_mask, soft=True, mixed=mixed, full=True)
+                    active_full_params, m = self.active_model(active_full_input, full_mask, soft=True, mixed=mixed, full=True, valid=valid)
             if self.attention_mode:
                 mixed = MASKING_FORMS[self.mixing] == 2
-                if use_hard: active_hard_params, hard_inter_mask = self.active_model(active_hard_input, None, soft=False, mixed=False, flat=False)
-                if use_soft: active_soft_params, soft_inter_mask = self.active_model(active_soft_input, None, soft=True, mixed=mixed, flat=False)
-                if use_flat: active_flat_params, flat_inter_mask = self.active_model(active_flat_input, None, soft=False, mixed=False, flat=True)
-                if use_given: active_given_params, given_inter_mask = self.active_model(active_given_input, None, soft=True, mixed=mixed, flat=False) # given invalid in this format
+                if use_hard: active_hard_params, hard_inter_mask = self.active_model(active_hard_input, None, soft=False, mixed=False, flat=False, valid=valid)
+                if use_soft: active_soft_params, soft_inter_mask = self.active_model(active_soft_input, None, soft=True, mixed=mixed, flat=False, valid=valid)
+                if use_flat: active_flat_params, flat_inter_mask = self.active_model(active_flat_input, None, soft=False, mixed=False, flat=True, valid=valid)
+                if use_given: active_given_params, given_inter_mask = self.active_model(active_given_input, None, soft=True, mixed=mixed, flat=False, valid=valid) # given invalid in this format
                 if use_full:
                     full_mask = pytorch_model.wrap(torch.ones(len(self.all_names) * self.target_num), cuda = self.iscuda)
-                    active_full_params, m = self.active_model(active_full_input, None, soft=False, mixed=mixed) # this one is not really a good idea to train on
+                    active_full_params, m = self.active_model(active_full_input, None, soft=False, mixed=mixed, valid=valid) # this one is not really a good idea to train on
                 hot_mask = hard_inter_mask
                 inter = soft_inter_mask
             else:
@@ -532,24 +534,24 @@ class NeuralInteractionForwardModel(nn.Module):
                     hot_mask = inter # hot mask not used
                 if use_full:
                     full_mask = self.active_model.get_all_mask(len(batch), -1, -1) if self.cluster_mode else pytorch_model.wrap(torch.ones(len(self.all_names) * self.target_num), cuda = self.iscuda)
-                    active_full_params, m = self.active_model(active_full_input, full_mask, full=True) if self.cluster_mode else self.active_model(active_full_input, full_mask)
+                    active_full_params, m = self.active_model(active_full_input, full_mask, full=True, valid=valid) if self.cluster_mode else self.active_model(active_full_input, full_mask, valid=valid)
                 if use_hard: 
                     hard_inter_mask = self.apply_mask(inter, soft=False)
-                    active_hard_params, m = self.active_model(active_hard_input, hard_inter_mask)
+                    active_hard_params, m = self.active_model(active_hard_input, hard_inter_mask, valid=valid)
                 if use_flat:
                     flat_inter_mask = self.apply_mask(inter, soft=False, flat = True)
-                    active_flat_params, m = self.active_model(active_flat_input, flat_inter_mask)
+                    active_flat_params, m = self.active_model(active_flat_input, flat_inter_mask, valid=valid)
                 if use_given:
                     inter = self.interaction_model(inter_inp_state)
                     soft_inter_mask = self.apply_mask(inter, soft=True)
                     given_inter_mask = pytorch_model.wrap(given_inter_mask, cuda = self.iscuda)
-                    active_given_params, m = self.active_model(active_given_input, given_inter_mask)
+                    active_given_params, m = self.active_model(active_given_input, given_inter_mask, valid=valid)
                 if use_soft:
                     soft_inter_mask = self.apply_mask(inter, soft=True)
                     hard_inter_mask = self.apply_mask(inter, soft=False)
                     mixed_mask = self.combine_mask(soft_inter_mask, hard_inter_mask, mixed=mixed)
                     soft_inter_mask = mixed_mask
-                    active_soft_params, m = self.active_model(active_soft_input, mixed_mask)
+                    active_soft_params, m = self.active_model(active_soft_input, mixed_mask, valid=valid)
                 # print(full_mask, mixed_mask)
         if use_passive: passive_params, passive_mask = self.apply_passive((pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), pytorch_model.wrap(batch.obs, cuda=self.iscuda)))
 
@@ -660,3 +662,15 @@ class NeuralInteractionForwardModel(nn.Module):
     def active_likelihoods(self, batch, normalize=False, mixed="", soft=False, flat=False, cluster_choice=-1): # TODO: flat not implemented
         return self._likelihoods(batch, normalize=normalize, mixed = mixed, compute_values = ["soft"] if soft else ["hard"], soft_select=soft)
         # return hard/soft_params, inter, hot_mask, hard/soft_mask, target, hard/soft_dist, hard/soft_log_probs, hard/soft_input
+
+    def return_weights(self, batch, mask=None, normalize=False):
+        # TODO: other modes not supported
+        if normalize: batch = self.normalize_batch(batch)
+        active_input = pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda)
+        valid = pytorch_model.wrap(batch.valid, cuda=self.iscuda)
+        if mask is None:
+            mask = self.active_model.get_all_mask(len(batch), -1, -1) if self.cluster_mode else pytorch_model.wrap(torch.ones(len(self.all_names) * self.target_num), cuda = self.iscuda)
+        else:
+            mask = pytorch_model.wrap(mask, cuda = self.iscuda)
+        mean, std, weights = self.active_model.weights(active_input, mask, valid=valid)
+        return (mean, std), weights

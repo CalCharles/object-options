@@ -103,12 +103,12 @@ class MultiHeadAttentionParallelLayer(Network):
         # print(values.shape, keys.shape, queries.shape, mask.shape, valid)
 
         if query_final: # uses a sigmoid for weights
-            weights = evaluate_key_query(torch.sigmoid, keys, queries, mask, valid, single_key=False) # batch x heads x keys x queries
+            weights = evaluate_key_query(torch.sigmoid, keys, queries, mask, valid, single_key=False, gumbel=self.gumbel) # batch x heads x keys x queries
             # batch x heads x keys x queries x 1 * batch x heads x keys x queries x model_dim = batch x heads x keys x queries x model_dim
             values = (weights.unsqueeze(-1) * values )
             values = reduce_function(self.merge_function, values, dim=1) # batch x keys x queries x model_dim (merges the heads)
         else: # sum along the query dimension (already normalized by weights) and apply the final network
-            weights = evaluate_key_query(self.softmax, keys, queries, mask, valid, single_key=False) # batch x heads x keys x queries
+            weights = evaluate_key_query(self.softmax, keys, queries, mask, valid, single_key=False, gumbel=self.gumbel) # batch x heads x keys x queries
             # batch x heads x keys x queries x 1 * batch x heads x keys x queries x model_dim = batch x heads x keys x queries x model_dim
             values = (weights.unsqueeze(-1) * values )
             # print("after", values)
@@ -143,16 +143,16 @@ class MultiHeadAttentionBase(Network):
 
         self.model = layers # + [self.final_layer]
 
-    def forward(self, keys, queries, m, valid=ModuleNotFoundError):
+    def forward(self, keys, queries, m, valid=None):
         weights = list()
         for i in range(self.num_layers):
             start = time.time()
             if self.repeat_layers: keys, weight = self.multi_head_attention(keys, queries, m, query_final=i==self.num_layers-1 and (not self.query_aggregate), valid=valid)
             else: keys, weight = self.multi_head_attention[i](keys, queries, m, query_final=i==self.num_layers-1 and (not self.query_aggregate), valid=valid)
             # print("layer compute", time.time() - start)
-            weights.append(weight)
+            weights.append(weight) # num_layers of batch, num_heads, num_keys, num_queries
         # keys = self.final_layer(keys)
-        return keys, weights
+        return keys, torch.stack(weights, dim=1) # batch, num_layers, num_heads, num_keys, num_queries
 
 class ParallelMaskedAttentionNetwork(Network):
     def __init__(self, args):

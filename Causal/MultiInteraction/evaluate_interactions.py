@@ -8,6 +8,17 @@ def compute_distance(params1, params2): # computes the wasserstein 2 distance, T
     # return torch.norm(params1[0] - params2[0], p=2, dim=-1) + torch.norm((params1[1] + params2[1] - 2 * torch.sqrt(params1[1] * params2[1])), p=2, dim=-1)
     return torch.norm(params1[0] - params2[0], p=2, dim=-1) # + torch.norm((params1[1] + params2[1] - 2 * torch.sqrt(params1[1] * params2[1])), p=2, dim=-1)
 
+def evaluate_weights(weights, clip_value=-1):
+    # weights of shape batch size (or reduced batch size), num heads, num keys, num queries
+    # returns the query rate for each head, subject to clipping, and the number of unclipped heads / sample
+    if clip_value > 0:
+        weights[weights > clip_value] = 1
+        weights[weights < clip_value] = 0
+    num_layers, num_heads, num_keys = weights.shape[1], weights.shape[2], weights.shape[3]
+    live_rate = weights.sum(dim=-1).reshape(-1).mean()
+    per_weights = weights.sum(dim=1).sum(dim=1) / (num_heads * num_layers) # num_batch, num_keys, num queries
+    return pytorch_model.unwrap(live_rate), pytorch_model.unwrap(per_weights), pytorch_model.unwrap(per_weights.sum(dim=1).mean(dim=0))
+
 BATCH_SIZE = 1024
 
 def evaluate_buffer(num_iters, full_model, buffer, object_buffer, args, environment, sampling_mode=False):
@@ -34,6 +45,8 @@ def evaluate_buffer(num_iters, full_model, buffer, object_buffer, args, environm
             active_likelihood_full, active_prediction_params = - active_full_log_probs, active_full if not full_model.cluster_mode else (active_full[0][...,target.shape[-1]:target.shape[-1] * 2], active_full[1][...,target.shape[-1]:target.shape[-1] * 2])
             # compute the masked prediction parameters
             active_given_params, _, _, _, target, active_given_dist, _, active_given_inputs= full_model.given_likelihoods(batch, given_mask)
+            _, masked_weights = full_model.return_weights(batch, given_mask)
+            _, full_weights = full_model.return_weights(batch)
             # reshape to add in num_instances of target
             active_prediction_params, active_given_params = (active_prediction_params[0].reshape(len(batch), inter_masks.shape[1], -1), active_prediction_params[1].reshape(len(batch), inter_masks.shape[1], -1)), (active_given_params[0].reshape(len(batch), inter_masks.shape[1], -1), active_given_params[1].reshape(len(batch), inter_masks.shape[1], -1))
             # compute the distance between the full and the given
@@ -43,15 +56,29 @@ def evaluate_buffer(num_iters, full_model, buffer, object_buffer, args, environm
             # close = dists > dv
             inter_masks[...,comb] = np.expand_dims(close.astype(int), -1)
             usable_idxes = np.nonzero(given_valid.squeeze() * valid.squeeze() * (1-batch.done).squeeze())
-            tstidxes = np.random.choice(usable_idxes[0], size=(30,), replace=False)
+            
+            # evaluate weight statistics using only usable idxes
+            _, per_weights, average_weights = evaluate_weights(full_weights[usable_idxes], clip_value=-1)
+            mask_live, mask_per_weights, _ = evaluate_weights(masked_weights, clip_value=-1)
+            print(per_weights.shape)
+
+            uidxes = np.random.choice(np.arange(len(usable_idxes[0])), size=(30,), replace= False)
+            tstidxes = usable_idxes[0][uidxes]
+            # tstidxes = np.random.choice(usable_idxes[0], size=(30,), replace=False)
+
             target = target.reshape(len(batch), inter_masks.shape[1], -1)
-            print(comb, given_mask[0],
+            print("index, valid, full-tar, given-tar, full-given, per_weight, dist, inter, trace")
+            print(comb, given_mask[0], average_weights, mask_live,
                     np.concatenate([np.expand_dims(np.expand_dims(idxes[tstidxes], axis=-1), axis=-1), np.expand_dims(valid[tstidxes], axis=-1), 
                                     # pytorch_model.unwrap(target[tstidxes]), 
                                     pytorch_model.unwrap((active_prediction_params[0][tstidxes] - target[tstidxes]).abs().sum(dim=-1).unsqueeze(-1)),
+                                    pytorch_model.unwrap((active_given_params[0][tstidxes] - target[tstidxes]).abs().sum(dim=-1).unsqueeze(-1)),
                                     pytorch_model.unwrap((active_prediction_params[0][tstidxes] - active_given_params[0][tstidxes]).abs().sum(dim=-1).unsqueeze(-1)),
+                                    np.expand_dims(dists[tstidxes], axis=-1), 
+                                    per_weights[uidxes],
+                                    mask_per_weights[uidxes],
                                     # np.expand_dims(batch.valid[tstidxes], axis=1),
-                                    np.expand_dims(dists[tstidxes], axis=-1), inter_masks[tstidxes][...,comb], np.expand_dims(batch.trace[tstidxes][...,comb], axis=1)], axis=-1))
+                                    inter_masks[tstidxes][...,comb], np.expand_dims(batch.trace[tstidxes][...,comb], axis=1)], axis=-1))
                     # np.concatenate([np.expand_dims(idxes[tstidxes], axis=-1), given_valid[tstidxes], valid[tstidxes], inter_masks[tstidxes][...,0,comb], batch.trace[tstidxes][...,comb], dists[tstidxes]], axis=-1))
             # print(pytorch_model.unwrap((active_prediction_params[0] - target).abs().sum(dim=-1))[usable_idxes] )
         all_inters.append(inter_masks)
