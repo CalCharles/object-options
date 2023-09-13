@@ -106,6 +106,7 @@ class Breakout(Environment):
         self.paddle_height = self.paddle.pos[0]
         self.num_remove = self.get_num(True)
         self.all_names = ["Action", "Paddle", "Ball"] + [b.name for b in self.blocks] + ['Done', "Reward"]
+        self.valid_names = self.all_names
         self.instance_length = len(self.all_names)
         self.reset_rewards = True # resets rewards on the NEXT iteration
         if self.flat_obs: self.observation_space = spaces.Box(low=-2, high=84, shape=self.get_state().shape, dtype=float)

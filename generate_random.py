@@ -1,6 +1,7 @@
 import sys, time, cv2, os
 import argparse
 from Environment.Environments.initialize_environment import initialize_environment
+from Environment.Environments.Breakout.breakout_policies import AnglePolicy
 from Record.file_management import display_frame, display_param, save_to_pickle
 from Causal.Sampling.sampling import samplers
 import numpy as np
@@ -28,7 +29,7 @@ def generate_args():
     args.gym_to_gymnasium = False
     return args
 
-def generate_random(args):
+def generate_random(args, save_state = False):
     environment, record = initialize_environment(args, args)
     if args.angle: 
         policy = AnglePolicy(4)
@@ -37,6 +38,7 @@ def generate_random(args):
         environment.sampler = samplers["exist"](obj_dim=5, target_select=construct_object_selector(["Block"], environment),parent_select=None,additional_select=None,test_sampler=False,mask=None)
         environment.reset()
     start = time.time()
+    state_buffer = list()
     for i in range(args.num_frames):
         if args.angle and environment.ball.paddle: angle = angle = np.random.randint(4)
         action = environment.action_space.sample() if not args.demonstrate else environment.demonstrate()
@@ -49,10 +51,13 @@ def generate_random(args):
             display_frame(frame, waitkey=10)
         if args.render and args.variant == "proximity" and args.display_frame: display_param(full_state['raw_state'], param=environment.sampler.param[:2], waitkey=100, rescale = 10, dot=False)
         elif args.render and args.display_frame: display_frame(full_state['raw_state'], rescale=10, waitkey=30)
+        if i == args.num_frames - 1: full_state['factored_state']["Done"] = True # force the last factored state to be true
         if record is not None: record.save(full_state['factored_state'], full_state["raw_state"], environment.toString)
+        if save_state: state_buffer.append(full_state)
         if i % 1000 == 0: print(i, "fps", i / (time.time() - start))
     if args.env not in ["RoboPushing", "RoboStick", "AirHockey"] and len(args.record_rollouts) > 0: save_to_pickle(os.path.join(args.record_rollouts, "environment.pkl"), environment)
     print("fps", args.num_frames / (time.time() - start))
+    return environment, record, state_buffer
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate random data from an environment')

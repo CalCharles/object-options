@@ -2,33 +2,33 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /nfs/data/calebc/object_data/full/randomdist/conditional/mixed/log/inter.log
-    # load_dir: /nfs/data/calebc/object_data/full/breakout/mixed/testrun/
-    save_dir: /nfs/data/calebc/object_data/full/randomdist/conditional/mixed/
+    log_filename: /hdd/datasets/object_data/full/randomdist/conditional/mixed/log/inter.log
+    # load_dir: /hdd/datasets/object_data/full/breakout/mixed/testrun/
+    save_dir: /hdd/datasets/object_data/full/randomdist/conditional/mixed/
   environment:
     env: RandomDistribution
     variant: conditional
-    load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional_long/
+    load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional/
   torch:
     gpu: 1
     no_cuda: False
   train:
     train: True
-    num_frames: 100000
+    num_frames: 10000
     train_test_order: time
-    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional_long/
-    num_iters: 10000
+    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional/
+    num_iters: 50000
     batch_size: 256
   inter:
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
     # load_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/mixed/temp/
-    save_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/mixed/temp/
+    # save_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/mixed/temp/
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 10000
+      passive_iters: 1000
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
@@ -42,20 +42,22 @@
       intrain_passive: 1
   full_inter:
     object_id: True
-    lasso_lambda: 3 0.5 0 100 1000
+    lasso_lambda: 3 0 0 0 1000
     mixed_interaction: mixed
-    use_active_as_passive: True
     soft_distribution: Identity
+    use_active_as_passive: True
+    train_names: fbxlsxtwc
+    adaptive_lasso: 5
   interaction_net:
-    hidden_sizes: 512 256 128 128 128
+    hidden_sizes: 256 256
     net_type: keypair
     init_form: xnorm
     pair:
-      reduce_fn: sum
-    embed_inputs: 128
+      reduce_function: sum
+    embed_inputs: 512
     optimizer:
       lr: .0001
-      alt_lr: .000001
+      alt_lr: .00001
       eps: .00001
       alpha: 0.99
       betas: 0.9 0.999

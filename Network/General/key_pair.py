@@ -125,7 +125,9 @@ class KeyPairNetwork(Network):
             # print(m.shape, self.embed_dim, self.total_instances, x.shape, self.first_obj_dim, queries.shape)
             # print(x.shape, total_obj_dim, self.embed_dim, self.total_instances, key.shape, queries.shape, m.shape, i)
             # print((queries * m[...,i * total_obj_dim:(i+1) * total_obj_dim])[0:10])
+            # print(x, key, queries, m, x.shape, key.shape, queries.shape, m.shape)
             xi = torch.cat([key, (queries * m[:,i].reshape(x.shape[0], -1, 1)).reshape(x.shape[0], -1)], dim=-1) # [batch, embed_dim + embed_dim * total_instances]
+            # print(xi)
         # print(key[0], queries[0], xi[0], x[0])
         # print(m[0][:512])
         # print(key.shape, queries.shape, xi.shape, self.first_obj_dim, m.shape, x.shape, i, self.single_obj_dim)
@@ -142,7 +144,9 @@ class KeyPairNetwork(Network):
         if m is not None:
             if valid is not None:
                 m = m * valid # invalidate through the mask
-            m = expand_mask(m, batch_size, self.embed_dim)
+            # print(m)
+            m = expand_mask(m, batch_size, int(self.first_obj_dim // self.single_obj_dim), self.embed_dim)
+            # print( m)
         for i in range(int(self.first_obj_dim // self.single_obj_dim)):
             xi = self.slice_mask_input(x, i, m)
             # print(i, x.shape, xi.shape, self.query_aggregate, self.single_obj_dim, self.first_obj_dim, x.shape[-1] - self.first_obj_dim, self.first_obj_dim // self.single_obj_dim)

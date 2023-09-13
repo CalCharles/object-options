@@ -45,8 +45,10 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
             # compute network values
             # passive_prediction_params = full_model.passive_model(pytorch_model.wrap(batch.obs, cuda=full_model.iscuda)) # batch.target != target
             # print(np.concatenate([batch.target_diff, batch.valid, valid], axis=-1)[:10])
+            # print("running passive")
             passive_prediction_params, passive_mask, target, passive_dist, passive_log_probs, passive_input = full_model.passive_likelihoods(batch)
             passive_log_probs = - passive_log_probs
+            passive_done_log_probs = passive_log_probs * pytorch_model.wrap(done_flags, cuda=full_model.iscuda)
 
             # passive_prediction_params = full_model.apply_passive((pytorch_model.wrap(batch.tarinter_state, cuda=full_model.iscuda), pytorch_model.wrap(batch.obs, cuda=full_model.iscuda))) # batch.target != target
             # # Train the passive model
@@ -79,6 +81,7 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
             #                                     normalize=False, mixed=args.full_inter.mixed_interaction,
             #                                     input_grad = True, soft_eval = True, masking=["hard", "soft", "full"]) # TODO: the return signature has changed
             
+            # print("running active")
             active_full, inter, hot_mask, full_mask, target, _, active_full_log_probs, _ = full_model.active_open_likelihoods(batch)
             active_likelihood_full, active_prediction_params = - active_full_log_probs, active_full if not full_model.cluster_mode else (active_full[0][...,target.shape[-1]:target.shape[-1] * 2], active_full[1][...,target.shape[-1]:target.shape[-1] * 2])
             active_loss = compute_likelihood(full_model, args.train.batch_size, active_likelihood_full, done_flags=done_flags, is_full = True, valid = valid)
@@ -103,5 +106,8 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
             print(full_model.name,batch.tarinter_state[0]  ,  full_model.norm.reverse(full_batch.obs[0], form="inter", name=full_model.name), target[0], full_model.norm.reverse(target[0], name=full_model.name, form="dyn" if full_model.predict_dynamics else "target"))
             print(full_model.extractor.reverse_extract(full_model.norm.reverse(target[0], name=full_model.name, form="dyn" if full_model.predict_dynamics else "target")))
             print("total time", time.time() - start)
+            # print(passive_done_log_probs[:20])
+            # print(target[:20])
+            # print(passive_done_log_probs.mean())
         # print("passive", time.time()- start)
     return outputs, weights

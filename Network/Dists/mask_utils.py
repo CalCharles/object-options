@@ -37,10 +37,11 @@ def get_passive_mask(batch_size, num_keys, num_queries, num_objects, class_index
     return pytorch_model.wrap(passive_masks.broadcast_to(batch_size, num_keys, num_objects), cuda=iscuda)
 
 
-def expand_mask(m, batch_size, object_dim): # only for padded networks
+def expand_mask(m, batch_size, num_keys, object_dim): # only for padded networks
     # m = batch x num_keys*num_objects OR
-    # batch x num_keys*num_objects if broadcast over keys
-    return torch.broadcast_to(m.unsqueeze(-1), (batch_size, m.shape[-1], object_dim)).reshape(batch_size, object_dim*m.shape[-1])
+    # batch x num_key*num_objects if broadcast over keys
+    # return torch.broadcast_to(m.unsqueeze(-1), (batch_size, m.shape[-1], object_dim)).reshape(batch_size, object_dim*m.shape[-1])
+    return torch.broadcast_to(m.reshape(batch_size, num_keys, -1).unsqueeze(-1), (batch_size,  num_keys, m.shape[-1], 1))
     # comb = list()
     # for i in range(m.shape[-1]):
     #     comb.append(m[...,i].unsqueeze(-1) * pytorch_model.wrap(torch.ones(object_dim), cuda=iscuda))

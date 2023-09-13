@@ -7,8 +7,10 @@ import torch.nn.functional as F
 def evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda, active_params, interaction_likelihood, interaction_mask, active_log_probs, done_flags, proximity):
     active_nlikelihood = compute_likelihood(full_model, len(active_log_probs), - active_log_probs, done_flags=done_flags, reduced=False, is_full = True)
     # passive_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - passive_log_probs, done_flags=done_flags, reduced=False, is_full = True)
-    # adapts the lasso_lambda to be a percentage of the input
-    lasso_lambda = args.full_inter.adaptive_lasso * (np.abs(10 - pytorch_model.unwrap(active_nlikelihood.mean()))) if args.full_inter.adaptive_lasso > 0 else lasso_lambda
+    # adapts the lasso_lambda based on the input. If the active nlikelihood is low (large negative), it will approach e^{-0} = 1 if the error is high, it will approach e^-inf = 0
+    # TODO: adaptive weighting value 3.0 is environment specific based on the level of natural stochasticity
+    lasso_lambda = (args.full_inter.adaptive_lasso * (np.exp(-np.abs(3.0 * active_log_probs.shape[-1] + pytorch_model.unwrap(active_nlikelihood.mean()))))
+                                                      if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
     mask_loss = (interaction_likelihood - full_model.check_passive_mask(interaction_likelihood)).norm(p=args.full_inter.lasso_order, dim=-1).unsqueeze(-1) # penalize for deviating from the passive mask
     zero_mask_loss = (interaction_likelihood).norm(p=args.full_inter.lasso_order, dim=-1).unsqueeze(-1) # penalize for deviating from the passive mask
     one_mask_loss = (1-interaction_likelihood).norm(p=args.full_inter.lasso_order, dim=-1).unsqueeze(-1)
@@ -17,23 +19,24 @@ def evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambd
     
     # print(active_nlikelihood.shape, mask_loss.shape, active_log_probs.shape, full_model.check_passive_mask(interaction_likelihood).shape, interaction_likelihood.shape)
     full_loss = ((active_nlikelihood
-                    + (mask_loss * (1-onemask_lambda - halfmask_lambda)
+                    + mask_loss * lasso_lambda
                     + one_mask_loss * (onemask_lambda)
-                    + half_mask_loss * (halfmask_lambda)) * lasso_lambda
+                    + half_mask_loss * (halfmask_lambda)
                     + entropy_loss * entropy_lambda) * done_flags)
     # print(pytorch_model.unwrap(torch.cat([full_loss, active_nlikelihood, mask_loss * lasso_lambda * (1-onemask_lambda - halfmask_lambda), one_mask_loss * onemask_lambda * lasso_lambda, half_mask_loss * halfmask_lambda * lasso_lambda, entropy_loss * entropy_lambda, done_flags, interaction_likelihood], dim=-1)[:2]))
     # full_loss = - active_log_probs.sum(-1)
     # print(mask_loss, one_mask_loss, lasso_lambda, active_nlikelihood, entropy_loss)
     # print(mask_loss.mean()  * args.full_inter.lasso_lambda, active_log_probs[0], full_loss, full_loss.mean())
     # print(pytorch_model.unwrap(full_loss.mean()), pytorch_model.unwrap(mask_loss.mean()))
-    return full_loss.mean()
+    return full_loss.mean(), active_nlikelihood.mean(), lasso_lambda
 
 def evaluate_active_interaction_expert(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda, active_params, 
                                         hot_likelihood, interaction_mask, active_log_probs, done_flags, proximity):
     active_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - active_log_probs, 
                                             done_flags=done_flags, reduced=False, is_full = True)
     # passive_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - passive_log_probs, done_flags=done_flags, reduced=False, is_full = True)
-    lasso_lambda = args.full_inter.adaptive_lasso * (np.abs(10 - pytorch_model.unwrap(active_nlikelihood.mean()))) if args.full_inter.adaptive_lasso > 0 else lasso_lambda
+    lasso_lambda = (args.full_inter.adaptive_lasso * (np.exp(-np.abs(3.5 * active_log_probs.shape[-1] + pytorch_model.unwrap(active_nlikelihood.mean()))))
+                                                      if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
     mean_mask_loss =  (hot_likelihood - (1./full_model.num_clusters)).unsqueeze(-1) * halfmask_lambda # make the agent select more diverse masks (to prevent mode collapse early)
     mask_loss = (interaction_mask).unsqueeze(-1) * lasso_lambda # penalize the selection of interaction masks
     entropy_loss = torch.sum(-interaction_mask*torch.log(interaction_mask), dim=-1).unsqueeze(-1) * entropy_lambda
@@ -42,7 +45,7 @@ def evaluate_active_interaction_expert(full_model, args, onemask_lambda, halfmas
     # print(mask_loss.mean(), mean_mask_loss.mean(), active_nlikelihood.mean(), full_loss.mean())
     # print(mask_loss, mean_mask_loss, active_nlikelihood.shape, torch.cat([done_flags[:10],active_nlikelihood[:10],interaction_mask[:10], hot_likelihood[:10]], dim=-1), full_loss, halfmask_lambda, lasso_lambda)
     # print(pytorch_model.unwrap(full_loss.mean()), pytorch_model.unwrap(mask_loss.mean()))
-    return full_loss
+    return full_loss, active_nlikelihood.mean(), lasso_lambda
 
 def get_masking_gradients(full_model, args, rollouts, object_rollout, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda, weights, inter_loss, normalize=False):
     # prints out the gradients of the interaction mask, the active inputs and the full inputs
@@ -64,7 +67,7 @@ def get_masking_gradients(full_model, args, rollouts, object_rollout, onemask_la
     done_flags = pytorch_model.wrap(1-full_batch.done, cuda = full_model.iscuda).squeeze().unsqueeze(-1)
 
     # combine the cost function (extend possible interaction losses here)
-    interaction_loss = evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda,
+    interaction_loss, active_nlikelihood, lasso_lambda = evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda,
                         active_soft_params, interaction_likelihood, soft_interaction_mask, active_soft_log_probs, done_flags, batch.proximity)
     
     # # loss and optimizer interaction_mask
@@ -174,7 +177,7 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, onem
     # combine the cost function (extend possible interaction losses here)
     # print((active_hard_log_probs * done_flags).mean(), (active_soft_log_probs * done_flags).mean(), (active_full_log_probs * done_flags), (passive_log_probs * done_flags).mean())
     # lasso_lambda = F.sigmoid(lasso_lambda) * 10
-    interaction_loss = evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda,
+    interaction_loss, active_nlikelihood, lasso_lambda = evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda,
                         active_soft_params, interaction_likelihood, soft_interaction_mask, active_soft_log_probs, done_flags, batch.proximity) \
                         if not full_model.cluster_mode else evaluate_active_interaction_expert(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda,
                         active_soft_params, hot_likelihood, soft_interaction_mask, active_full_log_probs, done_flags, batch.proximity)
@@ -183,4 +186,4 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, onem
     # loss and optimizer
     grad_variables = [interaction_likelihood, active_soft_inputs] if args.inter.active.log_gradients else list()
     grad_variables = run_optimizer(interaction_optimizer, full_model.active_model if full_model.attention_mode else full_model.interaction_model, interaction_loss, grad_variables=grad_variables)
-    return idxes, interaction_loss, interaction_likelihood, hard_interaction_mask, hot_likelihood, weight_count, done_flags, grad_variables
+    return idxes, interaction_loss, active_nlikelihood, interaction_likelihood, hard_interaction_mask, hot_likelihood, weight_count, done_flags, grad_variables, lasso_lambda

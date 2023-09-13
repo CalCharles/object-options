@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 
 
-def evaluate_key_query(softmax, keys, queries, mask, valid, single_key=False, gumbel=-1):
+def evaluate_key_query(softmax, keys, queries, mask, valid, single_key=False, gumbel=-1, renormalize=False):
     # computes the key query comparison
     # applies mask and valid, assuming that mask is probabilistic 
     # and valid is binary
@@ -22,6 +22,11 @@ def evaluate_key_query(softmax, keys, queries, mask, valid, single_key=False, gu
     if valid is not None: 
         if len(valid.shape) == 2: valid = valid.unsqueeze(-2)# check if mask includes keys
         weights = weights * torch.broadcast_to(valid.unsqueeze(1), (weights.shape[0], weights.shape[1], 1, mask.shape[-1])) # Batch, heads, num_keys, num queries x Batch, heads, 1, num_queries
-    weights = weights / (weights.sum(axis=-1).unsqueeze(-1) + 1e-4) # renormalizing along queries after zeroing out
+    if renormalize: weights = weights / (weights.sum(axis=-1).unsqueeze(-1) + 1e-4) # renormalizing along queries after zeroing out
     if single_key: weights = weights[:, :, 0]
     return weights # batch x heads x keys (if not single key) x queries 
+
+def mask_query(queries, mask, valid, single_key = False):
+    if mask is not None: queries = queries * (mask.unsqueeze(-1) if single_key else mask)
+    if valid is not None: queries = queries * valid.unsqueeze(-1)
+    return queries

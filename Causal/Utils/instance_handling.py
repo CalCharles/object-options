@@ -28,7 +28,7 @@ def compute_likelihood(full_model, batch_size, likelihood_full, done_flags=None,
     if type(likelihood_full) == torch.Tensor:
         if full_model.multi_instanced:
             loss = likelihood_full.reshape(batch_size, -1, obj_dim).sum(dim=-1)
-            if valid is not None: loss = loss * pytorch_model.wrap(valid, cuda=full_model.iscuda)
+            if valid is not None: loss = loss * pytorch_model.wrap(valid, cuda=full_model.iscuda) # TODO: valid might be broken for all case
             if reduced:
                 loss = likelihood_full.reshape(batch_size, -1, obj_dim).sum(dim=-1).max(dim=-1)[0].unsqueeze(1)  * pytorch_model.wrap(done_flags, cuda=full_model.iscuda)# only take the worst object performance
             return loss

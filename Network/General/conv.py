@@ -17,7 +17,7 @@ class ConvNetwork(Network): # basic 1d conv network
 
         if len(self.hs) == 0:
             if self.use_layer_norm: # activation final handles activativation
-                layers = [nn.GroupNorm(1, self.hs[0]), nn.Conv1d(self.object_dim, self.output_dim, 1, bias=args.use_bias)]
+                layers = [nn.GroupNorm(1, self.object_dim), nn.Conv1d(self.object_dim, self.output_dim, 1, bias=args.use_bias)]
             else:
                 layers = [nn.Conv1d(self.object_dim, self.output_dim, 1, bias=args.use_bias)]
         else:

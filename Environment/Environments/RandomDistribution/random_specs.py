@@ -17,4 +17,4 @@ variants = {"default": (False, False, 3, 1, 2, 2, True, False, 0.0, "Gaussian", 
             "multi_passive_small": (False, True, 1, 1, 1, 1, True, True, 0.0, "Gaussian", 0.0005, True, 1, 2)}
 
 
-# discrete_actions, allow uncontrollable, num_objects, multi_instanced, num_related, relate_dynamics, conditional, distribution, noise_percentage, require_passive (dynamics), min live, max live
+# discrete_actions, allow uncontrollable, num_objects, multi_instanced, num_related, relate_dynamics, conditional, conditional_weight, distribution, noise_percentage, require_passive (dynamics), min live, max live

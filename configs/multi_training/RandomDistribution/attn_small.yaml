@@ -33,12 +33,12 @@
     interaction_iters: 0
     # load_intermediate: /hdd/datasets/object_data/multi/randomcond/attn_np_small/temp/
     # save_intermediate: /hdd/datasets/object_data/multi/randomcond/attn_np_small/temp/
-    # save_intermediate: /hdd/datasets/object_data/multi/randomcond/attn_small/temp/
+    save_intermediate: /hdd/datasets/object_data/multi/randomcond/attn_small/temp/
     compare_trace: True
     proximity_epsilon: 7
     use_active_as_passive: True
     passive:
-      passive_iters: 100000
+      passive_iters: 1000000
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
@@ -57,7 +57,7 @@
     net_type: parattn
     init_form: xnorm # -1 dim is num_queries
     pair:
-      final_layers: 256
+      # final_layers: 256
       repeat_layers: True
     embed_inputs: 256
     # embed_inputs: 5
@@ -66,7 +66,7 @@
       # num_heads: 3 # 16
       model_dim: 128
       num_heads: 16
-      num_layers: 3
+      num_layers: 1
       cluster: False
       num_clusters: 0
       attention_dropout: 0.3

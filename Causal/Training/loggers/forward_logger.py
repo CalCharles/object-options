@@ -50,7 +50,7 @@ class forward_logger(Logger):
                 if k not in self.testing_log:
                     self.testing_log[k] = deque(maxlen=self.maxlen)
                 self.testing_log[k].append(test_dict[k])
-        print(self.testing_log)
+        # print(self.testing_log)
 
     def log(self, i, loss, raw_likelihood, weighted_likelihood, 
                     raw_likelihood_expanded, trace, weight_rate, dones,
@@ -109,7 +109,7 @@ class forward_logger(Logger):
                 # self.tensorboard_logger.add_scalar("Success/"+self.name + "_h/m", np.sum(self.success)/miss_hit, i)
                 self.tensorboard_logger.add_scalar("Weighted_likelihood/" +self.type, np.mean(self.true_weighted_likelihood), i)
                 # log the loss values
-                print(self.testing_log)
+                # print(self.testing_log)
 
                 for k in self.testing_log.keys():
                     print(k, np.mean(self.testing_log[k]))

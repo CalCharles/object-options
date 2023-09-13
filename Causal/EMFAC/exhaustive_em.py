@@ -1,7 +1,9 @@
 # Algorithm 0:
 from itertools import combinations, chain
 import numpy as np
-from Environment.Environments.Pusher1D.pusher1D import Pusher1D 
+from Environment.Environments.Pusher1D.pusher1D import Pusher1D
+from Environment.Environments.ACDomains.Domains.forest_fire import ForestFire
+import sys
 
 def all_subsets(n):
     return list(chain(*[combinations(range(n), ni) for ni in range(n+1)]))
@@ -48,6 +50,7 @@ def compute_possible(environment):
     # print(all_combinations)
 
     def check_valid(comb, num): # checks if a combination of binary assignments is valid
+        print(comb)
         for i in range(len(comb)-1):
             for j in range(i+1,len(comb)):
                 # print(i, j, comb[i], comb[j], all(np.isin(np.array(comb[i]),np.array(comb[j]))))
@@ -56,25 +59,33 @@ def compute_possible(environment):
         all_covered_states = list(set(np.array(comb).flatten()))
         all_covered_states = sum([list(ac) for ac in all_covered_states if len(ac) > 0], start=list())
         all_covered_states.sort()
-        if comb[0] == (0,2,3): print(comb, all_covered_states)
+        # if comb[0] == (0,2,3): print(comb, all_covered_states)
         # print(all_covered_states)
         return len(all_covered_states) == len(all_states)
 
 
     valid_combinations = list()
+    print("all combinations", len(all_combinations))
     for comb in all_combinations:
         if check_valid(comb, len(all_states)):
             valid_combinations.append(comb)
+            print(len(valid_combinations), len(all_combinations))
     cost = list()
     for valid_combination in valid_combinations:
         cost.append(np.sum(np.array([np.sum(bin) for bin in all_binaries]) * np.array([len(c) for c in valid_combination])))
         # print(valid_combination, cost[-1])
     min_cost = min(cost)
+    print("min cost combinations")
     for valid_combination, c in zip(valid_combinations, cost):
         if c == min_cost:
             print(valid_combination, c)
 
 
 if __name__ == '__main__':
-    env = Pusher1D()
+    env_name = sys.argv[1]
+    print(env_name)
+    if env_name == "Pusher1D":
+        env = Pusher1D()
+    elif env_name == "ForestFire":
+        env = ForestFire()
     compute_possible(env) 

@@ -2,9 +2,9 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /hdd/datasets/object_data/full/randomdist/conditional/relaxed2/log/inter.log
-    # load_dir: /hdd/datasets/object_data/full/breakout/relaxed/testrun/
-    save_dir: /hdd/datasets/object_data/full/randomdist/conditional/relaxed2/
+    log_filename: /hdd/datasets/object_data/full/randomdist/conditional/parmixed/log/inter.log
+    # load_dir: /hdd/datasets/object_data/full/breakout/parmixed/testrun/
+    save_dir: /hdd/datasets/object_data/full/randomdist/conditional/parmixed/
   environment:
     env: RandomDistribution
     variant: conditional
@@ -23,8 +23,8 @@
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    # load_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/relaxed/temp/
-    save_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/relaxed/temp2/
+    # load_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/parmixed/temp/
+    save_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/parmixed/temp2/
     compare_trace: True
     proximity_epsilon: 7
     passive:
@@ -38,7 +38,7 @@
       inline_iters: 1 0 0
       interaction_weighting: 100 -1
       interaction_schedule: 3000
-      intrain_passive: 1
+      # intrain_passive: 1
       # weighting: 0 1 1 1000
   full_inter:
     object_id: True
@@ -64,10 +64,11 @@
       cluster: False
       num_clusters: 0
       attention_dropout: 0.1
-      merge_function: sum
+      merge_function: max
       mask_mode: query
       append_keys: True
       no_hidden: True
+      renormalize: False
     optimizer:
       lr: .0001
       alt_lr: .00001

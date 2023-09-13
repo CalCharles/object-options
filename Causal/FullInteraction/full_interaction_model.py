@@ -99,7 +99,7 @@ def get_params(model, full_args, is_pair, multi_instanced, total_inter_size, tot
 class FullNeuralInteractionForwardModel(NeuralInteractionForwardModel):
     def __init__(self, args, target, environment, causal_extractor, normalization):
         super().__init__(args, target, environment, causal_extractor, normalization, get_params, "full")
-        self.valid_indices = np.array([i for i, name in enumerate(environment.all_names) if name == self.name])
+        self.valid_indices = np.array([i for i, name in enumerate(environment.all_names) if name.find(self.name) != -1])
 
     def regenerate(self, extractor, norm, environment):
         super().regenerate(extractor, norm, environment)

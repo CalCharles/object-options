@@ -46,11 +46,13 @@ network_args = {
         "num_heads": 0,
         "num_layers": 1,
         "attention_dropout": 0.0,
+        "mask_mode": "attn", # where the mask is applied, either 'query' or 'attn'
         "gumbel_attention": -1.0, # if a gumbel softmax is used at the attention level
         "needs_encoding": True, # should be set in init, default value here
         "merge_function": "cat", # the function for merging together the heads
         "append_keys": False, # appends the keys to the values
         "no_hidden": False, # adds no hidden layers to the key, query or value operations
+        "renormalize": False, # Normalizes the attention weights after masking and valid
     },
     "input_expand": {
         "include_relative": False,

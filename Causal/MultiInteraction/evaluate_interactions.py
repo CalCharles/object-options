@@ -20,6 +20,7 @@ def evaluate_weights(weights, clip_value=-1):
     return pytorch_model.unwrap(live_rate), pytorch_model.unwrap(per_weights), pytorch_model.unwrap(per_weights.sum(dim=1).mean(dim=0))
 
 BATCH_SIZE = 1024
+CLIP_VALUE = -1
 
 def evaluate_buffer(num_iters, full_model, buffer, object_buffer, args, environment, sampling_mode=False):
     all_inters = list()
@@ -58,8 +59,8 @@ def evaluate_buffer(num_iters, full_model, buffer, object_buffer, args, environm
             usable_idxes = np.nonzero(given_valid.squeeze() * valid.squeeze() * (1-batch.done).squeeze())
             
             # evaluate weight statistics using only usable idxes
-            _, per_weights, average_weights = evaluate_weights(full_weights[usable_idxes], clip_value=-1)
-            mask_live, mask_per_weights, _ = evaluate_weights(masked_weights, clip_value=-1)
+            _, per_weights, average_weights = evaluate_weights(full_weights[usable_idxes], clip_value=CLIP_VALUE)
+            mask_live, mask_per_weights, _ = evaluate_weights(masked_weights[usable_idxes], clip_value=CLIP_VALUE)
             print(per_weights.shape)
 
             uidxes = np.random.choice(np.arange(len(usable_idxes[0])), size=(30,), replace= False)
@@ -67,6 +68,7 @@ def evaluate_buffer(num_iters, full_model, buffer, object_buffer, args, environm
             # tstidxes = np.random.choice(usable_idxes[0], size=(30,), replace=False)
 
             target = target.reshape(len(batch), inter_masks.shape[1], -1)
+            print(full_weights[usable_idxes][:5], masked_weights[usable_idxes][:5])
             print("index, valid, full-tar, given-tar, full-given, per_weight, dist, inter, trace")
             print(comb, given_mask[0], average_weights, mask_live,
                     np.concatenate([np.expand_dims(np.expand_dims(idxes[tstidxes], axis=-1), axis=-1), np.expand_dims(valid[tstidxes], axis=-1), 

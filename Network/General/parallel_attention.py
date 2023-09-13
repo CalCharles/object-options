@@ -9,7 +9,7 @@ from Network.network_utils import reduce_function, get_acti, pytorch_model, cuda
 from Network.General.mlp import MLPNetwork
 from Network.General.conv import ConvNetwork
 from Network.General.pair import PairNetwork
-from Network.General.attn_utils import evaluate_key_query
+from Network.General.attn_utils import evaluate_key_query, mask_query
 
 class MultiHeadAttentionParallelLayer(Network):
     def __init__(self, args):
@@ -27,6 +27,7 @@ class MultiHeadAttentionParallelLayer(Network):
         self.append_keys = args.mask_attn.append_keys
         self.no_hidden = args.mask_attn.no_hidden
         self.gumbel = args.mask_attn.gumbel_attention
+        self.renormalize = args.mask_attn.renormalize
 
         # process all keys at once
         key_args = copy.deepcopy(args)
@@ -101,14 +102,15 @@ class MultiHeadAttentionParallelLayer(Network):
         values = values.reshape(batch_size, num_keys * num_queries, self.num_heads, self.model_dim).transpose(1,2) # batch x num_heads x num_keys * num_queries x model_dim
         values = values.transpose(-1,-2).reshape(batch_size, self.num_heads, self.model_dim, num_keys, num_queries).transpose(2,3).transpose(3,4) # batch x num_heads x num_keys x num_queries x model_dim
         # print(values.shape, keys.shape, queries.shape, mask.shape, valid)
-
         if query_final: # uses a sigmoid for weights
-            weights = evaluate_key_query(torch.sigmoid, keys, queries, mask, valid, single_key=False, gumbel=self.gumbel) # batch x heads x keys x queries
+            weights = evaluate_key_query(torch.sigmoid, keys, queries, mask, valid, single_key=False, gumbel=self.gumbel, renormalize=self.renormalize) # batch x heads x keys x queries
             # batch x heads x keys x queries x 1 * batch x heads x keys x queries x model_dim = batch x heads x keys x queries x model_dim
             values = (weights.unsqueeze(-1) * values )
+            if self.merge_function == 'cat': values = values.transpose(4,3).transpose(3,2)
             values = reduce_function(self.merge_function, values, dim=1) # batch x keys x queries x model_dim (merges the heads)
+            if self.merge_function == 'cat': values = values.transpose(1,2).transpose(2,3)
         else: # sum along the query dimension (already normalized by weights) and apply the final network
-            weights = evaluate_key_query(self.softmax, keys, queries, mask, valid, single_key=False, gumbel=self.gumbel) # batch x heads x keys x queries
+            weights = evaluate_key_query(self.softmax, keys, queries, mask, valid, single_key=False, gumbel=self.gumbel, renormalize=self.renormalize) # batch x heads x keys x queries
             # batch x heads x keys x queries x 1 * batch x heads x keys x queries x model_dim = batch x heads x keys x queries x model_dim
             values = (weights.unsqueeze(-1) * values )
             # print("after", values)
@@ -167,14 +169,14 @@ class ParallelMaskedAttentionNetwork(Network):
         self.model_dim = args.mask_attn.model_dim
         self.embed_dim = args.embed_inputs
         concatenate_values = args.mask_attn.merge_function == "cat"
-        if self.embed_dim <= 0:
-            if concatenate_values:
-                self.embed_dim = self.model_dim * args.mask_attn.num_heads
-            else:
-                self.embed_dim = self.model_dim
+        # if self.embed_dim <= 0:
+        #     if concatenate_values:
+        #         self.embed_dim = self.model_dim * args.mask_attn.num_heads
+        #     else:
+        #         self.embed_dim = self.model_dim
         args.embed_inputs = self.embed_dim
 
-        self.final_dim = self.embed_dim if concatenate_values else self.model_dim
+        self.final_dim = self.embed_dim * args.mask_attn.num_heads if concatenate_values else self.model_dim
         
         
         self.return_mask = args.mask_attn.return_mask

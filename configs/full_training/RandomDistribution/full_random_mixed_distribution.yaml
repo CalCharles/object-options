@@ -2,22 +2,23 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /nfs/data/calebc/object_data/full/randomdist/default/mixed/log/inter.log
-    # load_dir: /nfs/data/calebc/object_data/full/breakout/mixed/testrun/
-    save_dir: /nfs/data/calebc/object_data/full/randomdist/mixed/default/
+    log_filename: /hdd/datasets/object_data/full/randomdist/default/mixed/log/inter.log
+    # load_dir: /hdd/datasets/object_data/full/breakout/mixed/testrun/
+    save_dir: /hdd/datasets/object_data/full/randomdist/mixed/default/
   environment:
     env: RandomDistribution
-    load_environment: /hdd/datasets/object_data/RandomDistribution/random/
+    load_environment: /hdd/datasets/object_data/RandomDistribution/random_test/
   torch:
     gpu: 0
     no_cuda: False
   train:
     train: True
-    num_frames: 100000
+    num_frames: 10000
     train_test_order: time
-    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random/
-    num_iters: 1000
+    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_test/
+    num_iters: 2000
     batch_size: 256
+    # batch_size: 1
   inter:
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
@@ -27,7 +28,7 @@
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 100
+      passive_iters: 1000
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
@@ -41,13 +42,17 @@
       intrain_passive: True
   full_inter:
     object_id: True
-    lasso_lambda: 5 0.0 0.5 100 1000
+    lasso_lambda: 3 0.0 0.0 0 1000
     mixed_interaction: mixed
     soft_distribution: Identity
+    train_names: ogzncsrsf
+    adaptive_lasso: 3
+    use_active_as_passive: True
   interaction_net:
-    hidden_sizes: 512 256 256 128 128
+    hidden_sizes: 128 256
     net_type: keypair
     init_form: xnorm
+    embed_inputs: 128
     optimizer:
       lr: .0001
       alt_lr: .0001

@@ -42,6 +42,7 @@ class Environment(gym.Env):
 
         # factorized state properties
         self.all_names = [] # must be initialized, the names of all the objects including multi-instanced ones
+        self.valid_names = list() # must be initialized, the names of all objects used in a particular trajectory. The environment should treat as nonexistent objects which are not part of this list
         self.num_objects = -1 # should be defined if valid, the number of objects (or virtual objects) in the flattened obs
         self.object_names = [] # must be initialized, a list of names that controls the ordering of things
         self.object_sizes = dict() # must be initialized, a dictionary of name to length of the state
@@ -148,9 +149,7 @@ class Environment(gym.Env):
         self.step(action)
         return self.current_trace(names)
 
-    def get_full_trace(self, factored_state, action):
-        self.set_from_factored_state(factored_state)
-        self.step(action)
+    def get_full_current_trace(self):
         traces = dict()
         all_inter_names = [n for n in self.all_names if n not in {"Reward", "Done"}]
         for target in self.all_names:
@@ -160,6 +159,13 @@ class Environment(gym.Env):
                                              or (val == target) # add self interactions
                                              ) for val in all_inter_names])
             traces[target] = target_traces
+        return traces
+
+    def get_full_trace(self, factored_state, action):
+        self.set_from_factored_state(factored_state)
+        self.step(action)
+        all_inter_names = [n for n in self.all_names if n not in {"Reward", "Done"}]
+        traces = self.get_full_current_trace()
         return traces
 
     def demonstrate(self):
@@ -180,6 +186,15 @@ class Environment(gym.Env):
         # estring += "Reward:" + str(float(extracted_state["Reward"])) + "\t"
         # estring += "Done:" + str(int(extracted_state["Done"])) + "\t"
         return estring
+
+    def valid_binary(self, valid_names):
+        return np.array([(1 if n in valid_names else 0) for n in self.all_names])
+
+    def name_indices(self, names):
+        indices = list()
+        for n in names:
+            indices.append(self.all_names.find(n))
+        return indices
 
 class Done():
     def __init__(self):

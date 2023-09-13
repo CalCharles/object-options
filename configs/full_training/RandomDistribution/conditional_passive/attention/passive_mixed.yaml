@@ -2,9 +2,9 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /hdd/datasets/object_data/full/randomdist/conditional_passive/mixed/log/inter.log
-    # load_dir: /hdd/datasets/object_data/full/breakout/mixed/testrun/
-    save_dir: /hdd/datasets/object_data/full/randomdist/conditional_passive/mixed/
+    log_filename: /hdd/datasets/object_data/full/randomdist/conditional_passive/attn/mixed/log/inter.log
+    # load_dir: /hdd/datasets/object_data/full/breakout/attn/mixed/testrun/
+    save_dir: /hdd/datasets/object_data/full/randomdist/conditional_passive/attn/mixed/
   environment:
     env: RandomDistribution
     variant: conditional_passive
@@ -14,7 +14,8 @@
     no_cuda: False
   train:
     train: True
-    num_frames: 10000
+    num_frames: 100000
+    # num_frames: 1000
     train_test_order: time
     load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional_passive/
     num_iters: 50000
@@ -23,12 +24,12 @@
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    # load_intermediate: /hdd/datasets/object_data/full/randomdist/conditional_passive/mixed/temp/
-    save_intermediate: /hdd/datasets/object_data/full/randomdist/conditional_passive/mixed/temp/
+    # load_intermediate: /hdd/datasets/object_data/full/randomdist/conditional_passive/attn/mixed/temp/
+    save_intermediate: /hdd/datasets/object_data/full/randomdist/conditional_passive/attn/mixed/temp/
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 2000
+      passive_iters: 5000
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
@@ -47,17 +48,31 @@
     soft_distribution: Identity
     use_active_as_passive: True
     train_names: efbgqekdc
-    adaptive_lasso: 10
+    adaptive_lasso: 5
   interaction_net:
-    hidden_sizes: 256 512
-    net_type: keypair
+    hidden_sizes: 256
+    net_type: maskattn
     init_form: xnorm
-    embed_inputs: 1024
+    embed_inputs: 128
+    pair:
+      repeat_layers: True
+      final_layers: 128
+    mask_attn:
+      model_dim: 128
+      num_heads: 16
+      num_layers: 1
+      cluster: False
+      num_clusters: 0
+      attention_dropout: 0.3
+      merge_function: cat
+      gumbel_attention: -1
+      append_keys: True
+      no_hidden: True
     optimizer:
       lr: .00003
       alt_lr: .000005
       eps: .00001
       alpha: 0.99
       betas: 0.9 0.999
-      weight_decay: 0.0001
+      weight_decay: 0.00
 ...

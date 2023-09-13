@@ -19,11 +19,11 @@ class interaction_logger(Logger):
 
     def log_gradient(self, gradient_dict):
         # losses may differ for values
-        for k in test_dict.keys():
-            if len(test_dict[k].squeeze().shape) == 0:
+        for k in gradient_dict.keys():
+            if len(gradient_dict[k].squeeze().shape) == 0:
                 if k not in self.testing_log:
                     self.testing_log[k] = deque(maxlen=self.maxlen)
-                self.testing_log[k].append(test_dict[k])
+                self.testing_log[k].append(gradient_dict[k])
         print(self.testing_log)
 
 
@@ -85,6 +85,10 @@ class interaction_logger(Logger):
                 # self.tensorboard_logger.add_scalar("Success/"+self.name, np.sum(self.success)/np.sum(self.current_term), i)
                 # self.tensorboard_logger.add_scalar("Success/"+self.name + "_h/m", np.sum(self.success)/miss_hit, i)
                 self.tensorboard_logger.add_scalar("interaction_loss" +"/" + self.name, np.mean(self.loss), i) # TODO add other losses
+                # self.tensorboard_logger.add_scalar("nbinary_FP" +"/" + self.name, np.mean(self.loss), i) # TODO add other losses
+                # self.tensorboard_logger.add_scalar("interaction_loss" +"/" + self.name, np.mean(self.loss), i) # TODO add other losses
+                # self.tensorboard_logger.add_scalar("interaction_loss" +"/" + self.name, np.mean(self.loss), i) # TODO add other losses
+
                 # log the loss values
                 # print(self.testing_log)
                 self.tensorboard_logger.flush()
