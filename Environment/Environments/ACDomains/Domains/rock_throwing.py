@@ -7,7 +7,7 @@ def suzy(objects):
     objects["SuzyHit"].attribute = objects["SuzyThrow"].attribute
 
 def billy(objects):
-    objects["BillyHit"].attribute = int(objects["SuzyHit"].attribute or objects["BillyThrow"].attribute)
+    objects["BillyHit"].attribute = int(objects["SuzyHit"].attribute == 0 and objects["BillyThrow"].attribute == 1)
 
 def bottle(objects):
     objects["Bottle"].attribute = int(objects["SuzyHit"].attribute or objects["BillyHit"].attribute)
@@ -21,4 +21,7 @@ class RockThrowing(ACDomain):
                         "BillyThrow": ACObject("BillyThrow", 2),
                         "Bottle": ACObject("Bottle", 2)} # dict of name to value
         self.binary_relations = [suzy, billy, bottle] # must get set prior to calling super (), the order follows the order of operations
+        self.relation_outcome = ["SuzyHit", "BillyHit", "Bottle"]
+        self.passive_mask = np.array([0,0,0,0])
+        self.outcome_variable = "Bottle"
         super().__init__(frameskip, variant, fixed_limits)

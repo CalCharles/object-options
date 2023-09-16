@@ -13,4 +13,7 @@ class HaltCharge(ACDomain):
                         "Sergeant": ACObject("Sergeant", 2),
                         "Corporal": ACObject("Corporal", 2)} # dict of name to value
         self.binary_relations = [corporal] # must get set prior to calling super (), the order follows the order of operations
+        self.relation_outcome = ["Corporal"]
+        self.passive_mask = np.array([0,0])
+        self.outcome_variable = "Corporal"
         super().__init__(frameskip, variant, fixed_limits)

@@ -9,12 +9,15 @@ def track(objects):
 def arrive(objects):
     objects["Arrive"].attribute = 1 if objects["Track"].attribute != 2 else 0
 
-class HaltCharge(ACDomain):
+class Train(ACDomain):
     def __init__(self, frameskip = 1, variant="", fixed_limits=False):
         self.all_names = ["Break", "Switch", "Track", "Arrive"]
         self.objects = {"Break": ACObject("Break", 2),
                         "Switch": ACObject("Switch", 2),
                         "Track": ACObject("Track", 3),
                         "Arrive": ACObject("Arrive", 2)} # dict of name to value
-        self.binary_relations = [corporal] # must get set prior to calling super (), the order follows the order of operations
+        self.binary_relations = [track, arrive] # must get set prior to calling super (), the order follows the order of operations
+        self.relation_outcome = ["Track", "Arrive"]
+        self.passive_mask = np.array([0,0,0])
+        self.outcome_variable = "Arrive"
         super().__init__(frameskip, variant, fixed_limits)

@@ -20,5 +20,8 @@ class Voting(ACDomain):
                         "A4": ACObject("A4", 2),
                         "A5": ACObject("A5", 2),
                         "Outcome": ACObject("Outcome", 2)} # dict of name to value
-        self.binary_relations = [suzy, billy, bottle] # must get set prior to calling super (), the order follows the order of operations
+        self.binary_relations = [outcome] # must get set prior to calling super (), the order follows the order of operations
+        self.relation_outcome = ["Outcome"]
+        self.passive_mask = np.array([0,0,0,0,0])
+        self.outcome_variable = "Outcome"
         super().__init__(frameskip, variant, fixed_limits)
