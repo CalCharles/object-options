@@ -51,6 +51,13 @@ MASKING_FORMS = {
     "hard": 3,
 }
 
+MIXING_DISTRIBUTIONS = {
+    "weighting": "Identity",
+    "relaxed": "RelaxedBernoulli",
+    "mixed": "Identity",
+    "hard": "Identity",
+}
+
 def regenerate(append_id, environment, all=False):
     extractor = CausalPadExtractor(environment, append_id, no_objects=not all)
     # norm = FullNormalizationModule(environment.object_range, environment.object_dynamics, name, environment.object_instanced, environment.object_names)
@@ -104,7 +111,7 @@ class NeuralInteractionForwardModel(nn.Module):
 
         # set the distributions
         self.dist = assign_distribution("Gaussian") # TODO: only one kind of dist at the moment
-        self.relaxed_inter_dist = assign_distribution(args.full_inter.soft_distribution)
+        self.relaxed_inter_dist = assign_distribution(MIXING_DISTRIBUTIONS[args.full_inter.mixed_interaction])
         self.dist_temperature = args.full_inter.dist_temperature
         self.inter_dist = assign_distribution("Bernoulli")
         self.mixing = args.full_inter.mixed_interaction# mostly only used for training

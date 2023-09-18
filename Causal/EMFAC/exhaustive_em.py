@@ -115,6 +115,19 @@ def get_all_disjoint_sets(iterable):
 
 global counter
 
+def binary_state_compatibility(all_binaries, all_states, environment):
+    # returns the compatibility (measure of necessity) between the
+    # binary and every other state
+    cost = 0
+    compatibility = dict()
+    for i, binary in enumerate(all_binaries):
+        compatibility[i] = list()
+        for j, state in enumerate(all_states):
+            pos_comp, neg_comp, cf_cost = environment.evaluate_split_counterfactuals(binary, state)
+            compatibility[i].append((pos_comp, neg_comp))
+            cost += cf_cost
+    print(cost)
+    return compatibility
 
 def compute_possible_efficient(environment):
     # a binary includes the object, or does not
@@ -126,19 +139,6 @@ def compute_possible_efficient(environment):
     passive_mask = environment.passive_mask
     all_subsets = get_all_subsets(len(all_states))
     
-    def binary_state_compatibility(all_binaries, all_states, environment):
-        # returns the compatibility (measure of necessity) between the
-        # binary and every other state
-        cost = 0
-        compatibility = dict()
-        for i, binary in enumerate(all_binaries):
-            compatibility[i] = list()
-            for j, state in enumerate(all_states):
-                pos_comp, neg_comp, cf_cost = environment.evaluate_split_counterfactuals(binary, state)
-                compatibility[i].append((pos_comp, neg_comp))
-                cost += cf_cost
-        print(cost)
-        return compatibility
     compatibility = binary_state_compatibility(all_binaries, all_states, environment)
     for k in compatibility.keys():
         for s, c in enumerate(compatibility[k]):
@@ -228,6 +228,22 @@ def compute_possible_efficient(environment):
             print(len(ab), np.array(convert_subset(ab, all_binaries)), [(np.array(convert_subset(ss, all_states)), np.array(convert_subset(ss, outcomes))) for ss in convert_subset(asub, all_subsets)], c)
         cost_counter[c] += 1
     print("num per cost", cost_counter)
+
+def compute_normality_binaries(environment):
+    all_binaries = np.array(np.meshgrid(*[[0,1] for i in range(environment.num_objects)])).T.reshape(-1,environment.num_objects)
+    use_zero = environment.use_zero
+    if not use_zero: all_binaries = all_binaries[1:]
+    all_states = environment.all_states
+    outcomes = environment.outcomes
+    passive_mask = environment.passive_mask
+    all_subsets = get_all_subsets(len(all_states))
+    
+    # assigns each binary-state pair with a splitting value, indexed by binary
+    compatibility = binary_state_compatibility(all_binaries, all_states, environment)
+
+    # Find a minimum cost valid binary for each state
+    
+
 
 def convert_subset(subset, all_subsets, sort = False):
     if sort: subset.sort()

@@ -87,11 +87,11 @@ class full_interaction_logger(Logger):
                 self.tensorboard_logger.add_scalar("interaction_loss" +"/" + self.name, np.mean(self.loss), i) # TODO add other losses
                 if self.sum_flat_error is not None:
                     for ii in range(len(self.sum_flat_error)):
-                        self.tensorboard_logger.add_scalar("flat error" +"/" + self.name + str(ii), self.sum_flat_error / self.total_seen, i) # TODO add other losses
-                        self.tensorboard_logger.add_scalar("soft error" +"/" + self.name + str(ii), self.sum_soft_error / self.total_seen, i) # TODO add other losses
-                        self.tensorboard_logger.add_scalar("hard error" +"/" + self.name + str(ii), self.sum_hard_error / self.total_seen, i) # TODO add other losses
-                        self.tensorboard_logger.add_scalar("soft FP" +"/" + self.name + str(ii), self.sum_soft_over / self.total_seen, i) # TODO add other losses
-                        self.tensorboard_logger.add_scalar("soft FN" +"/" + self.name + str(ii), self.sum_soft_under / self.total_seen, i) # TODO add other losses
+                        self.tensorboard_logger.add_scalar("flat error" +"/" + self.name + str(ii), self.sum_flat_error[ii] / self.total_seen, i) # TODO add other losses
+                        self.tensorboard_logger.add_scalar("soft error" +"/" + self.name + str(ii), self.sum_soft_error[ii] / self.total_seen, i) # TODO add other losses
+                        self.tensorboard_logger.add_scalar("hard error" +"/" + self.name + str(ii), self.sum_hard_error[ii] / self.total_seen, i) # TODO add other losses
+                        self.tensorboard_logger.add_scalar("soft FP" +"/" + self.name + str(ii), self.sum_soft_over[ii] / self.total_seen, i) # TODO add other losses
+                        self.tensorboard_logger.add_scalar("soft FN" +"/" + self.name + str(ii), self.sum_soft_under[ii] / self.total_seen, i) # TODO add other losses
                     self.tensorboard_logger.add_scalar("entropy" +"/" + self.name + str(ii), self.sum_soft_entropy/self.total_seen, i) # TODO add other losses
 
                 # log the loss values

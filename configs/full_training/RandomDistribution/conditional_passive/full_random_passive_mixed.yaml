@@ -14,7 +14,7 @@
     no_cuda: False
   train:
     train: True
-    num_frames: 10000
+    num_frames: 100000
     train_test_order: time
     load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional_passive/
     num_iters: 50000

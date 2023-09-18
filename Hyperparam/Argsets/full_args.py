@@ -128,7 +128,7 @@ full_args = {
         "object_id": True, # appends a 1 hot identifier of the object class to the object
         "lasso_lambda": [1, 0, 0, -1, -1], # lasso_lambda, open mask forcing, 0.5 mask forcing, one mask schedule, masking schedule
         "lasso_order": 1,
-        "adaptive_lasso": -1, # adapts the lasso value according to the magnitude of the active interaction loss (multiplied by this hyperparameter)
+        "adaptive_lasso": -1.0, # adapts the lasso value according to the magnitude of the active interaction loss (multiplied by this hyperparameter)
         "dual_lasso": [0,0],
         "entropy_lambda": [0,0], # penalizes the individual values of the binary mask for having high entropy (close to 0.5)
         "soft_distribution": "Identity",

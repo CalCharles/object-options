@@ -63,8 +63,9 @@
       num_layers: 1
       cluster: False
       num_clusters: 0
-      attention_dropout: 0.3
-      merge_function: cat
+      attention_dropout: 0.1
+      merge_function: sum
+      mask_mode: query
       gumbel_attention: -1
       append_keys: True
       no_hidden: True

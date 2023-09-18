@@ -14,7 +14,7 @@
     no_cuda: False
   train:
     train: True
-    num_frames: 10000
+    num_frames: 100000
     train_test_order: time
     load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional/
     num_iters: 50000
@@ -54,7 +54,7 @@
     init_form: xnorm
     pair:
       reduce_function: sum
-    embed_inputs: 512
+    embed_inputs: 128
     optimizer:
       lr: .0001
       alt_lr: .00001
