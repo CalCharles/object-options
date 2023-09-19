@@ -2,15 +2,18 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /hdd/datasets/object_data/full/randomdist/conditional/mixed/log/inter.log
-    # load_dir: /hdd/datasets/object_data/full/breakout/mixed/testrun/
-    save_dir: /hdd/datasets/object_data/full/randomdist/conditional/mixed/
+    # log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/full/randomdist/conditional/mixed/log/inter.log
+    # # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/breakout/mixed/testrun/
+    # save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/randomdist/conditional/mixed/
+    log_filename:  /hdd/datasets/object_data/full/randomdist/conditional/mixed/log/inter.log
+    # load_dir:  /hdd/datasets/object_data/full/breakout/mixed/testrun/
+    save_dir:  /hdd/datasets/object_data/full/randomdist/conditional/mixed/
   environment:
     env: RandomDistribution
     variant: conditional
     load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional2/
   torch:
-    gpu: 1
+    gpu: 0
     no_cuda: False
   train:
     train: True
@@ -23,8 +26,8 @@
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    # load_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/mixed/temp/
-    # save_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/mixed/temp/
+    # load_intermediate:  /hdd/datasets/object_data/full/randomdist/conditional/mixed/temp/
+    # save_intermediate:  /hdd/datasets/object_data/full/randomdist/conditional/mixed/temp/
     compare_trace: True
     proximity_epsilon: 7
     passive:
