@@ -120,7 +120,6 @@ class ACDomain(Environment):
             if len(counterfactuals) == 0: # the zero mask
                 return default, 0
             state_outcome = counterfactuals[state_tuple]
-            print(counterfactuals, state_outcome)
             state_diff = np.sum([1 for outcome in counterfactuals.values() if outcome != state_outcome]).astype(float)
             return state_diff / len(counterfactuals), cost
         

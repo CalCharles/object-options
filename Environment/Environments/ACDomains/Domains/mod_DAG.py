@@ -5,7 +5,8 @@ from Environment.Environments.ACDomains.ac_domain import ACDomain, ACObject
 
 mod_variants = {
     "and": [3, [[[0,1]],[2], ["mul"], [[]]]],
-    "or": [3, [[[0,1]],[2], ["ineq"], [[1, "geq"]]]]
+    "or": [3, [[[0,1]],[2], ["ineq"], [[1, "geq"]]]],
+    "xor": [3, [[[0,1]],[2], ["sum"], [[]]]],
 } # parents, targets, relation, hyperparams
 
 

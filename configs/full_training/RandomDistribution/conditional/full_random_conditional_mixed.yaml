@@ -8,15 +8,15 @@
   environment:
     env: RandomDistribution
     variant: conditional
-    load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional/
+    load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional2/
   torch:
     gpu: 1
     no_cuda: False
   train:
     train: True
-    num_frames: 100000
+    num_frames: 10000
     train_test_order: time
-    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional/
+    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional2/
     num_iters: 50000
     batch_size: 256
   inter:
@@ -46,7 +46,7 @@
     mixed_interaction: mixed
     soft_distribution: Identity
     use_active_as_passive: True
-    train_names: fbxlsxtwc
+    train_names: tiymaysce
     adaptive_lasso: 1
   interaction_net:
     hidden_sizes: 256 256

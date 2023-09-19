@@ -129,7 +129,7 @@ def binary_state_compatibility(all_binaries, all_states, environment):
     print(cost)
     return compatibility
 
-def compute_possible_efficient(environment):
+def compute_possible_efficient(environment, compatibility_constant):
     # a binary includes the object, or does not
     all_binaries = np.array(np.meshgrid(*[[0,1] for i in range(environment.num_objects)])).T.reshape(-1,environment.num_objects)
     use_zero = environment.use_zero
@@ -168,14 +168,26 @@ def compute_possible_efficient(environment):
             if not invalid: # append the index of the binary
                 valid_binaries.append(i)
         return valid_binaries
-
+    
+    def check_compatible(subset, binaries, compatibility, compatibility_constant):
+        if compatibility_constant < 0: return binaries # don't use compatibility if constant negative
+        valid_binaries = list()
+        for i in binaries:# binaries identified by index
+            compatible = compatibility[i]
+            subset_compatible = True
+            for s in subset:
+                if compatible[s][0] < compatibility_constant or compatible[s][1] > (1-compatibility_constant):
+                    subset_compatible = False
+                    break
+            if subset_compatible: valid_binaries.append(i)
+        return valid_binaries
     # create a mapping of every subset to each of its valid binaries
     subset_binary = dict()
     subset_index_mapping = dict()
     print("num subsets", len(list(all_subsets)))
     print("num binaries", len(all_binaries))
     for i, subset in enumerate(all_subsets):
-        subset_binary[i] = check_valid(subset, all_binaries)
+        subset_binary[i] = check_compatible(subset, check_valid(subset, all_binaries), compatibility, compatibility_constant)
         subset_index_mapping[tuple(subset)] = i
     # create all disjoint, complete partitionings of the subsets
     disjoint_sets = list(get_all_disjoint_sets(range(len(all_states))))
@@ -253,6 +265,7 @@ def convert_subset(subset, all_subsets, sort = False):
 
 if __name__ == '__main__':
     env_name = sys.argv[1]
+    compatibility_constant = float(sys.argv[2]) if len(sys.argv) == 3 else -1
     print(env_name)
     if env_name == "Pusher1D":
         env = Pusher1D()
@@ -268,4 +281,4 @@ if __name__ == '__main__':
         env = Train()
     elif env_name == "Voting":
         env = Voting()
-    compute_possible_efficient(env) 
+    compute_possible_efficient(env, compatibility_constant) 
