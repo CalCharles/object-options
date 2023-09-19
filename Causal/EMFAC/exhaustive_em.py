@@ -9,6 +9,7 @@ from Environment.Environments.ACDomains.Domains.gang_shoot import GangShoot
 from Environment.Environments.ACDomains.Domains.halt_charge import HaltCharge
 from Environment.Environments.ACDomains.Domains.train import Train
 from Environment.Environments.ACDomains.Domains.voting import Voting
+from Environment.Environments.ACDomains.Domains.mod_DAG import ModDAG
 import sys
 import time
 
@@ -239,7 +240,9 @@ def compute_possible_efficient(environment, compatibility_constant):
         if c == min_cost:
             print(len(ab), np.array(convert_subset(ab, all_binaries)), [(np.array(convert_subset(ss, all_states)), np.array(convert_subset(ss, outcomes))) for ss in convert_subset(asub, all_subsets)], c)
         cost_counter[c] += 1
-    print("num per cost", cost_counter)
+    costs = [i for i in cost_counter.items()]
+    costs.sort(key=lambda x: x[0])
+    print("num per cost", costs)
 
 def compute_normality_binaries(environment):
     all_binaries = np.array(np.meshgrid(*[[0,1] for i in range(environment.num_objects)])).T.reshape(-1,environment.num_objects)
@@ -266,6 +269,7 @@ def convert_subset(subset, all_subsets, sort = False):
 if __name__ == '__main__':
     env_name = sys.argv[1]
     compatibility_constant = float(sys.argv[2]) if len(sys.argv) == 3 else -1
+    variant = sys.argv[3] if len(sys.argv) == 4 else ""
     print(env_name)
     if env_name == "Pusher1D":
         env = Pusher1D()
@@ -281,4 +285,6 @@ if __name__ == '__main__':
         env = Train()
     elif env_name == "Voting":
         env = Voting()
+    elif env_name == "modDAG":
+        env = ModDAG(variant=variant)
     compute_possible_efficient(env, compatibility_constant) 

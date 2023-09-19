@@ -49,7 +49,7 @@
     mixed_interaction: mixed
     soft_distribution: Identity
     use_active_as_passive: True
-    train_names: tiymaysce
+    train_names: tzzrrnxfv
     adaptive_lasso: 1
   interaction_net:
     hidden_sizes: 256 256
