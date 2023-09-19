@@ -51,7 +51,7 @@ def generate_random(args, save_state = False):
             display_frame(frame, waitkey=10)
         if args.render and args.variant == "proximity" and args.display_frame: display_param(full_state['raw_state'], param=environment.sampler.param[:2], waitkey=100, rescale = 10, dot=False)
         elif args.render and args.display_frame: display_frame(full_state['raw_state'], rescale=10, waitkey=30)
-        if i == args.num_frames - 1: full_state['factored_state']["Done"] = True # force the last factored state to be true
+        if i == args.num_frames - 1: full_state['factored_state']["Done"] = np.array([True]) # force the last factored state to be true
         if record is not None: record.save(full_state['factored_state'], full_state["raw_state"], environment.toString)
         if save_state: state_buffer.append(full_state)
         if i % 1000 == 0: print(i, "fps", i / (time.time() - start))

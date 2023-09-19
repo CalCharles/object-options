@@ -8,15 +8,15 @@
   environment:
     env: RandomDistribution
     variant: conditional
-    load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional/
+    load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDistribution/random_conditional/
   torch:
     gpu: 2
     no_cuda: False
   train:
     train: True
-    num_frames: 10000 # 500000
+    num_frames: 100000 # 500000
     train_test_order: time
-    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional/
+    load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDistribution/random_conditional/
     num_iters: 50000
     batch_size: 256
   inter:
@@ -24,7 +24,7 @@
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
     # load_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/relaxed/temp/
-    save_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/relaxed/temp2/
+    # save_intermediate: /hdd/datasets/object_data/full/randomdist/conditional/relaxed/temp2/
     compare_trace: True
     proximity_epsilon: 7
     passive:
@@ -47,7 +47,7 @@
     use_active_as_passive: True
     mixed_interaction: mixed
     soft_distribution: Identity
-    train_names: fbxlsxtwc
+    train_names: njxjbhwdw
     adaptive_lasso: 3
   interaction_net:
     hidden_sizes: 128

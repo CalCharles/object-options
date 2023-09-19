@@ -8,7 +8,7 @@
   environment:
     env: RandomDistribution
     variant: conditional_passive
-    load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional_passive/
+    load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDistribution/random_conditional_passive/
   torch:
     gpu: 0
     no_cuda: False
@@ -16,7 +16,7 @@
     train: True
     num_frames: 100000
     train_test_order: time
-    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional_passive/
+    load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDistribution/random_conditional_passive/
     num_iters: 50000
     batch_size: 256
   inter:
@@ -24,7 +24,7 @@
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
     # load_intermediate: /hdd/datasets/object_data/full/randomdist/conditional_passive/mixed/temp/
-    save_intermediate: /hdd/datasets/object_data/full/randomdist/conditional_passive/mixed/temp/
+    # save_intermediate: /hdd/datasets/object_data/full/randomdist/conditional_passive/mixed/temp/
     compare_trace: True
     proximity_epsilon: 7
     passive:
@@ -46,7 +46,7 @@
     mixed_interaction: mixed
     soft_distribution: Identity
     use_active_as_passive: True
-    train_names: efbgqekdc
+    train_names: hlodufryk
     adaptive_lasso: 10
   interaction_net:
     hidden_sizes: 256 512

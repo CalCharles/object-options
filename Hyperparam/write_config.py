@@ -124,8 +124,8 @@ def write_multi_config(multi_pth):
         comb_array = np.array([[i for _ in range(len(all_settings_grid))] for i in range(len(all_settings_grid[0]))])
     else: # create a grid search
         comb_array = np.array(np.meshgrid(*[np.array(list(range(len(n)))) for n in all_settings_grid])).T.reshape(-1, len(all_settings_grid))
-    print(all_settings_grid, [np.array(list(range(len(n)))) for n in all_settings_grid], np.array(np.meshgrid(*[np.array(list(range(len(n)))) for n in all_settings_grid])).T.reshape(-1, len(all_settings_grid)))
-    print('comb_array', comb_array, all_settings_grid, len(all_settings_grid), len(all_settings_grid[0]))
+    # print(all_settings_grid, [np.array(list(range(len(n)))) for n in all_settings_grid], np.array(np.meshgrid(*[np.array(list(range(len(n)))) for n in all_settings_grid])).T.reshape(-1, len(all_settings_grid)))
+    # print('comb_array', comb_array, all_settings_grid, len(all_settings_grid), len(all_settings_grid[0]))
     # create a config file corresponding to one combination of indexes
     def set_alt_network_values(base_config, name_path, setv):
         for b in base_config.keys():
