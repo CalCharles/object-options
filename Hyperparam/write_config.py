@@ -116,7 +116,10 @@ def write_multi_config(multi_pth):
         row = 0
         col = 0
         for i in range(sum([len(s) for s in all_settings_grid])):
-            name_array.append(name_paths[row][-1] + str(all_settings_grid[row][col]))
+            params = str(all_settings_grid[row][col])
+            if type(all_settings_grid[row][col]) == list():
+                params = "-".join([str(v) for v in all_settings_grid[row][col]])
+            name_array.append(name_paths[row][-1] + params)
             comb_array[i][row] = col
             col += 1
             if col == len(all_settings_grid[row]):
