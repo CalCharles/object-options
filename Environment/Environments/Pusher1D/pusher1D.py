@@ -6,19 +6,19 @@ import gymnasium as gym
 from Environment.environment import Environment
 from Environment.Environments.ACDomains.ac_domain import ACDomain, ACObject
 
-PUSHER_LEN = 4
+PUSHER_LEN = 3
 def pusher_next(objects):
     nextpusher = objects["Pusher"].attribute + 1 # action_step
     objects["PusherNext"].attribute = objects["Pusher"].attribute
-    if nextpusher != objects["Obstacle"].attribute and (0 <= nextpusher < PUSHER_LEN):
+    if nextpusher != objects["Obstacle"].attribute: #and (0 <= nextpusher < PUSHER_LEN+1):
         objects["PusherNext"].attribute = nextpusher
 
 
 class Pusher1D(ACDomain):
     def __init__(self):
         self.all_names = ["Pusher", "Obstacle", "PusherNext"] # Action
-        self.objects = {"Pusher": ACObject("Pusher", PUSHER_LEN),
-                        "Obstacle": ACObject("Obstacle", PUSHER_LEN+1),
+        self.objects = {"Pusher": ACObject("Pusher", PUSHER_LEN+1),
+                        "Obstacle": ACObject("Obstacle", PUSHER_LEN),
                         "PusherNext": ACObject("PusherNext", PUSHER_LEN)} # dict of name to value
         self.binary_relations = [pusher_next] # must get set prior to calling super (), the order follows the order of operations
         self.relation_outcome = ["PusherNext"]

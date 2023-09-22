@@ -285,6 +285,6 @@ if __name__ == '__main__':
         env = Train()
     elif env_name == "Voting":
         env = Voting()
-    elif env_name == "modDAG":
+    elif env_name == "ModDAG":
         env = ModDAG(variant=variant)
     compute_possible_efficient(env, compatibility_constant) 
