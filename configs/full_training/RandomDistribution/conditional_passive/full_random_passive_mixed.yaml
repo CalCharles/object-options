@@ -18,7 +18,7 @@
     train_test_order: time
     load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDistribution/random_conditional_passive/
     num_iters: 50000
-    batch_size: 256
+    batch_size: 512
   inter:
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
@@ -28,7 +28,7 @@
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 2000
+      passive_iters: 3000
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
@@ -37,7 +37,7 @@
       # inline_iters: 10 0 5000
       inline_iters: 1 0 0
       interaction_weighting: 100 -1
-      interaction_schedule: 25000
+      interaction_schedule: 10000
       # weighting: 0 200000 100 100000
       intrain_passive: 1
   full_inter:
@@ -47,17 +47,20 @@
     soft_distribution: Identity
     use_active_as_passive: True
     train_names: hlodufryk
-    adaptive_lasso: 10
+    adaptive_lasso: 7
   interaction_net:
-    hidden_sizes: 256 512
+    hidden_sizes: 256 256 256
     net_type: keypair
     init_form: xnorm
-    embed_inputs: 1024
+    activation: leakyrelu
+    embed_inputs: 512
+    pair:
+      reduce_function: sum
     optimizer:
-      lr: .00003
-      alt_lr: .000005
+      lr: .0001
+      alt_lr: .00001
       eps: .00001
       alpha: 0.99
       betas: 0.9 0.999
-      weight_decay: 0.0001
+      weight_decay: 0.0
 ...
