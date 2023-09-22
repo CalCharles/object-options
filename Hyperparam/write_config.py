@@ -110,11 +110,13 @@ def write_multi_config(multi_pth):
         print(setting, name_path)
         all_settings_grid.append(convert_single(base_config, name_path, setting))
     # all combinations of indexes
+    name_array = list()
     if match == 0: # create n hot encodings for each of the indices
         comb_array = np.array([[-1 for _ in range(len(all_settings_grid))] for _ in range(sum([len(s) for s in all_settings_grid]))])
         row = 0
         col = 0
         for i in range(sum([len(s) for s in all_settings_grid])):
+            name_array.append(name_paths[row][-1] + str(all_settings_grid[row][col]))
             comb_array[i][row] = col
             col += 1
             if col == len(all_settings_grid[row]):
@@ -136,7 +138,7 @@ def write_multi_config(multi_pth):
                 set_val[name_path[-1]] = setv
 
 
-    def create_config(base_config, combination, num_trials, idx, gpu):
+    def create_config(base_config, combination, num_trials, idx, gpu, comb_name=""):
         config = copy.deepcopy(base_config)
         for c, setting, name_path in zip(combination, all_settings_grid, name_paths):
             set_val = config
@@ -147,7 +149,8 @@ def write_multi_config(multi_pth):
                     set_val = set_val[n]
                 set_val[name_path[-1]] = setting[c]
                 print(name_path[-1], setting[c], c)
-        name = multi_filename + "_".join([str(c) for c in combination])
+        if len(comb_name) == 0: name = multi_filename + "_".join([str(c) for c in combination])
+        else: name = multi_filename + comb_name
         use_gpu = gpu
         trial_configs, trial_names = list(), list()
         for n in range(num_trials):
@@ -172,7 +175,7 @@ def write_multi_config(multi_pth):
     print(comb_array)
     use_gpu = gpu # cycles through GPUs if activated
     for i, combination in enumerate(comb_array):
-        names, configs, use_gpu = create_config(base_config, combination, num_trials, i, use_gpu % cycle_gpu if cycle_gpu > 0 else gpu)
+        names, configs, use_gpu = create_config(base_config, combination, num_trials, i, use_gpu % cycle_gpu if cycle_gpu > 0 else gpu, comb_name = name_array[i] if len(name_array) > 0 else "")
         all_args += configs
         all_names += names
 
