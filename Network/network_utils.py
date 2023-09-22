@@ -121,6 +121,16 @@ class InplaceOperator(nn.Module):
         return self.activation(x)
 
 
+def crelu(x, dim=1):
+    return torch.cat((F.relu(x), F.relu(-x)), dim)
+
+class CReLU(nn.Module):
+    def __init__(self, dim=1):
+        super(CReLU, self).__init__()
+        self.dim = dim
+    def forward(self, x):
+        return torch.cat((F.relu(x), F.relu(-x)), self.dim)
+
 def get_inplace_acti(acti):
     if acti == "relu": return nn.ReLU(inplace=True)
     elif acti == "leakyrelu": return nn.LeakyReLU(inplace=True)
@@ -132,6 +142,7 @@ def get_inplace_acti(acti):
     elif acti == "cos": return InplaceOperator(torch.cos)
     elif acti == "none": return nn.Identity()
     elif acti == "prelu": return nn.PReLU()
+    elif acti == "crelu": return CReLU()
 
 def get_acti(acti):
     if acti == "relu": return F.relu
@@ -144,7 +155,8 @@ def get_acti(acti):
     elif acti == "cos": return torch.cos
     elif acti == "none": return identity
     elif acti == "prelu": return lambda x: F.prelu(x, 0.2) # should not use a not-inplace prelu
-
+    elif acti == "crelu": return crelu
+    
 def reduce_function(red, x, dim=2):
     if red == "sum": x = torch.sum(x, dim=dim)
     elif red == "prod": x = torch.prod(x, dim=dim)

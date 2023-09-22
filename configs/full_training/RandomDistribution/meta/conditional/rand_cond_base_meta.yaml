@@ -10,7 +10,7 @@ metaparam:
   runfile: train_full_interaction.py
   gpu: 0
   match: 0
-  simul_run: 8
+  simul_run: 4
   num_trials: 1
   cycle_gpu: 1
 train:

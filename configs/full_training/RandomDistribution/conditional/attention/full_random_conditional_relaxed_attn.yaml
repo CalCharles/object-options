@@ -47,7 +47,7 @@
     use_active_as_passive: True
     mixed_interaction: mixed
     soft_distribution: Identity
-    train_names: njxjbhwdw
+    train_names: spvhjrupc
     adaptive_lasso: 3
   interaction_net:
     hidden_sizes: 128

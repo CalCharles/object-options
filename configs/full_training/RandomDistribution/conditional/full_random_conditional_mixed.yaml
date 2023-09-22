@@ -5,10 +5,14 @@
     log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/full/randomdist/conditional/mixed/log/inter.log
     # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/breakout/mixed/testrun/
     save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/randomdist/conditional/mixed/
+    # log_filename:  /hdd/datasets/object_data/full/randomdist/conditional/mixed/log/inter.log
+    # # load_dir:  /hdd/datasets/object_data/full/breakout/mixed/testrun/
+    # save_dir:  /hdd/datasets/object_data/full/randomdist/conditional/mixed/
   environment:
     env: RandomDistribution
     variant: conditional
-    load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDistribution/random_conditional/
+    load_environment:  /work/pi_sniekum_umass_edu/calebc/object_data/RandomDistribution/random_conditional/
+    # load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional2/
   torch:
     gpu: 0
     no_cuda: False
@@ -16,15 +20,16 @@
     train: True
     num_frames: 100000
     train_test_order: time
-    load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDistribution/random_conditional/
+    load_rollouts:  /work/pi_sniekum_umass_edu/calebc/object_data/RandomDistribution/random_conditional/
+    # load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional2/
     num_iters: 50000
     batch_size: 512
   inter:
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    # load_intermediate:  /work/pi_sniekum_umass_edu/calebc/object_data/full/randomdist/conditional/mixed/temp/
-    # save_intermediate:  /work/pi_sniekum_umass_edu/calebc/object_data/full/randomdist/conditional/mixed/temp/
+    # load_intermediate:  /hdd/datasets/object_data/full/randomdist/conditional/mixed/temp/
+    # save_intermediate:  /hdd/datasets/object_data/full/randomdist/conditional/mixed/temp/
     compare_trace: True
     proximity_epsilon: 7
     passive:

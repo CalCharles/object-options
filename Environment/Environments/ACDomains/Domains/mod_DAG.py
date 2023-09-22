@@ -4,8 +4,9 @@ from Environment.environment import Environment
 from Environment.Environments.ACDomains.ac_domain import ACDomain, ACObject
 
 mod_variants = {
-    "and": [3, [[[0,1]],[2], ["mul"], [[]]]],
-    "or": [3, [[[0,1]],[2], ["ineq"], [[1, "geq"]]]]
+    "and": [3, [[[0,1]],[2], ["mul"], [[]]], 2],
+    "or": [3, [[[0,1]],[2], ["ineq"], [[1, "geq"]]], 2],
+    "xor": [3, [[[0,1]],[2], ["sum"], [[]]], 2],
 } # parents, targets, relation, hyperparams
 
 

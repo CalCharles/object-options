@@ -1,4 +1,6 @@
 from Network.network import Network
+from Network.network_utils import get_inplace_acti
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -16,6 +18,13 @@ class Basic2DConvNetwork(Network): # basic 1d conv network
         self.output_dim = kwargs["output_dim"]
         self.reduce = kwargs["reduce"]
         include_last = kwargs['include_last']
+        self.is_crelu = kwargs['activation'] == "crelu"
+        crelu_mul = 1
+        if self.is_crelu: 
+            self.hs = [int(hs / 2) for hs in self.hs]
+            crelu_mul = 2
+            if kwargs['activation_final'] == "crelu":
+                self.activation_final = get_inplace_acti("leakyrelu")
 
         x,y = self.input_dims[:2]# technically switched
         for i in range(len(self.hs)):
@@ -31,10 +40,10 @@ class Basic2DConvNetwork(Network): # basic 1d conv network
                 layers = [nn.Conv2d(self.channels, self.hs[0], self.kernel, self.stride, self.padding)]
             else:
                 layers = ([nn.Conv2d(self.channels, self.hs[0], self.kernel, self.stride, self.padding), nn.ReLU(inplace=True)] + 
-                      sum([[nn.Conv2d(self.hs[i-1], self.hs[i], self.kernel, self.stride, self.padding), nn.ReLU(inplace=True)] for i in range(1, len(self.hs) - 1)], list())
-                      + [nn.Conv2d(self.hs[-2], self.hs[-1], self.kernel, self.stride, self.padding), nn.ReLU(inplace=True)])
+                      sum([[nn.Conv2d(self.hs[i-1] * crelu_mul, self.hs[i], self.kernel, self.stride, self.padding), nn.ReLU(inplace=True)] for i in range(1, len(self.hs) - 1)], list())
+                      + [nn.Conv2d(self.hs[-2] * crelu_mul, self.hs[-1], self.kernel, self.stride, self.padding), nn.ReLU(inplace=True)])
             if include_last: # if we include last, we need a relu after second to last. If we do not include last, we assume that there is a layer afterwards so we need a relu after the second to last
-                layers += [nn.Conv2d(self.hs[-1], self.output_dim, self.kernel, self.stride, self.padding)]
+                layers += [nn.Conv2d(self.hs[-1] * crelu_mul, self.output_dim, self.kernel, self.stride, self.padding)]
         self.conv = nn.Sequential(*layers)
         self.model = nn.ModuleList([self.conv])
         self.final = None

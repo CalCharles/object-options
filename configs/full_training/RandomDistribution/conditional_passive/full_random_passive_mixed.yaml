@@ -2,13 +2,17 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /hdd/datasets/object_data/full/randomdist/conditional_passive/mixed/log/inter.log
-    # load_dir: /hdd/datasets/object_data/full/breakout/mixed/testrun/
-    save_dir: /hdd/datasets/object_data/full/randomdist/conditional_passive/mixed/
+    # log_filename: /hdd/datasets/object_data/full/randomdist/conditional_passive/mixed/log/inter.log
+    # # load_dir: /hdd/datasets/object_data/full/breakout/mixed/testrun/
+    # save_dir: /hdd/datasets/object_data/full/randomdist/conditional_passive/mixed/
+    log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/conditional_passive/mixed/log/inter.log
+    # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/breakout/mixed/testrun/
+    save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/randomdist/conditional_passive/mixed/
   environment:
     env: RandomDistribution
     variant: conditional_passive
     load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDistribution/random_conditional_passive/
+    # load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional_passive/
   torch:
     gpu: 0
     no_cuda: False
@@ -17,6 +21,7 @@
     num_frames: 100000
     train_test_order: time
     load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDistribution/random_conditional_passive/
+    # load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional_passive/
     num_iters: 50000
     batch_size: 512
   inter:
