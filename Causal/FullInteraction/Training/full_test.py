@@ -12,7 +12,7 @@ def test_full(full_model, test_full_buffer, test_object_buffer, args, environmen
 	# start = time.time()
 	# next target or target diff predicted
 	# if full_model.form == "all": test_full_buffer.tarinter_state = test_full_buffer.obs
-	test_target = (test_object_buffer.target_diff if full_model.predict_dynamics else test_object_buffer.next_target) if full_model.form == "full" else (test_full_buffer.target_diff if full_model.predict_dynamics else test_full_buffer.next_target)
+	test_target = (test_object_buffer.target_diff if full_model.predict_dynamics else test_object_buffer.obs_next) if full_model.form == "full" else (test_full_buffer.target_diff if full_model.predict_dynamics else test_full_buffer.obs_next)
 	test_valid = (test_full_buffer.done != 1).squeeze()[:len(test_full_buffer)] # TODO: needs to regulate the length because of a bug in Tianshou
 	# print(time.time() - start )
 
