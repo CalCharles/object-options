@@ -83,11 +83,13 @@ def get_batch(batch_size, all, rollouts, object_rollouts, weights):
         batch.tarinter_state = full_batch.obs
         batch.inter_state = full_batch.obs
         batch.next_inter_state = full_batch.obs_next 
+        batch.next_target = batch.obs_next
     else:
         batch = object_rollouts[idxes]
         batch.tarinter_state = np.concatenate([batch.obs, full_batch.obs], axis=-1)
         batch.inter_state = full_batch.obs
-        batch.next_inter_state = full_batch.obs_next     
+        batch.next_inter_state = full_batch.obs_next
+        batch.next_target = batch.obs_next
     return full_batch, batch, idxes
 
 def get_valid(valid, indices):
