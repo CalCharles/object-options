@@ -1,22 +1,14 @@
 import sys, cv2
+import collections
 import numpy as np
 from Environment.environment import Environment, Done, Reward
 import imageio as imio
 import os, copy, string
-from Environment.Environments.RandomDistribution.random_specs import *
+from Environment.Environments.RandomDAG.random_DAG_specs import variants, parse_edges
 from Record.file_management import numpy_factored
 from gym import spaces
 from Environment.Environments.RandomDistribution.random_distribution import RandomDistribution, conditional_add_func, passive_func, add_func, get_object_name,\
      Action, DYNAMICS_STEP, DYNAMICS_CLIP, OBJECT_MAX_DIM, PARENT_REDUCE_FACTOR, TARGET_REDUCE_FACTOR
-
-def parse_edges(graph_skeleton, num_nodes):
-    if graph_skeleton == "rand":
-        # TODO: generate a random skeleton
-        pass
-    elif graph_skeleton == "3-chain":
-        return [("Action", "B"), ("B", "C")], ["Action", "B", "C", "Reward", "Done"]
-    elif graph_skeleton == "3-multi-chain":
-        return [("Action", "A", "B"), ("B", "C")], ["Action", "A", "B", "C", "Reward", "Done"]
         
 
 class RandomDAG(RandomDistribution):
@@ -25,7 +17,7 @@ class RandomDAG(RandomDistribution):
         self.self_reset = True
         self.variant = variant
         self.fixed_limits = fixed_limits
-        self.discrete_actions, self.allow_uncontrollable, self.graph_skeleton, self.num_nodes, self.multi_instanced, self.relate_dynamics, self.conditional, self.conditional_weight, self.distribution, self.noise_percentage, self.require_passive, self.num_valid_min, self.num_valid_max = variants[self.variant]
+        self.discrete_actions, self.allow_uncontrollable, self.graph_skeleton, self.num_nodes, self.multi_instanced, self.min_dim, self.max_dim, self.instant_update, self.relate_dynamics, self.conditional, self.conditional_weight, self.distribution, self.noise_percentage, self.require_passive, self.num_valid_min, self.num_valid_max = variants[self.variant]
         
         self.set_objects()
         self.num_actions = self.discrete_actions # this must be defined, -1 for continuous. Only needed for primitive actions
@@ -58,7 +50,8 @@ class RandomDAG(RandomDistribution):
 
     def set_objects(self): # creates objects based on their dictionary, and their relational connectivity
         # factorized state properties
-        self.edge_list, self.object_names = parse_edges()
+        self.edge_list, self.object_names = parse_edges(self.graph_skeleton)
+        self.num_objects = len(self.object_names) - 3
         self.define_object_parameters()
 
         onames = self.object_names[:-2]
@@ -78,7 +71,10 @@ class RandomDAG(RandomDistribution):
                 self.internal_statistics[(" ".join(self.passive_functions[name].parents), self.passive_functions[name].target +"_clip")] = 0
             else:
                 self.passive_functions[name] = None # create a placeholder
-        unused = copy.deepcopy(self.object_names)
+        unused = copy.deepcopy(self.object_names[1:-2])
+        self.target_counter = collections.Counter()
+        for i in range(len(self.edge_list)):
+            self.target_counter[self.edge_list[i][-1]] += 1
         for i in range(len(self.edge_list)): # create relational links, ordered in terms of priority
             parents = self.edge_list[i][:-1]
             target = self.edge_list[i][-1]
@@ -97,7 +93,7 @@ class RandomDAG(RandomDistribution):
                             conditional=True,
                             conditional_weight=self.conditional_weight,
                             passive=self.passive_functions[target],
-                            dynamics_step = DYNAMICS_STEP if self.relate_dynamics else 1,
+                            dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 1 / self.target_counter[target],
                             )
             else:
                 orf = add_func(parents,
@@ -108,7 +104,7 @@ class RandomDAG(RandomDistribution):
                             target_dependent = False, # for DAGs, no self edges
                             conditional=False,
                             passive=self.passive_functions[target],
-                            dynamics_step = DYNAMICS_STEP if self.relate_dynamics else 1)
+                            dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 1 / self.target_counter[target])
             print(orf.parents, orf.target, orf.params)
             self.object_relational_functions.append(orf)
             self.internal_statistics[(" ".join(orf.parents), orf.target)] = 0
@@ -137,7 +133,8 @@ class RandomDAG(RandomDistribution):
         self.object_dynamics_true = self.object_dynamics
 
     def reset(self): # placeholders
-        return super().reset()
+        state, info = super().reset()
+        return state,info
     
     def get_state(self):
         return super().get_state()
@@ -157,7 +154,7 @@ class RandomDAG(RandomDistribution):
             obj.interaction_trace = list()
 
     def step(self, action, render=False): 
-        return super().step(action, render=render)
+        return super().step(action, render=render, instant_update = self.instant_update)
     
     def set_from_factored_state(self, factored_state, seed_counter=-1, render=False, valid_names=None):
         '''

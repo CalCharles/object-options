@@ -379,6 +379,8 @@ class NeuralInteractionForwardModel(nn.Module):
     def _target_dists(self, batch, params, skip=None):
         # start = time.time()
         target = batch.target_diff if self.predict_dynamics else batch.next_target
+        print(target, params[0], self.norm.norm_dict)
+        error
         target = pytorch_model.wrap(target, cuda=self.iscuda)
         # print(target.shape, target[:6])
         # print("wrap", time.time() - start)
@@ -404,6 +406,7 @@ class NeuralInteractionForwardModel(nn.Module):
         batch.tarinter_state = batch.inter_state if self.form == "all" else np.concatenate([batch.target, batch.inter_state], axis=-1)
         batch.obs_next = self.norm(batch.obs_next, name=self.name)
         batch.target_diff = self.norm(batch.target_diff, form="dyn", name=self.name)
+        batch.next_target = self.norm(batch.next_target, form="target", name=self.name)
         return batch
 
     def apply_cluster_mask(self, inter_mask, cluster_hard=False):

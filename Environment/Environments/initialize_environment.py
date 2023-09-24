@@ -28,6 +28,11 @@ def initialize_environment(args, record_args, no_record=False):
         if len(args.load_environment) > 0: environment = load_from_pickle(os.path.join(args.load_environment, "environment.pkl"))
         else: environment = RandomDistribution(frameskip = args.frameskip, variant=args.variant, fixed_limits=args.fixed_limits)
         environment.seed(args.seed)
+    elif args.env == "RandomDAG":
+        from Environment.Environments.RandomDAG.random_DAG import RandomDAG
+        if len(args.load_environment) > 0: environment = load_from_pickle(os.path.join(args.load_environment, "environment.pkl"))
+        else: environment = RandomDAG(frameskip = args.frameskip, variant=args.variant, fixed_limits=args.fixed_limits)
+        environment.seed(args.seed)
     # elif args.env == "Nav2D":
         # environment = Nav2D()
     elif args.env[:6] == "gymenv":
