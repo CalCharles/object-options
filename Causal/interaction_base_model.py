@@ -379,8 +379,6 @@ class NeuralInteractionForwardModel(nn.Module):
     def _target_dists(self, batch, params, skip=None):
         # start = time.time()
         target = batch.target_diff if self.predict_dynamics else batch.next_target
-        print(target, params[0], self.norm.norm_dict)
-        error
         target = pytorch_model.wrap(target, cuda=self.iscuda)
         # print(target.shape, target[:6])
         # print("wrap", time.time() - start)
