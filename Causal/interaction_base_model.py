@@ -94,7 +94,7 @@ class NeuralInteractionForwardModel(nn.Module):
         # self.controllable = args.controllable
 
         # if we are predicting the dynamics
-        self.predict_dynamics = True
+        self.predict_dynamics = args.inter.predict_dynamics
         
         # construct the active model
         args.interaction_net.object_dim = self.obj_dim
