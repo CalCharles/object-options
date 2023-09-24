@@ -1,5 +1,5 @@
 # Screen
-import sys, cv2
+import sys, cv2, collections
 import numpy as np
 from Environment.environment import Environment, Done, Reward
 import imageio as imio
@@ -38,13 +38,13 @@ PARENT_REDUCE_FACTOR = 1.5
 TARGET_REDUCE_FACTOR = 1
 
 class conditional_add_func():
-    def __init__(self, parents, target, parent_size, target_size, use_bias=False, target_dependent=True, num_sets=1, conditional=False, conditional_weight=0, passive=None):
+    def __init__(self, parents, target, parent_size, target_size, use_bias=False, target_dependent=True, num_sets=1, conditional=False, conditional_weight=0, passive=None, dynamics_step =DYNAMICS_STEP):
         self.parents = parents
         self.target = target
         self.target_size = target_size
         self.use_bias = use_bias
         self.interaction_dynamics = rel_func(parents, target, parent_size, target_size, use_bias=False, target_dependent=target_dependent, num_sets=num_sets, conditional=True, conditional_weight=conditional_weight) 
-        self.add_dynamics = add_func(parents, target, parent_size, target_size, use_bias=self.use_bias, target_dependent=target_dependent, num_sets=num_sets, conditional=False, scale=2)
+        self.add_dynamics = add_func(parents, target, parent_size, target_size, use_bias=self.use_bias, dynamics_step=dynamics_step, target_dependent=target_dependent, num_sets=num_sets, conditional=False, scale=2)
         self.passive = passive
         self.params = self.interaction_dynamics.params + self.add_dynamics.params
 
@@ -87,8 +87,8 @@ class add_func():
         self.parent_bias = np.expand_dims(2 * (np.random.rand(parent_size) - .5) * dstep / np.sqrt(num_sets + parent_size) * prf, axis=-1) * float(self.use_bias)
         self.target_bias = np.expand_dims(2 * (np.random.rand(target_size) - .5) * dstep / np.sqrt(num_sets + target_size) * trf, axis=-1) * float(self.use_bias)
         # self.target_weights = np.expand_dims(2 * (np.random.rand(target_size) - .5) * dstep / np.sqrt(num_sets + target_size) * trf, axis=-1)
-        self.parent_weight_matrix = np.random.rand(target_size, parent_size)  * dstep / np.sqrt(parent_size) * prf
-        self.target_weight_matrix = np.random.rand(target_size, target_size)  * dstep / np.sqrt(target_size) * trf
+        self.parent_weight_matrix = 2 * (np.random.rand(target_size, parent_size)-0.5)  * dstep / np.sqrt(parent_size) * prf
+        self.target_weight_matrix = 2 * (np.random.rand(target_size, target_size)-0.5)  * dstep / np.sqrt(target_size) * trf
         self.conditional = False
         self.conditional_weight = conditional_weight
         # for ws in self.parent_weight_sets:
@@ -182,9 +182,9 @@ class RandomDistribution(Environment):
         self.self_reset = True
         self.variant = variant
         self.fixed_limits = fixed_limits
-        self.discrete_actions, self.allow_uncontrollable, self.num_objects, self.multi_instanced, self.num_related, self.max_control, self.relate_dynamics, self.conditional, self.conditional_weight, self.distribution, self.noise_percentage, self.require_passive, self.num_valid_min, self.num_valid_max = variants[self.variant]
+        self.discrete_actions, self.allow_uncontrollable, self.num_objects, self.max_dim, self.min_dim, self.multi_instanced, self.num_related, self.max_control, self.relate_dynamics, self.conditional, self.conditional_weight, self.distribution, self.noise_percentage, self.require_passive, self.num_valid_min, self.num_valid_max = variants[self.variant]
         
-        print(self.discrete_actions, self.allow_uncontrollable, self.num_objects, self.multi_instanced, self.num_related, self.max_control, self.relate_dynamics, self.conditional, self.conditional_weight, self.distribution, self.noise_percentage, self.require_passive, self.variant)
+        print(self.discrete_actions, self.allow_uncontrollable, self.num_objects, self.max_dim, self.min_dim, self.multi_instanced, self.num_related, self.max_control, self.relate_dynamics, self.conditional, self.conditional_weight, self.distribution, self.noise_percentage, self.require_passive, self.variant)
         self.set_objects()
         self.num_actions = self.discrete_actions # this must be defined, -1 for continuous. Only needed for primitive actions
         self.name = "RandomDistribution" # required for an environment 
@@ -219,7 +219,7 @@ class RandomDistribution(Environment):
         self.object_instanced["Action"], self.object_instanced["Reward"], self.object_instanced["Done"] = 1, 1, 1
         make_name = lambda x,i: x + str(i) if self.object_instanced[x] > 1 else x
         self.all_names = sum([[make_name(name, i) for i in range(self.object_instanced[name])] for name in self.object_names], start = list()) # must be initialized, the names of all the objects including multi-instanced ones
-        self.object_sizes = {name: np.random.randint(2,OBJECT_MAX_DIM+1) for name in self.object_names} # must be initialized, a dictionary of name to length of the state
+        self.object_sizes = {name: np.random.randint(self.min_dim,self.max_dim+1) for name in self.object_names} # must be initialized, a dictionary of name to length of the state
         self.object_sizes["Reward"], self.object_sizes["Done"] = 1,1
         self.object_range = {n: (- np.ones(self.object_sizes[n]), np.ones(self.object_sizes[n])) for n in self.object_names}
         self.object_mean = {n: (self.object_range[n][0] + self.object_range[n][1]) / 2 for n in self.object_names}
@@ -265,6 +265,7 @@ class RandomDistribution(Environment):
                 self.internal_statistics[(" ".join(self.passive_functions[name].parents), self.passive_functions[name].target +"_clip")] = 0
             else:
                 self.passive_functions[name] = None # create a placeholder
+        partars = list() # the set of multi-edges
         for i in range(self.num_related): # create relational links
             target = nonames[np.random.randint(len(nonames))]
             while target in used or (target in controllable and len(controllable) == 2 and 'Action' in controllable):
@@ -276,6 +277,11 @@ class RandomDistribution(Environment):
             if not (self.relate_dynamics and self.conditional): used.append(target)
             if target in unused: unused.remove(target)
             if target not in controllable: controllable.append(target)
+            partars.append((parents, target))
+        self.target_counter = collections.Counter()
+        for i in range(len(partars)):
+            self.target_counter[partars[i][-1]] += 1
+        for parents, target in partars:
             self.object_relational_sets.append((parents, target))
             parent_size = int(np.sum([self.object_sizes[p] for p in parents]))
             if self.conditional and (i != 0 or self.allow_uncontrollable):
@@ -288,6 +294,7 @@ class RandomDistribution(Environment):
                             conditional=True,
                             conditional_weight=self.conditional_weight,
                             passive=self.passive_functions[target],
+                            dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 1 / self.target_counter[target],
                             )
             else:
                 orf = add_func(parents,
@@ -296,6 +303,7 @@ class RandomDistribution(Environment):
                             self.object_sizes[target],
                             use_bias = True,
                             conditional=False,
+                            dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 1 / self.target_counter[target],
                             passive=self.passive_functions[target])
             print(orf.parents, orf.target, orf.params)
             self.object_relational_functions.append(orf)
@@ -384,13 +392,20 @@ class RandomDistribution(Environment):
         for obj in self.objects:
             obj.interaction_trace = list()
 
-    def step(self, action, render=False): 
+    def step(self, action, render=False, instant_update=False): 
         self.empty_interactions()
         for i in range(self.frameskip):
             self.done.attribute = False
             self.action.attribute = action
+            updated = dict()
             for target in self.all_names:
-                self.object_name_dict[target].next_state = copy.deepcopy(self.object_name_dict[target].get_state())
+                if self.relate_dynamics: 
+                    self.object_name_dict[target].next_state = copy.deepcopy(self.object_name_dict[target].get_state())
+                else:
+                    if target in self.target_counter: 
+                        self.object_name_dict[target].next_state = np.zeros(self.object_name_dict[target].get_state().shape)
+                    else: self.object_name_dict[target].next_state = copy.deepcopy(self.object_name_dict[target].get_state())
+            
             # print(self.get_state())
             for i, orf in enumerate(self.object_relational_functions):
                 target_class = orf.target
@@ -445,8 +460,10 @@ class RandomDistribution(Environment):
                         if self.relate_dynamics: 
                             self.object_name_dict[target].next_state += np.clip(nds, -DYNAMICS_CLIP, DYNAMICS_CLIP)
                         else:
-                            self.object_name_dict[target].next_state = nds
+                            self.object_name_dict[target].next_state += nds # adds together, but from zero, no clipping
                             # if i < 3: print(self.itr, self.done.attribute, orf.parents, orf.target, self.get_state()["factored_state"][orf.target])
+                        if instant_update:
+                            self.object_name_dict[target].state = self.object_name_dict[target].next_state
                         n += 1
                 self.internal_statistics[ (" ".join(orf.parents), orf.target)] += orf_average
                 self.internal_statistics[ (" ".join(orf.parents), orf.target  + "_clip")] += clip_average

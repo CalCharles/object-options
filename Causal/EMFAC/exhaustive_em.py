@@ -236,13 +236,27 @@ def compute_possible_efficient(environment, compatibility_constant):
     min_cost = min(cost)
     print("min cost combinations")
     cost_counter = collections.Counter()
+    min_cost_strings = list()
     for ab, asub, c in zip(assigned_binaries, assigned_subsets, cost):
         if c == min_cost:
             print(len(ab), np.array(convert_subset(ab, all_binaries)), [(np.array(convert_subset(ss, all_states)), np.array(convert_subset(ss, outcomes))) for ss in convert_subset(asub, all_subsets)], c)
+            print(convert_subset(asub, all_subsets))
+            print([np.array(convert_subset(ss, outcomes)) for ss in convert_subset(asub, all_subsets)])
+            outcomes = [np.array(convert_subset(ss, outcomes)) for ss in convert_subset(asub, all_subsets)]
+            states = [np.array(convert_subset(ss, all_states)) for ss in convert_subset(asub, all_subsets)]
+            state_outcomes = [s.tolist() + [o] for o in zip(state, outcome)  for state, outcome in zip(states, outcomes)]
+            print(state_outcomes)
+            # print([ss.tolist() + [0] for ss, o in list(zip(np.array(convert_subset(convert_subset(asub, all_subsets)[0], all_states)), np.array(convert_subset(convert_subset(asub, all_subsets)[0], outcomes))))])
+            subset_outcome_strings = [",".join([ss.tolist() + [0] for ss, o in list(zip(np.array(convert_subset(ss, all_states)), np.array(convert_subset(ss, outcomes))))]) for ss in convert_subset(asub, all_subsets)]
+            zipped_binary_sso_strings = ["".join(bn) + ssos for bn, ssos in zip(np.array(convert_subset(ab, all_binaries)), subset_outcome_strings)]
+            print(";".join(zipped_binary_sso_strings))
+            min_cost_strings.append(";".join(zipped_binary_sso_strings))
         cost_counter[c] += 1
     costs = [i for i in cost_counter.items()]
     costs.sort(key=lambda x: x[0])
     print("num per cost", costs)
+
+
 
 def compute_normality_binaries(environment):
     all_binaries = np.array(np.meshgrid(*[[0,1] for i in range(environment.num_objects)])).T.reshape(-1,environment.num_objects)

@@ -62,6 +62,12 @@ python generate_random.py --env RandomDistribution --record-rollouts /hdd/datase
 python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_passive_only/ --num-frames 1000 --variant passive_only
 python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_passive_only_noise/ --num-frames 1000 --variant passive_only_noise
 
+# Run Random DAGs
+python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1_in/ --num-frames 1000 --variant 1-in
+python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/3_chain/ --num-frames 1000 --variant 3-chain
+python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/2_in/ --num-frames 1000 --variant 2-in
+python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/multi_in/ --num-frames 1000 --variant multi-in
+
 # multi random conditionals
 python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/multi_random/ --num-frames 1000 --variant multi_passive
 
