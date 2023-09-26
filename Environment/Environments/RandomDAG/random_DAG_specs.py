@@ -3,7 +3,7 @@ variants = {"3-chain": (False, False, "3-chain", -1, 1, 4,4, True, False, True, 
             "3-in": (False, False, "3-inchain", -1, 1, 4,4, False, True, True, 0.0, "Gaussian", 0.0005, True, -1, -1),
             "1-in": (False, False, "3-chain", -1, 1, 4,4, False, True, True, 0.0, "Gaussian", 0.0005, True, -1, -1),
             "1-hdim": (False, False, "3-chain", -1, 1, 10,10, False, True, True, 0.0, "Gaussian", 0.0005, True, -1, -1),
-            "1-rare": (False, False, "3-chain", -1, 1, 4,4, False, True, True, 2.0, "Gaussian", 0.0005, True, -1, -1),
+            "1-rare": (False, False, "3-chain", -1, 1, 4,4, False, True, True, 0.23, "Gaussian", 0.0005, True, -1, -1),
             "multi-in": (False, False, "3-multi-chain", -1, 1, 4,4, True, True, True, 0.0, "Gaussian", 0.0005, True, -1, -1)}
 
 # discrete_actions, allow uncontrollable, graph_skeleton, num_nodes (only used for random graph skeleton), 
