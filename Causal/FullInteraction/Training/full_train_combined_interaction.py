@@ -4,13 +4,16 @@ from Causal.Utils.instance_handling import compute_likelihood, get_batch
 import torch
 import torch.nn.functional as F
 
+def compute_adaptive_lasso(active_nlikelihood, args, lasso_lambda):
+    return (args.full_inter.adaptive_lasso * (np.exp(-np.abs(args.full_inter.converged_active_loss_value + 1.5 - pytorch_model.unwrap(active_nlikelihood.mean()))))
+                                                      if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
+
 def evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda, active_params, interaction_likelihood, interaction_mask, active_log_probs, done_flags, proximity):
     active_nlikelihood = compute_likelihood(full_model, len(active_log_probs), - active_log_probs, done_flags=done_flags, reduced=False, is_full = True)
     # passive_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - passive_log_probs, done_flags=done_flags, reduced=False, is_full = True)
     # adapts the lasso_lambda based on the input. If the active nlikelihood is low (large negative), it will approach e^{-0} = 1 if the error is high, it will approach e^-inf = 0
     # TODO: adaptive weighting value 3.0 is environment specific based on the level of natural stochasticity
-    lasso_lambda = (args.full_inter.adaptive_lasso * (np.exp(-np.abs(3.0 * active_log_probs.shape[-1] + pytorch_model.unwrap(active_nlikelihood.mean()))))
-                                                      if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
+    lasso_lambda = compute_adaptive_lasso(active_nlikelihood, args, lasso_lambda)
     mask_loss = (interaction_likelihood - full_model.check_passive_mask(interaction_likelihood)).norm(p=args.full_inter.lasso_order, dim=-1).unsqueeze(-1) # penalize for deviating from the passive mask
     zero_mask_loss = (interaction_likelihood).norm(p=args.full_inter.lasso_order, dim=-1).unsqueeze(-1) # penalize for deviating from the passive mask
     one_mask_loss = (1-interaction_likelihood).norm(p=args.full_inter.lasso_order, dim=-1).unsqueeze(-1)
@@ -35,8 +38,7 @@ def evaluate_active_interaction_expert(full_model, args, onemask_lambda, halfmas
     active_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - active_log_probs, 
                                             done_flags=done_flags, reduced=False, is_full = True)
     # passive_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - passive_log_probs, done_flags=done_flags, reduced=False, is_full = True)
-    lasso_lambda = (args.full_inter.adaptive_lasso * (np.exp(-np.abs(3.5 * active_log_probs.shape[-1] + pytorch_model.unwrap(active_nlikelihood.mean()))))
-                                                      if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
+    lasso_lambda = compute_adaptive_lasso(active_nlikelihood, args, lasso_lambda)
     mean_mask_loss =  (hot_likelihood - (1./full_model.num_clusters)).unsqueeze(-1) * halfmask_lambda # make the agent select more diverse masks (to prevent mode collapse early)
     mask_loss = (interaction_mask).unsqueeze(-1) * lasso_lambda # penalize the selection of interaction masks
     entropy_loss = torch.sum(-interaction_mask*torch.log(interaction_mask), dim=-1).unsqueeze(-1) * entropy_lambda

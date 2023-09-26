@@ -1,6 +1,7 @@
 # train combined
 import numpy as np
 import os, cv2, time, copy, psutil
+from collections import deque
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -44,6 +45,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
     # initialize interaction schedule, computes the weight to allow the active model to ignore certain values
     interaction_schedule = (lambda i: np.power(0.5, (i/args.inter.active.interaction_schedule))) if args.inter.active.interaction_schedule > 0 else (lambda i: 0.5)
     if args.full_inter.train_full_only: interaction_schedule = lambda i: 0
+    interaction_lambda = interaction_schedule(0)
     inline_iter_schedule = lambda i: max(0, min(args.inter.active.inline_iters[0],
                                          np.power(2, (i/args.inter.active.inline_iters[2])) - 1) if args.inter.active.inline_iters[2] > 0 else args.inter.active.inline_iters[0]) 
     inline_iters = inline_iter_schedule(0)
@@ -93,6 +95,8 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
     #                                                                  error_types.ACTIVE_OPEN_LIKELIHOOD, error_types.PASSIVE_LIKELIHOOD,
     #                                                                  error_types.TRACE, error_types.DONE], prenormalize=normalize)
     start = time.time()
+    active_full_loss = deque(maxlen=100)
+    active_loss = deque(maxlen=100)
     for i in range(args.train.num_iters):
         # get data, weighting by active weights (generally more likely to sample high "value" states)
         # batch, idxes = object_rollouts.sample(args.train.batch_size, weights=active_weights)
@@ -123,17 +127,18 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             # combine likelihoods to get a single likelihood for losses TODO: a per-element binary?
             active_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - active_soft_log_probs, done_flags=done_flags, is_full=True) if args.full_inter.mixed_interaction == "weighting" else compute_likelihood(full_model, args.train.batch_size, - active_hard_log_probs, done_flags=done_flags, is_full=True)
             active_full_nlikelihood = compute_likelihood(full_model, args.train.batch_size, -active_full_log_probs, done_flags=done_flags, is_full=True)
-
+            
             if full_model.cluster_mode:
                 mask_loss = (soft_interaction_mask - full_model.check_passive_mask(interaction_likelihood)).abs().sum(-1).mean() ## replace with a rincipled method, this is the l1 loss
-                loss = (active_nlikelihood * (1-interaction_schedule(i)) + active_full_nlikelihood * interaction_schedule(i)) + lasso_lambda * mask_loss # TODO: regularize the magnitude of the mask when training the active model more carefully
+                loss = (active_nlikelihood * (1-interaction_lambda) + active_full_nlikelihood * interaction_lambda) + lasso_lambda * mask_loss # TODO: regularize the magnitude of the mask when training the active model more carefully
             else:
-                loss = (active_nlikelihood * min(0.95, (1-interaction_schedule(i))) + active_full_nlikelihood * max(0.05, interaction_schedule(i)))
+                loss = (active_nlikelihood * min(0.95, (1-interaction_lambda)) + active_full_nlikelihood * max(0.05, interaction_lambda))
             if args.inter.active.active_steps > 0: run_optimizer(active_optimizer, full_model.active_model, loss)
 
-            # logging will probably break from the changing of the meaning of interactions
             # TODO: ccreate a good logger for the all dataset
             # print(active_nlikelihood.shape, active_full_nlikelihood.shape, active_log_probs.shape, active_params[0].shape, np.expand_dims(np.sum(pytorch_model.unwrap(interaction_likelihood) - 1, axis=-1), axis=-1).shape, batch.trace.shape, np.expand_dims(np.sum(batch.trace - 1, axis=-1), axis=-1).shape)
+            active_full_loss.append(pytorch_model.unwrap(active_nlikelihood))
+            active_loss.append(pytorch_model.unwrap(active_full_nlikelihood))
             single_trace = np.expand_dims(np.sum(np.sum(batch.trace - 1, axis=-1), axis=-1), axis=-1) if len(batch.trace.shape) == 3 else np.expand_dims(np.sum(batch.trace - 1, axis=-1), axis=-1)
             if full_model.form == "all": single_trace = np.sum(single_trace, axis= -2)
             single_trace[single_trace > 1] = 1
@@ -188,6 +193,8 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
         #                     uw(interaction_likelihood),
         #                     uw(soft_interaction_mask),
         #                     batch.trace], axis=-1)[:10])
+        if args.inter.active.adaptive_inter_lambda > 0:
+            interaction_lambda = args.inter.active.adaptive_inter_lambda * (np.exp(-np.abs(args.full_inter.converged_active_loss_value - np.mean(active_loss)) * args.inter.active.adaptive_inter_lambda)) * interaction_schedule(i)
 
         if i % args.inter.active.active_log_interval == 0:
             print(i, "speed", (args.inter.active.active_log_interval * i) / (time.time() - start))

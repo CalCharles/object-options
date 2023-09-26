@@ -47,6 +47,7 @@ if __name__ == '__main__':
         for full_model in full_models.values():
             full_model.cpu().cuda(device = args.torch.gpu)
         passive_weights = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_weights.pkl"))
+        outputs = load_from_pickle(os.path.join(args.full_inter.load_intermediate, environment.name + "_passive_outputs.pkl"))
     # training the passive models
     for name in environment.object_names:
         # if name in ["vgqccm", "egutgube"]: # TODO: switch back to this to test attention module
@@ -57,6 +58,8 @@ if __name__ == '__main__':
     if len(args.inter.save_intermediate) > 0:
         save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_inter_model.pkl"), full_models)
         save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name +  "_passive_weights.pkl"), passive_weights)
+        save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name +  "_passive_outputs.pkl"), outputs)
+
     # pretraining with the true traces, not used for the main algorithm
     for name in environment.object_names:
         # if name in ["vgqccm"]: # TODO: switch back to this to test attention module
@@ -69,12 +72,15 @@ if __name__ == '__main__':
             full_models[name].regenerate(extractor, normalization, environment)
     if len(args.full_inter.load_forward_only) != 0:
         forward_fulls = load_from_pickle(os.path.join(args.full_inter.load_forward_only, environment.name + "_inter_model.pkl"))
+        # generate the output error value from the last 100 active outputs
         for name in environment.object_names:
             if name not in ["Action"]:
                 full_models[name].load_forward_only(forward_fulls[name])
                 print(full_models[name].iscuda)
         for full_model in full_models.values():
             full_model.cpu().cuda(device = args.torch.gpu)
+    args.full_inter.converged_active_loss_value = np.mean([active_loss for passive_loss, active_loss in outputs[-100:]])
+    args.full_inter.converged_passive_loss_value = np.mean([passive_loss for passive_loss, active_loss in outputs[-100:]])
     for name in environment.object_names:
         # if name in ["phpt"]:
         if name in train_names:

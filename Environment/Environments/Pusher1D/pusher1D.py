@@ -6,7 +6,7 @@ import gymnasium as gym
 from Environment.environment import Environment
 from Environment.Environments.ACDomains.ac_domain import ACDomain, ACObject
 
-PUSHER_LEN = 2
+PUSHER_LEN = 3
 def pusher_next(objects):
     nextpusher = objects["Pusher"].attribute + 1 # action_step
     objects["PusherNext"].attribute = objects["Pusher"].attribute

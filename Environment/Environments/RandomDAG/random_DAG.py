@@ -89,7 +89,7 @@ class RandomDAG(RandomDistribution):
                             parent_size,
                             self.object_sizes[target],
                             use_bias = True,
-                            target_dependent = False, # for DAGs, no self edges
+                            target_dependent = self.instant_update, # for DAGs, no self edges
                             conditional=True,
                             conditional_weight=self.conditional_weight,
                             passive=self.passive_functions[target],
@@ -101,11 +101,11 @@ class RandomDAG(RandomDistribution):
                             parent_size,
                             self.object_sizes[target],
                             use_bias = True,
-                            target_dependent = False, # for DAGs, no self edges
+                            target_dependent = self.instant_update, # for DAGs, no self edges
                             conditional=False,
                             passive=self.passive_functions[target],
                             dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 1 / self.target_counter[target])
-            print(orf.parents, orf.target, orf.params)
+            print(orf.parents, orf.target, orf.params, self.instant_update)
             self.object_relational_functions.append(orf)
             self.internal_statistics[(" ".join(orf.parents), orf.target)] = 0
             self.internal_statistics[(" ".join(orf.parents), orf.target + "_clip")] = 0
@@ -120,12 +120,14 @@ class RandomDAG(RandomDistribution):
         # has to be set after we know how many ORFs have the object as target
         
         self.object_dynamics = dict()
+        self.target_last = dict()
         for n in self.object_names:
             orf_num = 0
             for orf in self.object_relational_functions:
                 if orf.target == n:
                     total_parent_combinations = np.prod([self.object_instanced[p] for p in orf.parents])
                     orf_num += total_parent_combinations
+                    self.target_last[orf.target] = i
 
             orf_num = max(1,orf_num)
             dynamics_step = DYNAMICS_CLIP * orf_num

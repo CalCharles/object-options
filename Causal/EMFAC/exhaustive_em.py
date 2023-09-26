@@ -10,7 +10,7 @@ from Environment.Environments.ACDomains.Domains.halt_charge import HaltCharge
 from Environment.Environments.ACDomains.Domains.train import Train
 from Environment.Environments.ACDomains.Domains.voting import Voting
 from Environment.Environments.ACDomains.Domains.mod_DAG import ModDAG
-import sys
+import sys, os
 import time
 
 def get_all_subsets(n):
@@ -130,7 +130,7 @@ def binary_state_compatibility(all_binaries, all_states, environment):
     print(cost)
     return compatibility
 
-def compute_possible_efficient(environment, compatibility_constant):
+def compute_possible_efficient(environment, one_constant, zero_constant, save_path):
     # a binary includes the object, or does not
     all_binaries = np.array(np.meshgrid(*[[0,1] for i in range(environment.num_objects)])).T.reshape(-1,environment.num_objects)
     use_zero = environment.use_zero
@@ -140,12 +140,12 @@ def compute_possible_efficient(environment, compatibility_constant):
     passive_mask = environment.passive_mask
     all_subsets = get_all_subsets(len(all_states))
     
+    print(np.concatenate([np.array(all_states), np.expand_dims(np.array(outcomes), axis=-1)], axis=-1))
     compatibility = binary_state_compatibility(all_binaries, all_states, environment)
     for k in compatibility.keys():
         for s, c in enumerate(compatibility[k]):
             print(all_binaries[int(k)], all_states[s], c)
 
-    print(np.concatenate([np.array(all_states), np.expand_dims(np.array(outcomes), axis=-1)], axis=-1))
 
     def check_valid(subset, binaries):
         # check with binaries are compatible with the given subset
@@ -170,14 +170,14 @@ def compute_possible_efficient(environment, compatibility_constant):
                 valid_binaries.append(i)
         return valid_binaries
     
-    def check_compatible(subset, binaries, compatibility, compatibility_constant):
-        if compatibility_constant < 0: return binaries # don't use compatibility if constant negative
+    def check_compatible(subset, binaries, compatibility, one_constant, zero_constant):
+        if one_constant < 0: return binaries # don't use compatibility if constant negative
         valid_binaries = list()
         for i in binaries:# binaries identified by index
             compatible = compatibility[i]
             subset_compatible = True
             for s in subset:
-                if compatible[s][0] < compatibility_constant or compatible[s][1] > (1-compatibility_constant):
+                if compatible[s][0] < one_constant or compatible[s][1] > zero_constant:
                     subset_compatible = False
                     break
             if subset_compatible: valid_binaries.append(i)
@@ -188,7 +188,7 @@ def compute_possible_efficient(environment, compatibility_constant):
     print("num subsets", len(list(all_subsets)))
     print("num binaries", len(all_binaries))
     for i, subset in enumerate(all_subsets):
-        subset_binary[i] = check_compatible(subset, check_valid(subset, all_binaries), compatibility, compatibility_constant)
+        subset_binary[i] = check_compatible(subset, check_valid(subset, all_binaries), compatibility, one_constant, zero_constant)
         subset_index_mapping[tuple(subset)] = i
     # create all disjoint, complete partitionings of the subsets
     disjoint_sets = list(get_all_disjoint_sets(range(len(all_states))))
@@ -240,21 +240,21 @@ def compute_possible_efficient(environment, compatibility_constant):
     for ab, asub, c in zip(assigned_binaries, assigned_subsets, cost):
         if c == min_cost:
             print(len(ab), np.array(convert_subset(ab, all_binaries)), [(np.array(convert_subset(ss, all_states)), np.array(convert_subset(ss, outcomes))) for ss in convert_subset(asub, all_subsets)], c)
-            print(convert_subset(asub, all_subsets))
-            print([np.array(convert_subset(ss, outcomes)) for ss in convert_subset(asub, all_subsets)])
-            outcomes = [np.array(convert_subset(ss, outcomes)) for ss in convert_subset(asub, all_subsets)]
+            ss_outcomes = [np.array(convert_subset(ss, outcomes)) for ss in convert_subset(asub, all_subsets)]
             states = [np.array(convert_subset(ss, all_states)) for ss in convert_subset(asub, all_subsets)]
-            state_outcomes = [s.tolist() + [o] for o in zip(state, outcome)  for state, outcome in zip(states, outcomes)]
-            print(state_outcomes)
-            # print([ss.tolist() + [0] for ss, o in list(zip(np.array(convert_subset(convert_subset(asub, all_subsets)[0], all_states)), np.array(convert_subset(convert_subset(asub, all_subsets)[0], outcomes))))])
-            subset_outcome_strings = [",".join([ss.tolist() + [0] for ss, o in list(zip(np.array(convert_subset(ss, all_states)), np.array(convert_subset(ss, outcomes))))]) for ss in convert_subset(asub, all_subsets)]
-            zipped_binary_sso_strings = ["".join(bn) + ssos for bn, ssos in zip(np.array(convert_subset(ab, all_binaries)), subset_outcome_strings)]
-            print(";".join(zipped_binary_sso_strings))
-            min_cost_strings.append(";".join(zipped_binary_sso_strings))
+            state_outcomes = [[s.tolist() + [o] for s, o in zip(state, outcome)]  for state, outcome in zip(states, ss_outcomes)]
+            subset_outcome_strings = [[",".join([str(s) for s in so]) for so in soc] for soc in state_outcomes]
+            binaries = np.array(convert_subset(ab, all_binaries))
+            bin_so_strings = sum([["".join([str(b) for b in bn]) + "," + ss for ss in ssos] for bn, ssos in zip(binaries, subset_outcome_strings)], start=list())
+            min_cost_strings.append(";".join(bin_so_strings))
         cost_counter[c] += 1
     costs = [i for i in cost_counter.items()]
     costs.sort(key=lambda x: x[0])
     print("num per cost", costs)
+    print(min_cost_strings)
+    with open(save_path, 'w') as f:
+        for strv in min_cost_strings:
+            f.write(strv + "\n")
 
 
 
@@ -282,8 +282,9 @@ def convert_subset(subset, all_subsets, sort = False):
 
 if __name__ == '__main__':
     env_name = sys.argv[1]
-    compatibility_constant = float(sys.argv[2]) if len(sys.argv) == 3 else -1
-    variant = sys.argv[3] if len(sys.argv) == 4 else ""
+    one_constant = float(sys.argv[2]) if len(sys.argv) >= 4 else -1
+    zero_constant = float(sys.argv[3]) if len(sys.argv) >= 4 else -1
+    variant = sys.argv[4] if len(sys.argv) > 4 else ""
     print(env_name)
     if env_name == "Pusher1D":
         env = Pusher1D()
@@ -301,4 +302,4 @@ if __name__ == '__main__':
         env = Voting()
     elif env_name == "ModDAG":
         env = ModDAG(variant=variant)
-    compute_possible_efficient(env, compatibility_constant) 
+    compute_possible_efficient(env, one_constant, zero_constant, os.path.join("logs", "exhaustive", env_name + "_" + variant + str(one_constant) + "_" + str(zero_constant) + ".txt") )

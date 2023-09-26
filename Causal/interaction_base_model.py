@@ -107,6 +107,7 @@ class NeuralInteractionForwardModel(nn.Module):
         self.num_clusters = self.active_model_args.cluster.num_clusters # uses a mixture of experts implementation, which shoudl return different interaction masks
         self.selection_mask = args.full_inter.selection_mask
         self.population_mode = args.EMFAC.is_emfac
+        self.predict_next_state = args.full_inter.predict_next_state
         self.valid_indices = list()
 
         # set the distributions
@@ -378,7 +379,7 @@ class NeuralInteractionForwardModel(nn.Module):
     
     def _target_dists(self, batch, params, skip=None):
         # start = time.time()
-        target = batch.target_diff if self.predict_dynamics else batch.next_target
+        target = batch.target_diff if self.predict_dynamics else (batch.next_target if self.predict_next_target else batch.target)
         target = pytorch_model.wrap(target, cuda=self.iscuda)
         # print(target.shape, target[:6])
         # print("wrap", time.time() - start)
