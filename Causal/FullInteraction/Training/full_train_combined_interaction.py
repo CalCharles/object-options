@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 
 def compute_adaptive_lasso(active_nlikelihood, args, lasso_lambda):
-    return (args.full_inter.adaptive_lasso * (np.exp(-np.abs(args.full_inter.converged_active_loss_value + 1.5 - pytorch_model.unwrap(active_nlikelihood.mean()))))
+    return (args.full_inter.adaptive_lasso * (np.exp(-np.abs(min(0, args.full_inter.converged_active_loss_value - pytorch_model.unwrap(active_nlikelihood.mean())))))
                                                       if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
 
 def evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda, active_params, interaction_likelihood, interaction_mask, active_log_probs, done_flags, proximity):
