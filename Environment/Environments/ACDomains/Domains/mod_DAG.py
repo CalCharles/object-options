@@ -4,9 +4,9 @@ from Environment.environment import Environment
 from Environment.Environments.ACDomains.ac_domain import ACDomain, ACObject
 
 mod_variants = {
-    "and": [3, [[[0,1]],[2], ["mul"], [[]]], 2],
-    "or": [3, [[[0,1]],[2], ["ineq"], [[1, "geq"]]], 2],
-    "xor": [3, [[[0,1]],[2], ["sum"], [[]]], 2],
+    "and": [3, [[[0,1],2, "mul", []]], 2],
+    "or": [3, [[[0,1],2, "ineq", [1, True, True]]], 2],
+    "xor": [3, [[[0,1],2, "add", []]], 2],
 } # parents, targets, relation, hyperparams
 
 
@@ -51,13 +51,15 @@ class ModDAG(ACDomain):
         
         self.all_names = [chr(ord('@')+ i + 1) for i in range(num)]
         self.objects = {n: ACObject(n, maxval) for n in self.all_names} # dict of name to value
+        print(relations[0])
         self.binary_relations = [self.create_relation(*rel) for rel in relations] # must get set prior to calling super (), the order follows the order of operations
         self.relation_outcome = [self.all_names[rel[1]] for rel in relations]
-        self.passive_mask = np.zeros(len(self.all_names))
+        self.passive_mask = np.zeros(len(self.all_names)-1)
         self.outcome_variable = self.all_names[-1]
         super().__init__(frameskip, variant, fixed_limits)
 
     def create_relation(self, parents, target, relation, hyperparams):
+        print(parents, self.all_names[parents[0]])
         names = ([self.all_names[p] for p in parents], self.all_names[target]) 
         if relation == "add":
             relation = create_add_relation(names, self.maxval, hyperparams)

@@ -6,14 +6,17 @@ from Environment.Environments.ACDomains.ac_domain import ACDomain, ACObject
 def outcome(objects):
     if objects["A1"].attribute == objects["A2"].attribute:
         objects["Outcome"].attribute = objects["A2"].attribute
+    # elif objects["A1"].attribute != objects["A2"].attribute and (objects["A2"].attribute == objects["A3"].attribute == objects["A4"].attribute):
     elif objects["A1"].attribute != objects["A2"].attribute and (objects["A2"].attribute == objects["A3"].attribute == objects["A4"].attribute == objects["A5"].attribute):
         objects["Outcome"].attribute = objects["A1"].attribute
     else:
+        # objects["Outcome"].attribute = 0 if np.sum([objects["A1"].attribute, objects["A2"].attribute, objects["A3"].attribute, objects["A4"].attribute]) < 2 else 1
         objects["Outcome"].attribute = 0 if np.sum([objects["A1"].attribute, objects["A2"].attribute, objects["A3"].attribute, objects["A4"].attribute, objects["A5"].attribute]) < 3 else 1
 
 class Voting(ACDomain):
     def __init__(self, frameskip = 1, variant="", fixed_limits=False):
         self.all_names = ["A1", "A2", "A3", "A4", "A5", "Outcome"]
+        # self.all_names = ["A1", "A2", "A3", "A4", "Outcome"]
         self.objects = {"A1": ACObject("A1", 2),
                         "A2": ACObject("A2", 2),
                         "A3": ACObject("A3", 2),

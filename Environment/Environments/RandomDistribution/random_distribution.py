@@ -149,7 +149,7 @@ class rel_func():
 
     def __call__(self, ps, ts, require_passive=False):
         # print(ts, ps, np.matmul(self.target_weight_matrix, ts),self.parent_bias, np.matmul(self.parent_weight_matrix, ps - np.matmul(self.target_weight_matrix, ts) - self.parent_bias))
-        if not hasattr(self, "target_dependent",) or self.target_dependent: rel_val = np.matmul(self.weight_matrix, np.expand_dims(np.concatenate([ts - self.target_bias, ps - self.parent_bias], axis =-1), axis=-1))[...,0]
+        if self.target_dependent: rel_val = np.matmul(self.weight_matrix, np.expand_dims(np.concatenate([ts - self.target_bias, ps - self.parent_bias], axis =-1), axis=-1))[...,0]
         else: rel_val = np.matmul(self.weight_matrix, np.expand_dims(np.concatenate([ps - self.parent_bias], axis =-1), axis=-1))[...,0]
         if self.conditional:
             # print("cond weight", np.sum(rel_val, axis=-1))
@@ -294,7 +294,7 @@ class RandomDistribution(Environment):
                             conditional=True,
                             conditional_weight=self.conditional_weight,
                             passive=self.passive_functions[target],
-                            dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 1 / self.target_counter[target],
+                            dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 1,
                             )
             else:
                 orf = add_func(parents,
@@ -303,7 +303,7 @@ class RandomDistribution(Environment):
                             self.object_sizes[target],
                             use_bias = True,
                             conditional=False,
-                            dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 1 / self.target_counter[target],
+                            dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 1,
                             passive=self.passive_functions[target])
             print(orf.parents, orf.target, orf.params)
             self.object_relational_functions.append(orf)
@@ -320,12 +320,14 @@ class RandomDistribution(Environment):
         # has to be set after we know how many ORFs have the object as target
         
         self.object_dynamics = dict()
+        self.target_last = dict()
         for n in self.object_names:
             orf_num = 0
-            for orf in self.object_relational_functions:
+            for i, orf in enumerate(self.object_relational_functions):
                 if orf.target == n:
                     total_parent_combinations = np.prod([self.object_instanced[p] for p in orf.parents])
                     orf_num += total_parent_combinations
+                    self.target_last[orf.target] = i
 
             orf_num = max(1,orf_num)
             dynamics_step = DYNAMICS_CLIP * orf_num
@@ -407,6 +409,7 @@ class RandomDistribution(Environment):
                     else: self.object_name_dict[target].next_state = copy.deepcopy(self.object_name_dict[target].get_state())
             
             # print(self.get_state())
+            target_active = dict()
             for i, orf in enumerate(self.object_relational_functions):
                 target_class = orf.target
                 # print(orf.parents, orf.target)
@@ -440,7 +443,7 @@ class RandomDistribution(Environment):
                         parent_mesh = [np.arange(i) for i in parent_nums]
                         parent_mesh = np.array(np.meshgrid(*parent_mesh)).T.reshape(-1,len(parent_mesh))
 
-                    for pmesh in parent_mesh: # for each combination of instances of the parents
+                    for j, pmesh in enumerate(parent_mesh): # for each combination of instances of the parents
                         instanced_names = [(p+str(i) if self.object_instanced[p] > 1 else p) for i,p in zip(pmesh, orf.parents)]
 
                         ps = self.get_all_state(instanced_names)
@@ -448,19 +451,26 @@ class RandomDistribution(Environment):
                         inter, nds = orf(ps, ts, require_passive)
                         if inter:
                             self.object_name_dict[target].interaction_trace += orf.parents
+                        if target in target_active: target_active[target] = target_active[target] + int(inter)
+                        else: target_active[target] = int(inter)
                         
+                        # calculate statistics
                         orf_average = (int(inter) + (orf_average * n)) / (n + 1)
                         if self.require_passive and not inter:
-                            orf_passive_average = (1 + (orf_passive_average * n)) / (n + 1)
+                            if ((not (target_active[target] > 0)) and (j == len(parent_mesh) - 1) and (i == self.target_last[target_class])):
+                                orf_passive_average = (1 + (orf_passive_average * n)) / (n + 1)
 
                         clip_average = (int(np.any(np.abs(nds) > DYNAMICS_CLIP)) + (clip_average * n)) / (n + 1)
                             
                         # print(orf.parents, orf.target, inter)
                         # print(inter, orf.target, nds)
-                        if self.relate_dynamics: 
-                            self.object_name_dict[target].next_state += np.clip(nds, -DYNAMICS_CLIP, DYNAMICS_CLIP)
+                        if self.relate_dynamics:
+                            # if an interaction occurred, or this is the last one and no interaction occurred (using the passive dynamics)
+                            if inter or ((not (target_active[target] > 0)) and (j == len(parent_mesh) - 1) and (i == self.target_last[target_class])):
+                                self.object_name_dict[target].next_state += np.clip(nds, -DYNAMICS_CLIP, DYNAMICS_CLIP)
                         else:
-                            self.object_name_dict[target].next_state += nds # adds together, but from zero, no clipping
+                            if inter or ((not (target_active[target] > 0)) and (j == len(parent_mesh) - 1) and (i == self.target_last[target_class])):
+                                self.object_name_dict[target].next_state += nds # adds together, but from zero, no clipping
                             # if i < 3: print(self.itr, self.done.attribute, orf.parents, orf.target, self.get_state()["factored_state"][orf.target])
                         if instant_update:
                             self.object_name_dict[target].state = self.object_name_dict[target].next_state
@@ -469,6 +479,8 @@ class RandomDistribution(Environment):
                 self.internal_statistics[ (" ".join(orf.parents), orf.target  + "_clip")] += clip_average
                 if self.require_passive and hasattr(orf, "passive"): self.internal_statistics[ (" ".join(orf.passive.parents), orf.passive.target)] += orf_passive_average
             for obj in self.object_name_dict.values():
+                if not self.relate_dynamics: # normalize unrelated dynamics
+                    self.object_name_dict[obj.name].next_state = self.object_name_dict[obj.name].next_state / max(1.0, float(target_active[target]))
                 # print("adding noise", obj.next_state)
                 # if self.noise_percentage > 0: # TODO: it appears taking random actions is correlated with the random noise, so we removed this impl
                 #     if self.distribution == "Gaussian":

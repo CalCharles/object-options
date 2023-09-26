@@ -59,16 +59,23 @@ if __name__ == '__main__': # TODO: combine with the train_all/train_full code
         # for model in model.values():
         #     model.cpu().cuda(device = args.torch.gpu)
         passive_weights = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_weights.pkl"))
+        outputs = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_outputs.pkl"))
     # training the passive/active models
     model.active_model.set_full() # set the model to the full model
     if args.train.train and args.inter.passive.passive_iters > 0: outputs, passive_weights = run_train_passive(model, train_all_buffer, train_object_rollout, test_all_buffer, test_object_rollout, args, environment)
+    
     # pretraining with the true traces, not used for the main algorithm
     if args.train.train and args.inter.interaction.interaction_pretrain > 0: run_train_interaction(model, train_all_buffer, train_object_rollout, test_all_buffer, test_object_rollout, args, environment)
     # saving the passive models and weights
     if len(args.inter.save_intermediate) > 0:
         save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_inter_model.pkl"), model)
         save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name +  "_passive_weights.pkl"), passive_weights)
+        save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name +  "_passive_outputs.pkl"), outputs)
     
+    # generate the output error value from the last 100 active outputs TODO:goes inside loading, which isn't implemented
+    args.full_inter.converged_active_loss_value = np.mean([active_loss for passive_loss, active_loss in outputs[-100:]])
+    args.full_inter.converged_passive_loss_value = np.mean([passive_loss for passive_loss, active_loss in outputs[-100:]])
+
 
     # training the active and interaction models
     extractor, normalization = regenerate(True, environment, all=all_train)

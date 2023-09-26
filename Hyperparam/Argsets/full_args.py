@@ -146,6 +146,7 @@ full_args = {
         "selection_mask": False, # uses a selection mask network
         "selection_train": "",
         "nextstate_interaction": False, # uses the outcome for the interaction network
+        "predict_next_state": True, # predicts the next state, otherwise, predicts the current state (useful for DAG methods)
     },
     "inter": {
         "predict_dynamics": False,
@@ -177,6 +178,7 @@ full_args = {
             "interaction_weighting": [0,0], # must be length 2
             "intrain_passive": 0,
             "error_binary_upweight": 1,
+            "adaptive_inter_lambda": -1.0 # adaptive weight for training the forward model with full or inter inputs, still uses interaction schedule for tradeoff 
         },
     },
     "EMFAC": {

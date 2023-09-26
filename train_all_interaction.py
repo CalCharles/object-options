@@ -42,16 +42,23 @@ if __name__ == '__main__':
     passive_weights = dict()
     if len(args.inter.load_intermediate) > 0: 
         print("loaded model")
-        all_model = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_inter_model.pkl"))
+        all_models = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_inter_model.pkl"))
         for all_model in all_models.values():
             all_model.cpu().cuda(device = args.torch.gpu)
         passive_weights = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_weights.pkl"))
+        outputs = load_from_pickle(os.path.join(args.full_inter.load_intermediate, environment.name + "_passive_outputs.pkl"))
     # training the passive models
-    if args.train.train and args.inter.passive.passive_iters > 0: outputs, passive_weights = run_train_passive(all_model, train_all_buffer, None, test_all_buffer, None, args, environment)
+    if args.train.train and args.inter.passive.passive_iters > 0: outputs, passive_weights = run_train_passive(all_models, train_all_buffer, None, test_all_buffer, None, args, environment)
     # saving the passive models and weights
     if len(args.inter.save_intermediate) > 0:
         save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_inter_model.pkl"), all_model)
         save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name +  "_passive_weights.pkl"), passive_weights)
+        save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name +  "_passive_outputs.pkl"), outputs)
+
+    # generate the output error value from the last 100 active outputs TODO:goes inside loading, which isn't implemented
+    args.full_inter.converged_active_loss_value = np.mean([active_loss for passive_loss, active_loss in outputs[-100:]])
+    args.full_inter.converged_passive_loss_value = np.mean([passive_loss for passive_loss, active_loss in outputs[-100:]])
+
     # pretraining with the true traces, not used for the main algorithm
     if args.train.train and args.inter.interaction.interaction_pretrain > 0: run_train_interaction(all_model, train_all_buffer, None, test_all_buffer, None, args, environment)
     

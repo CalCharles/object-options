@@ -16,8 +16,11 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
         # factored_state["fjgnhww"] = factored_state["fjgnhww"] * 1000
         # next_factored_state["icplygutx"] = next_factored_state["icplygutx"] * 100 # TODO: REMOVE
         use_done = next_factored_state["Done"]#factored_state["Done"].squeeze() if predict_dynamics else last_done
-        act = next_factored_state["Action"][-1] if environment.discrete_actions else next_factored_state["Action"]
-        factored_state["Action"] = next_factored_state["Action"]
+        if args.full_inter.predict_next_state:
+            act = next_factored_state["Action"][-1] if environment.discrete_actions else next_factored_state["Action"]
+            factored_state["Action"] = next_factored_state["Action"]
+        else: # don't shift, the actions are used for the current state evaluation
+            act = factored_state["Action"][-1] if environment.discrete_actions else factored_state["Action"]
         full_state = args.inter_select(factored_state)
         rew = factored_state["Reward"]
         if "VALID_NAMES" in factored_state: valid = factored_state["VALID_NAMES"][:-2] # don't include reward or done in validity vector

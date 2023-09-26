@@ -30,7 +30,8 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
     logger = forward_logger("pretrain_passive", args.record.record_graphs, args.inter.passive.passive_log_interval, full_model, filename=args.record.log_filename)
     active_logger = forward_logger("pretrain_active", args.record.record_graphs, args.inter.passive.passive_log_interval, full_model)
 
-    outputs = list()
+    passive_likelihoods = list()
+    active_likelihoods = list()
     for i in range(args.inter.passive.passive_iters):
         start = time.time()
         full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollout, weights)
@@ -58,6 +59,7 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
             # logging the passive model outputs
             logger.log(i, passive_loss, None, None, passive_log_probs  * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, weight_rate, batch.done,
                         passive_prediction_params, target  * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, full_model, valid=valid)
+            passive_likelihoods.append(pytorch_model.unwrap(passive_loss))
             # If pretraining the active model, trains with a fully permissible interaction model
         if args.inter.passive.pretrain_active:
             # print(full_model.target_num, len(full_model.all_names))
@@ -96,6 +98,7 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
             # logging the active model outputs
             # error
             # print("aoptim", time.time() - aoptim)
+            active_likelihoods.append(pytorch_model.unwrap(active_loss))
             active_logger.log(i, active_loss, None, None, active_likelihood_full * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, weight_rate, batch.done,
                                 active_prediction_params, target, None, full_model, valid=valid)
             if args.EMFAC.train_reconstruction:
@@ -110,4 +113,5 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
             # print(target[:20])
             # print(passive_done_log_probs.mean())
         # print("passive", time.time()- start)
+    outputs = list(zip(passive_likelihoods, active_likelihoods))
     return outputs, weights
