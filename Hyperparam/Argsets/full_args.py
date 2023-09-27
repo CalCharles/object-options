@@ -50,7 +50,7 @@ network_args = {
         "gumbel_attention": -1.0, # if a gumbel softmax is used at the attention level
         "needs_encoding": True, # should be set in init, default value here
         "merge_function": "cat", # the function for merging together the heads
-        "append_keys": False, # appends the keys to the values
+        "append_keys": False, # appends the keys to the values TODO: move this to pair
         "no_hidden": False, # adds no hidden layers to the key, query or value operations
         "renormalize": False, # Normalizes the attention weights after masking and valid
     },

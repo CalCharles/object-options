@@ -34,6 +34,7 @@ class KeyPairNetwork(Network):
         self.return_mask = args.mask_attn.return_mask
         self.num_layers = args.pair.num_pair_layers
         self.repeat_layers = args.pair.repeat_layers
+        self.append_keys = args.mask_attn.append_keys
 
         embed_key_layer_args = copy.deepcopy(args)
         embed_key_layer_args.hidden_sizes = list()
@@ -109,13 +110,15 @@ class KeyPairNetwork(Network):
         # slices x into keys and queries, embeds them, masks the queries and then creates 
         # a vector of [batchssize, num_queries (self.total_instances), key_embed_dim + query_embed_dim]
         # assumes masks is [batchsize, num_queries*self.embed_dim * self.total_instances]
-        key = x[...,i * self.single_obj_dim: (i+1) * self.single_obj_dim]
-        key = self.embed_key_layer(key) # batch x embed dim
         queries = x[...,self.first_obj_dim:] # batch, embed dim
         # print(key.shape, self.embed_query_layer, x.shape, queries.shape,queries.reshape(x.shape[0], -1, self.object_dim).transpose(1,2).shape, self.object_dim, self.first_obj_dim, self.single_obj_dim)
         queries = queries.reshape(x.shape[0], -1, self.object_dim).transpose(1,2) # batch, object_dim, num_queries 
         # print(queries.shape, self.first_obj_dim, x.shape, self.object_dim, self.single_obj_dim)
         queries = self.embed_query_layer(queries).transpose(2,1) # batch, num_queries, embed dim
+        key = x[...,i * self.single_obj_dim: (i+1) * self.single_obj_dim]
+        key = self.embed_key_layer(key) # batch x embed dim
+        if not self.append_keys: # we still append the keys, but zero the keys out
+            key = 0 * key
         # print(queries.transpose(2,1).reshape(x.shape[0], -1)[0])
         if m is None: # unmasked if m is None
             xi = torch.cat([key, queries.reshape(x.shape[0], -1)], dim=-1)
