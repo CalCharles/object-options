@@ -81,6 +81,7 @@ if __name__ == '__main__':
             full_model.cpu().cuda(device = args.torch.gpu)
     args.full_inter.converged_active_loss_value = np.mean([active_loss for passive_loss, active_loss in outputs[-100:]])
     args.full_inter.converged_passive_loss_value = np.mean([passive_loss for passive_loss, active_loss in outputs[-100:]])
+    print("average losses:", args.full_inter.converged_active_loss_value)
     for name in environment.object_names:
         # if name in ["phpt"]:
         if name in train_names:
