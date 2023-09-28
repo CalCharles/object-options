@@ -47,7 +47,7 @@ if __name__ == '__main__':
         for full_model in full_models.values():
             full_model.cpu().cuda(device = args.torch.gpu)
         passive_weights = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_weights.pkl"))
-        outputs = load_from_pickle(os.path.join(args.full_inter.load_intermediate, environment.name + "_passive_outputs.pkl"))
+        outputs = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_outputs.pkl"))
     # training the passive models
     for name in environment.object_names:
         # if name in ["vgqccm", "egutgube"]: # TODO: switch back to this to test attention module

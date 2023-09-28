@@ -46,7 +46,7 @@ if __name__ == '__main__':
         for all_model in all_models.values():
             all_model.cpu().cuda(device = args.torch.gpu)
         passive_weights = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_weights.pkl"))
-        outputs = load_from_pickle(os.path.join(args.full_inter.load_intermediate, environment.name + "_passive_outputs.pkl"))
+        outputs = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_outputs.pkl"))
     # training the passive models
     if args.train.train and args.inter.passive.passive_iters > 0: outputs, passive_weights = run_train_passive(all_models, train_all_buffer, None, test_all_buffer, None, args, environment)
     # saving the passive models and weights

@@ -1,0 +1,59 @@
+---
+  arg_dict: ac_base
+  record:
+    # record_rollouts: ""
+    record_recycle: -1
+    log_filename: /hdd/datasets/object_data/base/DAG/1_in/grad/log/inter.log
+    # load_dir: /hdd/datasets/object_data/base/DAG/1_in/testrun/
+    save_dir: /hdd/datasets/object_data/base/DAG/1_in/grad/
+    # log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/1_in/log/inter.log
+    # # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/base/DAG/1_in/testrun/
+    # save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/base/DAG/1_in/grad/
+  environment:
+    env: RandomDAG
+    variant: 1-in
+    # load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/1_in/
+    load_environment: /hdd/datasets/object_data/RandomDAG/1_in/
+  torch:
+    gpu: 0
+    no_cuda: False
+  train:
+    train: True
+    num_frames: 100000
+    train_test_order: time
+    # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/1_in/
+    load_rollouts: /hdd/datasets/object_data/RandomDAG/1_in/
+    num_iters: 10000
+    batch_size: 512
+  inter:
+    predict_dynamics: True
+    interaction_testing: 0.9 -1 -10 -1
+    # load_intermediate: /hdd/datasets/object_data/base/DAG/1_in/grad/temp/
+    # save_intermediate: /hdd/datasets/object_data/base/DAG/1_in/grad/temp/
+    compare_trace: True
+    passive:
+      passive_log_interval: 100
+      pretrain_active: True
+  full_inter:
+    object_id: True
+    lasso_lambda: 3 0 0 0 1000
+    mixed_interaction: mixed
+    soft_distribution: Identity
+    use_active_as_passive: True
+    train_names: $C
+  interaction_net:
+    hidden_sizes: 256 256 256
+    net_type: keypair
+    init_form: xnorm
+    embed_inputs: 512
+    activation: crelu
+    pair:
+      reduce_function: sum
+    optimizer:
+      lr: .0001
+      alt_lr: .00001
+      eps: .00001
+      alpha: 0.99
+      betas: 0.9 0.999
+      weight_decay: 0.000
+...

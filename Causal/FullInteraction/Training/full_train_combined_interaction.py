@@ -4,9 +4,14 @@ from Causal.Utils.instance_handling import compute_likelihood, get_batch
 import torch
 import torch.nn.functional as F
 
+LOSS_DIFFERENCE_CONSTANT = 3
+
 def compute_adaptive_lasso(active_nlikelihood, args, lasso_lambda):
-    return (args.full_inter.adaptive_lasso * (np.exp(-np.abs(min(0, args.full_inter.converged_active_loss_value - pytorch_model.unwrap(active_nlikelihood.mean())))))
+    # print(np.exp(-np.abs(args.full_inter.converged_active_loss_value - LOSS_DIFFERENCE_CONSTANT - pytorch_model.unwrap(active_nlikelihood.mean()))), np.abs(args.full_inter.converged_active_loss_value - pytorch_model.unwrap(active_nlikelihood.mean())), pytorch_model.unwrap(active_nlikelihood.mean()), args.full_inter.adaptive_lasso * (np.exp(-np.abs(args.full_inter.converged_active_loss_value - LOSS_DIFFERENCE_CONSTANT - pytorch_model.unwrap(active_nlikelihood.mean())))))
+    return (args.full_inter.adaptive_lasso * (np.exp(-np.abs(args.full_inter.converged_active_loss_value - LOSS_DIFFERENCE_CONSTANT - pytorch_model.unwrap(active_nlikelihood.mean()))))
                                                       if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
+    # return (args.full_inter.adaptive_lasso * (np.exp(-np.abs(active_nlikelihood.shape[-1] * 3 + pytorch_model.unwrap(active_nlikelihood.mean()))))
+    #                                                   if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
 
 def evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda, active_params, interaction_likelihood, interaction_mask, active_log_probs, done_flags, proximity):
     active_nlikelihood = compute_likelihood(full_model, len(active_log_probs), - active_log_probs, done_flags=done_flags, reduced=False, is_full = True)
@@ -49,12 +54,13 @@ def evaluate_active_interaction_expert(full_model, args, onemask_lambda, halfmas
     # print(pytorch_model.unwrap(full_loss.mean()), pytorch_model.unwrap(mask_loss.mean()))
     return full_loss, active_nlikelihood.mean(), lasso_lambda
 
-def get_masking_gradients(full_model, args, rollouts, object_rollout, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda, weights, inter_loss, normalize=False):
+def get_masking_gradients(full_model, args, rollouts=None, object_rollout=None, batch=None, full_batch=None, onemask_lambda=0, halfmask_lambda=0, lasso_lambda=0, entropy_lambda=0, weights=None, normalize=False):
     # prints out the gradients of the interaction mask, the active inputs and the full inputs
-    full_batch, batch, idxes = get_batch(512, full_model.form == "all", rollouts, object_rollout, weights)
+    if batch is None:
+        full_batch, batch, idxes = get_batch(512, full_model.form == "all", rollouts, object_rollout, weights)
 
-    # a statistic on weighting
-    weight_count = np.sum(weights[idxes])
+        # a statistic on weighting
+        weight_count = np.sum(weights[idxes])
     # print("running inline iters")
     # run the networks and get both the active and passive outputs (passive for interaction binaries)
     active_hard_params, active_soft_params, active_full, \

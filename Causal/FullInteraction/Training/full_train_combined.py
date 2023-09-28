@@ -195,6 +195,8 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
         #                     batch.trace], axis=-1)[:10])
         if args.inter.active.adaptive_inter_lambda > 0:
             interaction_lambda = args.inter.active.adaptive_inter_lambda * (np.exp(-np.abs(args.full_inter.converged_active_loss_value - np.mean(active_loss)) * args.inter.active.adaptive_inter_lambda)) * interaction_schedule(i)
+        else:
+            interaction_lambda = interaction_schedule(i)
 
         if i % args.inter.active.active_log_interval == 0:
             print(i, "speed", (args.inter.active.active_log_interval * i) / (time.time() - start))
