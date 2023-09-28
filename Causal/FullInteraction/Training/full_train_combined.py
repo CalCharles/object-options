@@ -176,10 +176,10 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
                 trace=None if single_trace is None else single_trace, no_print=ii != 0)
 
         for ii in range(int(dual_lasso_iters)):
-            print("iterating dual lasso", lasso_lambda)
             dl_idxes, dl_loss, dl_likelihood,\
                     dl_binaries, dl_hot, dl_weight, dl_done_flags, dl_grad_variables, lasso_lambda = _train_combined_interaction(full_model, args, rollouts, object_rollouts,
                                                                         lasso_oneloss_lambda,lasso_halfloss_lambda, lasso_lambda, entropy_lambda, interaction_weights, inter_loss, lasso_optimizer, normalize=normalize)
+            print("iterating dual lasso", lasso_lambda)
 
         # print(i, lasso_lambda, lasso_oneloss_lambda, uw(loss.mean()), uw(interaction_loss.mean()), full_model.name,interaction_schedule(i),args.full_inter.mixed_interaction, 
         #     uw(active_nlikelihood.mean()), uw(active_full_nlikelihood.mean()), uw(passive_nlikelihood.mean()), np.sum(np.abs(batch.trace - uw(hard_interaction_mask))) / args.train.batch_size / batch.trace.shape[-1])
@@ -206,7 +206,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             entropy_lambda = entropy_lambda_schedule(i)
             lasso_oneloss_lambda = lasso_oneloss_schedule(i)# train combined
             lasso_halfloss_lambda = lasso_halfloss_schedule(i)
-            lasso_lambda = lasso_schedule(i) if dual_lasso_lr <= 0 else lasso_lambda
+            lasso_lambda = lasso_schedule(i) if dual_lasso_lr <= 0 and args.full_inter.adaptive_lasso < 0 else lasso_lambda
             inline_iters = inline_iter_schedule(i)
             active_weighting_lambda = active_weighting_schedule(i)
             active_weights = get_weights(active_weighting_lambda, (object_rollouts if full_model.form == "full" else rollouts).weight_binary[:len(rollouts)].squeeze() if full_model.form == "full" else rollouts.weight_binary[:len(rollouts)].squeeze())
