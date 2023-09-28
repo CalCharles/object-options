@@ -25,4 +25,4 @@ def parse_edges(graph_skeleton):
     elif graph_skeleton == "2-multi":
         return [("Action", "$B"),("$B", "$C", "$D", "$E")], ["Action", "$B", "$C", "$D", "$E", "Reward", "Done"]
     elif graph_skeleton == "3-multi-chain":
-        return [("Action", "$B"), ("A", "$B", "$D", "$C")], ["Action", "$A", "$B", "$D", "$C", "Reward", "Done"]
+        return [("Action", "$B"), ("$A", "$B", "$D", "$C")], ["Action", "$A", "$B", "$D", "$C", "Reward", "Done"]
