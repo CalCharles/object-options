@@ -4,6 +4,7 @@ from Record.logging import Logger
 from Record.file_management import create_directory
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
+from collections import deque
 
 class full_interaction_logger(Logger):
     def __init__(self, name, record_graphs, log_interval, full_model, filename=""):
@@ -57,13 +58,13 @@ class full_interaction_logger(Logger):
         self.sum_soft_entropy += np.sum(-np.sum(soft_interactions * np.log(soft_interactions), axis=-1))
 
         if trace is not None:
-            self.sum_flat_error = np.sum(np.abs(flat_interactions - trace), axis=0) if self.sum_flat_error is None else self.sum_soft_error + np.sum(np.abs(flat_interactions - trace), axis=0)
-            self.sum_soft_error = np.sum(np.abs(soft_interactions - trace), axis=0) if self.sum_soft_error is None else self.sum_soft_error + np.sum(np.abs(soft_interactions - trace), axis=0)
-            self.sum_hard_error = np.sum(np.abs(hard_interactions - trace), axis=0) if self.sum_hard_error is None else self.sum_soft_error + np.sum(np.abs(hard_interactions - trace), axis=0)
-            sum_soft_over = flat_interactions - trace
+            self.sum_flat_error = np.sum(np.abs(flat_interactions - trace) * done_flags, axis=0) if self.sum_flat_error is None else self.sum_soft_error + np.sum(np.abs(flat_interactions - trace) * done_flags, axis=0)
+            self.sum_soft_error = np.sum(np.abs(soft_interactions - trace) * done_flags, axis=0) if self.sum_soft_error is None else self.sum_soft_error + np.sum(np.abs(soft_interactions - trace) * done_flags, axis=0)
+            self.sum_hard_error = np.sum(np.abs(hard_interactions - trace) * done_flags, axis=0) if self.sum_hard_error is None else self.sum_soft_error + np.sum(np.abs(hard_interactions - trace) * done_flags, axis=0)
+            sum_soft_over = (soft_interactions - trace) * done_flags
             sum_soft_over[sum_soft_over<0] = 0
             self.sum_soft_over = np.sum(np.abs(sum_soft_over), axis=0) if self.sum_soft_over is None else self.sum_soft_over + np.sum(np.abs(sum_soft_over), axis=0)
-            sum_soft_under = flat_interactions - trace
+            sum_soft_under = (soft_interactions - trace) * done_flags
             sum_soft_under[sum_soft_under>0] = 0
             self.sum_soft_under = np.sum(np.abs(sum_soft_under), axis=0) if self.sum_soft_under is None else self.sum_soft_under + np.sum(np.abs(sum_soft_under), axis=0)
         self.total_seen += len(soft_interactions) - np.sum((done_flags == 0).astype(float))

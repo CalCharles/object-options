@@ -278,6 +278,7 @@ class ParallelMaskedAttentionNetwork(Network):
         if not self.query_aggregate:
             x = x.reshape(batch_size, -1, self.final_dim).transpose(1,2)
             x = self.final_layer(x).transpose(1,2)
+            if return_weights: return x.view(batch_size, -1), weights # batch x num_layers x num_heads x keys x queries
             return x.view(batch_size, -1)
         if self.aggregate_final: # reduce all the keys
             x = reduce_function(self.reduce_fn, x) # reduce the stacked values along axis 2
@@ -290,5 +291,5 @@ class ParallelMaskedAttentionNetwork(Network):
             m = m.transpose(2,1)
             m = m.reshape(batch_size, -1)
         # print("total compute", time.time() - start)
-        if return_weights: return x,weights
+        if return_weights: return x,weights # weighs of shape batch x num_layers x num_heads x keys x queries
         return x

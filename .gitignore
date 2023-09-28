@@ -11,3 +11,4 @@ Testing/testing_data/*
 *.svg
 *.json
 *.tfevents.*
+*.png

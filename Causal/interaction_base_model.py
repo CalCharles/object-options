@@ -660,8 +660,8 @@ class NeuralInteractionForwardModel(nn.Module):
         # returns likelihoods based on which values are asked for by masking
 
     # gets the active likelihood without the interaction mask blocking any inputs
-    def active_open_likelihoods(self, batch, normalize=False, all=False):
-        return self._likelihoods(batch, normalize=normalize, mixed="", return_selection = True, compute_values = ["full"])
+    def active_open_likelihoods(self, batch, normalize=False, all=False, input_grad=False):
+        return self._likelihoods(batch, normalize=normalize, mixed="", input_grad=input_grad, return_selection = True, compute_values = ["full"])
         # return full_params, inter, hot_mask, full_mask, target, full_dist, full_log_probs, full_input
 
     def passive_likelihoods(self, batch, normalize=False):
@@ -677,9 +677,9 @@ class NeuralInteractionForwardModel(nn.Module):
         if normalize: batch = self.normalize_batch(batch)
         active_input = pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda)
         valid = pytorch_model.wrap(batch.valid, cuda=self.iscuda)
-        if mask is None:
-            mask = self.active_model.get_all_mask(len(batch), -1, -1) if self.cluster_mode else pytorch_model.wrap(torch.ones(len(self.all_names) * self.target_num), cuda = self.iscuda)
-        else:
-            mask = pytorch_model.wrap(mask, cuda = self.iscuda)
+        # if mask is None:
+        #     mask = self.active_model.get_all_mask(len(batch), -1, -1) if self.cluster_mode else pytorch_model.wrap(torch.ones(len(self.all_names) * self.target_num), cuda = self.iscuda)
+        # else:
+        #     mask = pytorch_model.wrap(mask, cuda = self.iscuda)
         mean, std, weights = self.active_model.weights(active_input, mask, valid=valid)
         return (mean, std), weights

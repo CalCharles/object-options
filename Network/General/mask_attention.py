@@ -215,12 +215,15 @@ class MultiHeadAttentionParallelLayer(Network):
             if self.mask_mode == "attn": weights = evaluate_key_query(self.softmax, key, queries, mask, valid, single_key=True)
             else: weights = evaluate_key_query(self.softmax, key, queries, None, None, single_key=True)
             values = (weights.unsqueeze(-1) * values )
-            # print(values.shape)
-            if self.merge_function == 'cat': values = values.transpose(3,2)
-            values = reduce_function(self.merge_function, values, dim=1) # batch x keys x queries x model_dim (merges the heads)
+            if self.merge_function == 'cat': values = values.transpose(3,2) #
+            # if not cat: batch x keys x queries x model_dim (merges the heads)
+            # if cat: batch x heads x model dim x queries -> batch x heads * model dim x queries (flip queries back)
+            values = reduce_function(self.merge_function, values, dim=1) 
             if self.merge_function == 'cat': values = values.transpose(1,2)
             # values = reduce_function(self.merge_function, values.transpose(1,2), dim=2).transpose(1,2) # batch x keys x queries x model_dim merges with the same function as all the others
             # print(values.shape)
+            # values of shape batch x queries x final dimension
+            # weights of shape batch x queries
         else:
             # print(queries.shape, key.shape, values.shape)
             if self.mask_mode == "attn": weights = evaluate_key_query(self.softmax, key, queries, mask, valid, single_key=True)
@@ -231,8 +234,9 @@ class MultiHeadAttentionParallelLayer(Network):
             # print("after", values)
             values = reduce_function(self.merge_function, values, dim=1)
             values = self.final_network(values)
-            # print("head compute", time.time() - start)
-        return values
+            # values of shape batch x final dimension
+            # weights of shape batch x queries
+        return values, weights
 
 class MultiHeadAttentionBase(Network):
     def __init__(self, args):
@@ -260,13 +264,15 @@ class MultiHeadAttentionBase(Network):
 
     def forward(self, key, queries, m, valid=None):
         batch_size = key.shape[0]
+        weights = list()
         for i in range(self.num_layers):
             start = time.time()
-            if self.repeat_layers: key = self.multi_head_attention(key, queries, m, query_final=i==self.num_layers-1 and (not self.query_aggregate), valid=valid)
-            else: key = self.multi_head_attention[i](key, queries, m, query_final=i==self.num_layers-1 and (not self.query_aggregate), valid=valid)
+            if self.repeat_layers: key, weight = self.multi_head_attention(key, queries, m, query_final=i==self.num_layers-1 and (not self.query_aggregate), valid=valid)
+            else: key, weight = self.multi_head_attention[i](key, queries, m, query_final=i==self.num_layers-1 and (not self.query_aggregate), valid=valid)
+            weights.append(weight)
             # print("layer compute", time.time() - start)
         # key = self.final_layer(key)
-        return key
+        return key, torch.stack(weights, dim = 1) # key of shape batch x final dim, weights of shape batch x num_layers x num_heads
 
 class MaskedAttentionNetwork(Network):
     def __init__(self, args):
@@ -364,7 +370,7 @@ class MaskedAttentionNetwork(Network):
         # print("slice opt", time.time() - start)
         return m
 
-    def forward(self, x, m=None, valid=None):
+    def forward(self, x, m=None, valid=None, return_weights = False):
         # x is an input of shape [batch, flattened dim of all target objects + flattened all query objects]
         # m is the batch, key, query mask
         # iterate over each instance
@@ -395,11 +401,13 @@ class MaskedAttentionNetwork(Network):
         # print(m)
         # print(pytorch_model.wrap(torch.ones((batch_size, queries.shape[1], keys.shape[-1])), cuda=self.iscuda).shape)
         values = list() # the final output values
+        weights = list()
         for i in range(int(self.first_obj_dim // self.single_object_dim)):
             key = keys[...,i]
             # print(keys.shape, queries.shape, m[:,i,:].shape, m.shape)
-            value = self.multi_head_attention(key, queries, m[:,i,:], valid=valid)
+            value, weight = self.multi_head_attention(key, queries, m[:,i,:], valid=valid)
             values.append(value)
+            weights.append(weight)
         # print("mha", time.time() - mha)
         # print(value[0].shape)
         # print(x.shape, self.aggregate_final)
@@ -408,6 +416,8 @@ class MaskedAttentionNetwork(Network):
             x = x.view(batch_size, -1, self.final_dim).transpose(1,2)
             x = self.final_layer(x).transpose(1,2)
             # print("after final", x.shape, self.final_dim)
+            if return_weights:
+                return x.view(batch_size, -1), torch.stack(weights, dim = 3) # batch x num_layers x num_heads x keys x queries
             return x.view(batch_size, -1)
         if self.aggregate_final:
             x = reduce_function(self.reduce_fn, x) # reduce the stacked values along axis 2
@@ -421,4 +431,6 @@ class MaskedAttentionNetwork(Network):
             m = m.transpose(2,1)
             m = m.reshape(batch_size, -1)
         # print("total compute", time.time() - start)
+        if return_weights:
+            return x, torch.stack(weights, dim = 3) # weights shape: batch x num_layers x num_heads x keys x queries
         return x

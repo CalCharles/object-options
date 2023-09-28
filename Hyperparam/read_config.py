@@ -5,6 +5,7 @@ from Hyperparam.Argsets.full_args import full_args
 from Hyperparam.Argsets.hype_args import hype_args
 from Hyperparam.Argsets.cdl_args import cdl_args
 from Hyperparam.Argsets.ride_args import ride_args
+from Hyperparam.Argsets.ac_base_args import ac_base_args
 
 arg_dicts = {
     "full": full_args,
@@ -55,6 +56,8 @@ def construct_namespace(data):
             expected_args = ride_args
         elif data["arg_dict"] == "full":
             expected_args = full_args
+        elif data["arg_dict"] == "ac_base":
+            expected_args = ac_base_args
         else:
             raise ValueError('invalid argument set: ' + str(data["arg_dict"]) + ". Valid choices: hype, full, hints" )
     else:
