@@ -19,7 +19,7 @@ from Causal.Utils.instance_handling import compute_likelihood, get_batch
 from Causal.FullInteraction.Training.full_train_combined_interaction import evaluate_active_interaction, get_masking_gradients, _train_combined_interaction
 
 def _train_passive(i, full_model, args, rollouts, object_rollouts, passive_optimizer,active_optimizer, passive_weights, normalize=False):
-    full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollouts, passive_weights)
+    full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollouts, passive_weights, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
     passive_params,passive_mask, target, dist, log_probs, passive_input = full_model.passive_likelihoods(batch, normalize=normalize)
     done_flags = pytorch_model.wrap(1-full_batch.done, cuda = full_model.iscuda).squeeze().unsqueeze(-1)
     passive_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - log_probs, done_flags=done_flags, is_full=True)
@@ -103,7 +103,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
         # full_batch = rollouts[idxes]
 
         for j in range(max(1, args.inter.active.active_steps)):
-            full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollouts, active_weights)
+            full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollouts, active_weights, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
             # print("target", batch.target_diff[:6])
             weight_rate = np.sum(active_weights[idxes]) / len(idxes)
             # run the networks and get both the active and passive outputs (passive for interaction binaries)

@@ -34,7 +34,7 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
     active_likelihoods = list()
     for i in range(args.inter.passive.passive_iters):
         start = time.time()
-        full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollout, weights)
+        full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollout, weights, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
         weight_rate = np.sum(weights[idxes]) / len(idxes) if weights is not None else 1.0
         valid = get_valid(batch.valid, full_model.valid_indices) # valid is batch x num target indices binary vector indicating which targets are valid (NOT the full batch x num instances)
         done_flags = np.expand_dims(1-full_batch.done.squeeze(), -1)

@@ -172,6 +172,7 @@ class NeuralInteractionForwardModel(nn.Module):
         self.all_names = [n for n in environment.all_names if n not in ["Reward", "Done"]]
         self.num_inter = len(self.all_names)# number of instances to interact with
         self.target_selectors, self.full_select = self.extractor.get_selectors()
+        self.valid_indices = np.array([i for i, name in enumerate(environment.all_names) if name.find(self.name) != -1]) if self.form != "all" else np.arange(len(environment.all_names))
         if hasattr(self, "mask") and self.mask is not None: self.mask.regenerate_norm(norm)
     
     def load_forward_only(self, new_full_model):
@@ -379,7 +380,7 @@ class NeuralInteractionForwardModel(nn.Module):
     
     def _target_dists(self, batch, params, skip=None):
         # start = time.time()
-        target = batch.target_diff if self.predict_dynamics else (batch.next_target if self.predict_next_state else batch.obs)
+        target = batch.target_diff if self.predict_dynamics else batch.next_target
         target = pytorch_model.wrap(target, cuda=self.iscuda)
         # print(target.shape, target[:6])
         # print("wrap", time.time() - start)
@@ -401,6 +402,13 @@ class NeuralInteractionForwardModel(nn.Module):
     def normalize_batch(self, batch): # normalizes the components in the batch to be used for likelihoods, assumes the batch is an object batch
         batch.inter_state = self.norm(batch.inter_state, form="inter")
         batch.next_inter_state = self.norm(batch.next_inter_state, form="inter")
+        if not self.predict_next_state:
+            batch.inter_state = batch.inter_state.reshape(batch.inter_state.shape[0], len(self.valid_indices), -1)
+            batch.inter_state[:,self.valid_indices] = 0 # zero out target
+            batch.next_inter_state = batch.next_inter_state.reshape(batch.inter_state.shape[0], len(self.valid_indices), -1)
+            batch.next_inter_state[:,self.valid_indices] = 0
+            batch.inter_state = batch.inter_state.reshape(batch.inter_state.shape[0], -1)
+            batch.next_inter_state = batch.next_inter_state.reshape(batch.next_inter_state.shape[0], -1)
         batch.obs = self.norm(batch.obs, name=self.name)
         batch.tarinter_state = batch.inter_state if self.form == "all" else np.concatenate([batch.target, batch.inter_state], axis=-1)
         batch.obs_next = self.norm(batch.obs_next, name=self.name)

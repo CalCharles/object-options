@@ -30,8 +30,14 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
         for name in environment.object_names:
             denorm_target = full_model.target_selectors[name](factored_state)
             target = norm(denorm_target, name=name)
-            next_target = norm(full_model.target_selectors[name](next_factored_state), name=name)
-            target_diff = norm(full_model.target_selectors[name](next_factored_state) - full_model.target_selectors[name](factored_state), name=name, form="dyn")
+            if args.full_inter.predict_next_state:
+                next_target = norm(full_model.target_selectors[name](next_factored_state), name=name)
+                target_diff = norm(full_model.target_selectors[name](next_factored_state) - full_model.target_selectors[name](factored_state), name=name, form="dyn")
+            else:
+                target = target * 0.0 # blocks out the target so it won't be applied as an input
+                next_target = norm(full_model.target_selectors[name](factored_state), name=name)
+                target_diff = norm(full_model.target_selectors[name](next_factored_state) - full_model.target_selectors[name](factored_state), name=name, form="dyn")
+
             # if name == "ybb": print(target_diff, valid)
             # get the trace, valid for this object class
             if environment.object_instanced[name] > 1: # if there are multiple instances of the object, it is object_instance x other objects for the mask
