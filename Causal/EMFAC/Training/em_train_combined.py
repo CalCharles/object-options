@@ -30,7 +30,7 @@ def train_forward_combined(full_model, args,
     start = time.time()
     interaction_schedule = (lambda i: np.power(0.5, (i/args.inter.active.interaction_schedule))) if args.inter.active.interaction_schedule > 0 else (lambda i: 0.5)
     for j in range(max(1, args.EMFAC.refine_iters)):
-        full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollouts, full_weights)
+        full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollouts, full_weights, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
         # print("target", batch.target_diff[:6])
         weight_rate = np.sum(full_weights[idxes]) / len(idxes)
         # run the networks and get both the active and passive outputs (passive for interaction binaries)

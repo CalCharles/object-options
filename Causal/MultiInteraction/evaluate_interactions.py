@@ -27,8 +27,8 @@ def evaluate_buffer(num_iters, full_model, buffer, object_buffer, args, environm
     num_iters = int(np.ceil(len(buffer) / BATCH_SIZE)) if num_iters <= 0 else num_iters
     # for dv in [0.2 * i for i in range(10)]:
     for i in range(num_iters):
-        if sampling_mode: full_batch, batch, idxes = get_batch(BATCH_SIZE, full_model.form == "all", buffer, object_buffer, None)
-        else: full_batch, batch, idxes = get_batch((i*BATCH_SIZE,(i+1)*BATCH_SIZE), full_model.form == "all", buffer, object_buffer, None)
+        if sampling_mode: full_batch, batch, idxes = get_batch(BATCH_SIZE, full_model.form == "all", buffer, object_buffer, None, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
+        else: full_batch, batch, idxes = get_batch((i*BATCH_SIZE,(i+1)*BATCH_SIZE), full_model.form == "all", buffer, object_buffer, None, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
         num_factors = len(environment.all_names) - 2
         all_combinations = [np.arange(num_factors) for i in range(args.multi_inter.max_combination)]
         all_combinations = np.array(np.meshgrid(*all_combinations)).T.reshape(-1,args.multi_inter.max_combination)

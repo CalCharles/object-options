@@ -116,9 +116,9 @@ class KeyPairNetwork(Network):
         # print(queries.shape, self.first_obj_dim, x.shape, self.object_dim, self.single_obj_dim)
         queries = self.embed_query_layer(queries).transpose(2,1) # batch, num_queries, embed dim
         key = x[...,i * self.single_obj_dim: (i+1) * self.single_obj_dim]
+        # print("key", x[0,i * self.single_obj_dim: (i+1) * self.single_obj_dim])
+        # print("queries", x[0,self.first_obj_dim:])
         key = self.embed_key_layer(key) # batch x embed dim
-        if not self.append_keys: # we still append the keys, but zero the keys out
-            key = 0 * key
         # print(queries.transpose(2,1).reshape(x.shape[0], -1)[0])
         if m is None: # unmasked if m is None
             xi = torch.cat([key, queries.reshape(x.shape[0], -1)], dim=-1)

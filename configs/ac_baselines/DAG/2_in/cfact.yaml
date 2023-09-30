@@ -40,7 +40,7 @@
     mixed_interaction: mixed
     soft_distribution: Identity
     use_active_as_passive: True
-    train_names: $C
+    train_names: $D
   inter_baselines:
     num_counterfactual: 30
     counterfactual_threshold: 10

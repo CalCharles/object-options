@@ -57,7 +57,7 @@ def evaluate_active_interaction_expert(full_model, args, onemask_lambda, halfmas
 def get_masking_gradients(full_model, args, rollouts=None, object_rollout=None, batch=None, full_batch=None, onemask_lambda=0, halfmask_lambda=0, lasso_lambda=0, entropy_lambda=0, weights=None, normalize=False):
     # prints out the gradients of the interaction mask, the active inputs and the full inputs
     if batch is None:
-        full_batch, batch, idxes = get_batch(512, full_model.form == "all", rollouts, object_rollout, weights)
+        full_batch, batch, idxes = get_batch(512, full_model.form == "all", rollouts, object_rollout, weights, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
 
         # a statistic on weighting
         weight_count = np.sum(weights[idxes])
@@ -124,7 +124,7 @@ def get_masking_gradients(full_model, args, rollouts=None, object_rollout=None, 
 
 def get_given_gradients(full_model, args, rollouts, object_rollout, weights, given_mask, normalize=False):
     # prints out the gradients of the interaction mask, the active inputs and the full inputs
-    full_batch, batch, idxes = get_batch(512, full_model.form == "all", rollouts, object_rollout, weights)
+    full_batch, batch, idxes = get_batch(512, full_model.form == "all", rollouts, object_rollout, weights, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
     # print("target", batch.target_diff[:6])
     weight_rate = np.sum(weights[idxes]) / len(idxes) if weights is not None else 1.0
     # run the networks and get both the active and passive outputs (passive for interaction binaries)
@@ -169,7 +169,7 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, onem
     # resamples because the interaction weights are different from the normal weights, and get the weight count for this
     full_model.dist_temperature = args.full_inter.dist_temperature
 
-    full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollout, weights)
+    full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollout, weights, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
 
     # a statistic on weighting
     weight_count = np.sum(weights[idxes])

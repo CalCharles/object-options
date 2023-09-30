@@ -24,7 +24,7 @@ def train_forward_log_likelihood(full_model, args,
 
     start = time.time()
     for j in range(max(1, args.EMFAC.E_step_iters)):
-        full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollouts, active_weights)
+        full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollouts, active_weights, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
         # print("target", batch.target_diff[:6])
         weight_rate = np.sum(active_weights[idxes]) / len(idxes) if active_weights is not None else 1.0
         # run the networks and get both the active and passive outputs (passive for interaction binaries)

@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import copy
 from Network.network_utils import pytorch_model
 
 def split_instances(state, obj_dim):
@@ -70,7 +71,7 @@ def decide_multioption():
     self.obj_dim = self.target_select.output_size() # the selector gets the size of a single instance
     self.additional_dim = environment.object_sizes[self.names.additional[0]] if len(self.names.additional) > 0 else 0# all additional objects must have the same dimension
 
-def get_batch(batch_size, all, rollouts, object_rollouts, weights= None):
+def get_batch(batch_size, all, rollouts, object_rollouts, weights= None, num_inter=0, predict_valid=None):
     if type(batch_size) == tuple: # treat as start and end points in the buffer
         full_batch, idxes = rollouts.sample(0, weights=weights)
         full_batch, idxes = full_batch[batch_size[0]:batch_size[1]], idxes[batch_size[0]:batch_size[1]]
@@ -86,8 +87,14 @@ def get_batch(batch_size, all, rollouts, object_rollouts, weights= None):
         batch.next_target = batch.obs_next
     else:
         batch = object_rollouts[idxes]
-        batch.tarinter_state = np.concatenate([batch.obs, full_batch.obs], axis=-1)
-        batch.inter_state = full_batch.obs
+        if predict_valid is not None:
+            full_obs = copy.deepcopy(full_batch.obs.reshape(full_batch.obs.shape[0], num_inter, -1))
+            full_obs[:,predict_valid] = 0 # zero out target
+            full_obs = full_obs.reshape(full_batch.obs.shape[0], -1)
+        else:
+            full_obs = full_batch.obs
+        batch.tarinter_state = np.concatenate([batch.obs, full_obs], axis=-1)
+        batch.inter_state = full_obs
         batch.next_inter_state = full_batch.obs_next
         batch.next_target = batch.obs_next
     return full_batch, batch, idxes

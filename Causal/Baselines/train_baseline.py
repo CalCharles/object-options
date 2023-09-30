@@ -34,7 +34,7 @@ def train_basic_model(full_model, args, rollouts, object_rollout, test_rollouts,
     outputs = list()
     for i in range(args.train.num_iters):
         start = time.time()
-        full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollout)
+        full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollout, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
         # weight_rate = np.sum(weights[idxes]) / len(idxes) if weights is not None else 1.0
         valid = get_valid(batch.valid, full_model.valid_indices) # valid is batch x num target indices binary vector indicating which targets are valid (NOT the full batch x num instances)
         done_flags = np.expand_dims(1-full_batch.done.squeeze(), -1)
@@ -48,15 +48,15 @@ def train_basic_model(full_model, args, rollouts, object_rollout, test_rollouts,
         if i % args.inter.passive.passive_log_interval == 0:
             if args.inter_baselines.gradient_threshold > 0:
                 train_bins, soft_train_bins = compute_gradient_cause(full_model, full_batch, batch, args)
-                test_full_batch, test_batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", test_rollouts, test_object_rollout, None)
+                test_full_batch, test_batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", test_rollouts, test_object_rollout, None, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
                 test_bins, soft_test_bins = compute_gradient_cause(full_model, test_full_batch, test_batch, args)
             elif args.inter_baselines.attention_threshold > 0:
                 train_bins, soft_train_bins = compute_attention_cause(full_model, full_batch, batch, args)
-                test_full_batch, test_batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", test_rollouts, test_object_rollout, None)
+                test_full_batch, test_batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", test_rollouts, test_object_rollout, None, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
                 test_bins, soft_test_bins = compute_attention_cause(full_model, full_batch, batch, args)
             elif args.inter_baselines.counterfactual_threshold > 0:
                 train_bins, soft_train_bins = compute_counterfactual_cause(full_model, full_batch, batch, args)
-                test_full_batch, test_batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", test_rollouts, test_object_rollout, None)
+                test_full_batch, test_batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", test_rollouts, test_object_rollout, None, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
                 test_bins, soft_test_bins = compute_counterfactual_cause(full_model, full_batch, batch, args)
             train_baseline_logger.log(i, soft_train_bins, train_bins, batch.trace, active_loss, batch.done, active_prediction_params, target, full_model, valid=valid)
             test_baseline_logger.log(i, soft_test_bins, train_bins, test_batch.trace, active_loss, batch.done, active_prediction_params, target, full_model, valid=valid)

@@ -294,7 +294,8 @@ class RandomDistribution(Environment):
                             conditional=True,
                             conditional_weight=self.conditional_weight,
                             passive=self.passive_functions[target],
-                            dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 1,
+                            target_dependent = self.relate_dynamics, # if not relating dynamics, it IS target dependent
+                            dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 0.5,
                             )
             else:
                 orf = add_func(parents,
@@ -303,7 +304,7 @@ class RandomDistribution(Environment):
                             self.object_sizes[target],
                             use_bias = True,
                             conditional=False,
-                            dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 1,
+                            dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 0.5,
                             passive=self.passive_functions[target])
             print(orf.parents, orf.target, orf.params)
             self.object_relational_functions.append(orf)
@@ -328,7 +329,6 @@ class RandomDistribution(Environment):
                     total_parent_combinations = np.prod([self.object_instanced[p] for p in orf.parents])
                     orf_num += total_parent_combinations
                     self.target_last[orf.target] = i
-
             orf_num = max(1,orf_num)
             dynamics_step = DYNAMICS_CLIP * orf_num
             self.object_dynamics[n] = (np.ones(self.object_sizes[n])*-dynamics_step, np.ones(self.object_sizes[n])*dynamics_step)
@@ -394,7 +394,7 @@ class RandomDistribution(Environment):
         for obj in self.objects:
             obj.interaction_trace = list()
 
-    def step(self, action, render=False, instant_update=False): 
+    def step(self, action, render=False, instant_update=False, intervention_state=False): 
         self.empty_interactions()
         for i in range(self.frameskip):
             self.done.attribute = False
@@ -460,7 +460,7 @@ class RandomDistribution(Environment):
                             if ((not (target_active[target] > 0)) and (j == len(parent_mesh) - 1) and (i == self.target_last[target_class])):
                                 orf_passive_average = (1 + (orf_passive_average * n)) / (n + 1)
 
-                        clip_average = (int(np.any(np.abs(nds) > DYNAMICS_CLIP)) + (clip_average * n)) / (n + 1)
+                        clip_average = (int(np.any(np.abs(nds) > DYNAMICS_CLIP)) + (clip_average * n)) / (n + 1) if self.relate_dynamics else (int(np.any(np.abs(nds) > 1)) + (clip_average * n)) / (n + 1)
                             
                         # print(orf.parents, orf.target, inter)
                         # print(inter, orf.target, nds)
@@ -469,11 +469,18 @@ class RandomDistribution(Environment):
                             if inter or ((not (target_active[target] > 0)) and (j == len(parent_mesh) - 1) and (i == self.target_last[target_class])):
                                 self.object_name_dict[target].next_state += np.clip(nds, -DYNAMICS_CLIP, DYNAMICS_CLIP)
                         else:
+                            if intervention_state is not None and target != intervention_state and (i == self.target_last[target_class]): # intervene and assign it to a random value
+                                self.object_name_dict[target].next_state = 2 * (np.random.rand(*self.object_name_dict[target].next_state.shape) - 0.5)
                             if inter or ((not (target_active[target] > 0)) and (j == len(parent_mesh) - 1) and (i == self.target_last[target_class])):
                                 self.object_name_dict[target].next_state += nds # adds together, but from zero, no clipping
                             # if i < 3: print(self.itr, self.done.attribute, orf.parents, orf.target, self.get_state()["factored_state"][orf.target])
                         if instant_update:
                             self.object_name_dict[target].state = self.object_name_dict[target].next_state
+                        if i == self.target_last[target_class]:
+                            if self.noise_percentage > 0: # TODO: right now, noise only added to related classes. it appears taking random actions is correlated with the random noise, so we removed this impl
+                                if self.distribution == "Gaussian":
+                                    self.object_name_dict[target].next_state = self.object_name_dict[target].next_state + np.random.normal(scale=self.noise_percentage, size=self.object_name_dict[target].next_state.shape)
+
                         n += 1
                 self.internal_statistics[ (" ".join(orf.parents), orf.target)] += orf_average
                 self.internal_statistics[ (" ".join(orf.parents), orf.target  + "_clip")] += clip_average
@@ -482,10 +489,12 @@ class RandomDistribution(Environment):
                 if not self.relate_dynamics: # normalize unrelated dynamics
                     self.object_name_dict[obj.name].next_state = self.object_name_dict[obj.name].next_state / max(1.0, float(target_active[target]))
                 # print("adding noise", obj.next_state)
-                # if self.noise_percentage > 0: # TODO: it appears taking random actions is correlated with the random noise, so we removed this impl
-                #     if self.distribution == "Gaussian":
-                #         obj.next_state = obj.next_state + np.random.normal(scale=self.noise_percentage, size=obj.next_state.shape)
                 if hasattr(obj, "step_state"): obj.step_state()
+                if obj.name not in self.target_counter: # adds noise to all unmodified values
+                    if self.noise_percentage > 0: # TODO: right now, noise only added to related classes. it appears taking random actions is correlated with the random noise, so we removed this impl
+                        if self.distribution == "Gaussian":
+                            self.object_name_dict[target].next_state = self.object_name_dict[target].next_state + np.random.normal(scale=self.noise_percentage, size=self.object_name_dict[target].next_state.shape)
+
         self.itr += 1
         # print(self.all_names)
         # print(self.get_full_current_trace())
