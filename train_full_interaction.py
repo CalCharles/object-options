@@ -53,6 +53,7 @@ if __name__ == '__main__':
         # if name in ["vgqccm", "egutgube"]: # TODO: switch back to this to test attention module
         if name in train_names: # TODO remove reward and done eventually from tis
             print("TRAINING", name)
+            outputs = None
             if args.train.train and args.inter.passive.passive_iters > 0: outputs, passive_weights[name] = run_train_passive(full_models[name], train_full_buffer, train_object_buffers[name], test_full_buffer, test_object_buffers[name], args, environment)
     # saving the passive models and weights
     if len(args.inter.save_intermediate) > 0:

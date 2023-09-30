@@ -3,17 +3,17 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /hdd/datasets/object_data/base/DAG/1_in/grad/log/inter.log
-    # load_dir: /hdd/datasets/object_data/base/DAG/1_in/testrun/
-    save_dir: /hdd/datasets/object_data/base/DAG/1_in/grad/
-    # log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/1_in/log/inter.log
-    # # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/base/DAG/1_in/testrun/
-    # save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/base/DAG/1_in/grad/
+    log_filename: /hdd/datasets/object_data/base/DAG/2_in/grad/log/inter.log
+    # load_dir: /hdd/datasets/object_data/base/DAG/2_in/testrun/
+    save_dir: /hdd/datasets/object_data/base/DAG/2_in/grad/
+    # log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/2_in/log/inter.log
+    # # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/base/DAG/2_in/testrun/
+    # save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/base/DAG/2_in/grad/
   environment:
     env: RandomDAG
-    variant: 1-in
-    # load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/1_in/
-    load_environment: /hdd/datasets/object_data/RandomDAG/1_in/
+    variant: 2-in
+    # load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/2_in/
+    load_environment: /hdd/datasets/object_data/RandomDAG/2_in/
   torch:
     gpu: 0
     no_cuda: False
@@ -21,15 +21,15 @@
     train: True
     num_frames: 100000
     train_test_order: time
-    # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/1_in/
-    load_rollouts: /hdd/datasets/object_data/RandomDAG/1_in/
+    # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/2_in/
+    load_rollouts: /hdd/datasets/object_data/RandomDAG/2_in/
     num_iters: 10000
     batch_size: 512
   inter:
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
-    load_intermediate: /hdd/datasets/object_data/base/DAG/1_in/grad/temp/
-    # save_intermediate: /hdd/datasets/object_data/base/DAG/1_in/grad/temp/
+    # load_intermediate: /hdd/datasets/object_data/base/DAG/2_in/grad/temp/
+    # save_intermediate: /hdd/datasets/object_data/base/DAG/2_in/grad/temp/
     compare_trace: True
     passive:
       passive_log_interval: 100

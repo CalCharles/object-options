@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-import sys
+import sys, math
 
 def generate_latex_from_string(env, names, string_values, tabular = False):
     if tabular:
@@ -29,19 +29,18 @@ def generate_latex_from_string(env, names, string_values, tabular = False):
 
 def create_bar(env, names, string_values):
     # creating the dataset
-    data = {sv.split(",")[0]: sv.split(",")[1] for sv in string_values}
-    costs = list(data.keys())
-    num_subsets = list(data.values())
+    costs = [sv.split(",")[0] for sv in string_values]
+    num_subsets = [math.log(float(sv.split(",")[1]), 10) + 1 for sv in string_values]
     
     fig = plt.figure(figsize = (10, 5))
     
     # creating the bar plot
     plt.bar(costs, num_subsets, color ='maroon',
-            width = 0.4)
-    
+            width = 1)
     plt.xlabel("Binary-subset Cost")
     plt.ylabel("No. of valid binary-subsets")
     plt.title("Cost-counts for Valid partitions for " + env)
+    plt.savefig(env[:-4] + "_cost_counts.svg")
     plt.show()
 
 

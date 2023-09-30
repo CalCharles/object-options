@@ -1,0 +1,18 @@
+---
+metaparam: 
+  multi_filename: grad_2_in_
+  log_endpoint: /hdd/datasets/object_data/ac_base/hyperparam/hyperparam_logs/grad_2_in/
+  yaml_endpoint: /hdd/datasets/object_data/ac_base/hyperparam/hyperparam_yamls/grad_2_in/
+  save_endpoint: /hdd/datasets/object_data/ac_base/hyperparam/hyperparam/grad_2_in/
+  graph_endpoint: /hdd/datasets/object_data/ac_base/hyperparam/hyperparam_graphs/grad_2_in/
+  bash_path: bashes/grad_2_in.sh
+  base_config: configs/ac_baselines/DAG/2_in/grad.yaml
+  runfile: train_full_baselines.py
+  gpu: 1
+  match: 0
+  simul_run: 3
+  num_trials: 10
+  cycle_gpu: 0
+inter_baselines:
+  gradient_threshold: 0.05,0.1,0.15,0.2
+...

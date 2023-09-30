@@ -1,0 +1,18 @@
+---
+metaparam: 
+  multi_filename: cfact_2_in_
+  log_endpoint: /hdd/datasets/object_data/ac_base/hyperparam/hyperparam_logs/cfact_2_in/
+  yaml_endpoint: /hdd/datasets/object_data/ac_base/hyperparam/hyperparam_yamls/cfact_2_in/
+  save_endpoint: /hdd/datasets/object_data/ac_base/hyperparam/hyperparam/cfact_2_in/
+  graph_endpoint: /hdd/datasets/object_data/ac_base/hyperparam/hyperparam_graphs/cfact_2_in/
+  bash_path: bashes/cfact_2_in.sh
+  base_config: configs/ac_baselines/DAG/2_in/cfact.yaml
+  runfile: train_full_baselines.py
+  gpu: 3
+  match: 0
+  simul_run: 3
+  num_trials: 10
+  cycle_gpu: 0
+inter_baselines:
+  counterfactual_threshold: 120,125,130
+...
