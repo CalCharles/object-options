@@ -255,6 +255,9 @@ def compute_possible_efficient(environment, one_constant, zero_constant, save_pa
     with open(save_path, 'w') as f:
         for strv in min_cost_strings:
             f.write(strv + "\n")
+    with open(save_path[:-4] + "_hist.txt", 'w') as f:
+        for key, value in costs:
+            f.write(str(key) + "," + str(value) + "\n")
 
 
 

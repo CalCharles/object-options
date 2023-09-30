@@ -39,7 +39,7 @@ class baseline_interaction_logger(Logger):
         self.total_true = 0
 
     def log(self, i, soft_bins, bins, trace, active_loss, done, active_prediction_params, target, full_model, valid=None, no_print=False):
-        done_flags = np.expand_dims(1-done, axis=-1)
+        done_flags = 1-done
         loss = np.mean(np.abs(bins - trace) * done_flags)
         self.loss.append(pytorch_model.unwrap(loss))
         self.active_loss.append(pytorch_model.unwrap(active_loss))
@@ -50,12 +50,15 @@ class baseline_interaction_logger(Logger):
         self.element_loss = np.sum(np.abs(bins - trace) * done_flags, axis=0) if self.element_loss is None else self.element_loss +  np.sum(np.abs(bins - trace) * done_flags, axis=0)
         # the sum of soft values when the trace is 1
         over_dones = done_flags[np.nonzero(np.expand_dims(trace.sum(axis=-1), axis=-1))]
-        self.sum_soft_over = np.sum(soft_bins[np.nonzero(trace)] * over_dones, axis=0) if self.sum_soft_over is None else self.sum_soft_over + np.sum(soft_bins[np.nonzero(trace)] * over_dones, axis=0)
-
+        if self.sum_soft_over is None: self.sum_soft_over = np.zeros(trace.shape[-1])
+        for k in range(trace.shape[-1]):
+            self.sum_soft_over[k] = self.sum_soft_over[k] + np.sum((soft_bins[:,k] * over_dones)[np.nonzero(trace[:,k])], axis=0)
         # the sum of soft values when the trace is 
         under_trace = 1-trace
         under_dones = done_flags[np.nonzero(np.expand_dims(under_trace.sum(axis=-1), axis=-1))]
-        self.sum_soft_under = soft_bins[np.nonzero(under_trace)] * under_dones if self.sum_soft_over is None else self.sum_soft_under + np.sum(soft_bins[np.nonzero(under_trace)] * under_dones, axis=0)
+        if self.sum_soft_under is None: self.sum_soft_under = np.zeros(trace.shape[-1])
+        for k in range(trace.shape[-1]):
+            self.sum_soft_under[k] = self.sum_soft_under[k] + np.sum((soft_bins[:,k] * under_dones)[np.nonzero(under_trace[:,k])], axis=0)
         self.total_seen += len(soft_bins) - np.sum((done_flags == 0).astype(float))
         
         if i % self.log_interval == 0 and not no_print:

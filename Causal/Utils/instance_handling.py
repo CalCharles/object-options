@@ -70,7 +70,7 @@ def decide_multioption():
     self.obj_dim = self.target_select.output_size() # the selector gets the size of a single instance
     self.additional_dim = environment.object_sizes[self.names.additional[0]] if len(self.names.additional) > 0 else 0# all additional objects must have the same dimension
 
-def get_batch(batch_size, all, rollouts, object_rollouts, weights):
+def get_batch(batch_size, all, rollouts, object_rollouts, weights= None):
     if type(batch_size) == tuple: # treat as start and end points in the buffer
         full_batch, idxes = rollouts.sample(0, weights=weights)
         full_batch, idxes = full_batch[batch_size[0]:batch_size[1]], idxes[batch_size[0]:batch_size[1]]

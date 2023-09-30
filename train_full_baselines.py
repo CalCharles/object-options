@@ -42,25 +42,23 @@ if __name__ == '__main__':
     if len(args.inter.save_intermediate) > 0: save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_traintest.pkl"), (train_full_buffer, train_object_buffers, test_full_buffer, test_object_buffers))
 
     passive_weights = dict()
-    if len(args.inter.load_intermediate) > 0: 
-        print("loaded model")
-        full_models = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_inter_model.pkl"))
-        for full_model in full_models.values():
-            full_model.cpu().cuda(device = args.torch.gpu)
-        passive_weights = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_weights.pkl"))
-        outputs = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_outputs.pkl"))
+    # if len(args.inter.load_intermediate) > 0: 
+    #     print("loaded model")
+    #     full_models = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_inter_model.pkl"))
+    #     for full_model in full_models.values():
+    #         full_model.cpu().cuda(device = args.torch.gpu)
+    #     outputs = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_outputs.pkl"))
     # training the passive models
     for name in environment.object_names:
         # if name in ["vgqccm", "egutgube"]: # TODO: switch back to this to test attention module
         if name in train_names: # TODO remove reward and done eventually from tis
             print("TRAINING", name)
             if args.train.train and args.train.num_iters > 0:
-                active_optimizer = initialize_optimizer(full_model.active_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
+                active_optimizer = initialize_optimizer(full_models[name].active_model, args.interaction_net.optimizer, args.interaction_net.optimizer.lr)
                 outputs = train_basic_model(full_models[name], args, train_full_buffer, train_object_buffers[name], test_full_buffer, test_object_buffers[name], active_optimizer)
             run_train_passive(full_models[name], train_full_buffer, train_object_buffers[name], test_full_buffer, test_object_buffers[name], args, environment)
     # saving the passive models and weights
     if len(args.inter.save_intermediate) > 0:
         save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_inter_model.pkl"), full_models)
-        save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name +  "_passive_weights.pkl"), passive_weights)
         save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name +  "_passive_outputs.pkl"), outputs)
 
