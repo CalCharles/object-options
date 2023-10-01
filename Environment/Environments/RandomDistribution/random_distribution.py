@@ -394,7 +394,7 @@ class RandomDistribution(Environment):
         for obj in self.objects:
             obj.interaction_trace = list()
 
-    def step(self, action, render=False, instant_update=False, intervention_state=False): 
+    def step(self, action, render=False, instant_update=False, intervention_state=None, intervening_except=None): 
         self.empty_interactions()
         for i in range(self.frameskip):
             self.done.attribute = False
@@ -404,8 +404,13 @@ class RandomDistribution(Environment):
                 if self.relate_dynamics: 
                     self.object_name_dict[target].next_state = copy.deepcopy(self.object_name_dict[target].get_state())
                 else:
-                    if target in self.target_counter: 
-                        self.object_name_dict[target].next_state = np.zeros(self.object_name_dict[target].get_state().shape)
+                    if target in self.target_counter:
+                        if intervening_except is None or target == intervening_except:
+                            self.object_name_dict[target].next_state = np.zeros(self.object_name_dict[target].get_state().shape)
+                        else:
+                            self.object_name_dict[target].next_state = copy.deepcopy(self.object_name_dict[target].get_state())
+                        # print("setting", target, self.object_name_dict[target].next_state)
+                            
                     else: self.object_name_dict[target].next_state = copy.deepcopy(self.object_name_dict[target].get_state())
             
             # print(self.get_state())
@@ -469,10 +474,16 @@ class RandomDistribution(Environment):
                             if inter or ((not (target_active[target] > 0)) and (j == len(parent_mesh) - 1) and (i == self.target_last[target_class])):
                                 self.object_name_dict[target].next_state += np.clip(nds, -DYNAMICS_CLIP, DYNAMICS_CLIP)
                         else:
-                            if intervention_state is not None and target != intervention_state and (i == self.target_last[target_class]): # intervene and assign it to a random value
-                                self.object_name_dict[target].next_state = 2 * (np.random.rand(*self.object_name_dict[target].next_state.shape) - 0.5)
-                            if inter or ((not (target_active[target] > 0)) and (j == len(parent_mesh) - 1) and (i == self.target_last[target_class])):
-                                self.object_name_dict[target].next_state += nds # adds together, but from zero, no clipping
+                            if intervening_except is not None: # intervene on all variables except the one given, only transition the target_class
+                                # print(target_class, inter, ps, self.object_name_dict[target].next_state, self.object_name_dict[target].state, nds)
+                                if target_class == intervening_except and (
+                                    inter or ((not (target_active[target] > 0)) and (j == len(parent_mesh) - 1) and (i == self.target_last[target_class]))):
+                                    self.object_name_dict[target].next_state += nds # adds together, but from zero, no clipping
+                            else:
+                                if intervention_state is not None and target != intervention_state and (i == self.target_last[target_class]): # intervene and assign it to a random value
+                                    self.object_name_dict[target].next_state = 2 * (np.random.rand(*self.object_name_dict[target].next_state.shape) - 0.5)
+                                if inter or ((not (target_active[target] > 0)) and (j == len(parent_mesh) - 1) and (i == self.target_last[target_class])):
+                                    self.object_name_dict[target].next_state += nds # adds together, but from zero, no clipping
                             # if i < 3: print(self.itr, self.done.attribute, orf.parents, orf.target, self.get_state()["factored_state"][orf.target])
                         if instant_update:
                             self.object_name_dict[target].state = self.object_name_dict[target].next_state
@@ -522,3 +533,15 @@ class RandomDistribution(Environment):
             self.valid_names = valid_names
             factored_state["VALID_NAMES"] = self.valid_binary(valid_names)
 
+    def get_trace(self, factored_state, action, names): # TODO: implement intervention traces on other domains
+        # gets the trace for a factored state, using the screen. If we don't want to screen to change, use a dummy screen here
+        self.set_from_factored_state(factored_state)
+        self.step(action, intervening_except=names.target)
+        return self.current_trace(names)
+
+    def get_full_trace(self, factored_state, action, outcome_variable=""):
+        self.set_from_factored_state(factored_state)
+        self.step(action, intervening_except=outcome_variable) # TODO: make this a list instead of a single value
+        all_inter_names = [n for n in self.all_names if n not in {"Reward", "Done"}]
+        traces = self.get_full_current_trace()
+        return traces

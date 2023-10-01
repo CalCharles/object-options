@@ -1,5 +1,5 @@
-variants = {"3-chain": (False, True, "3-chain", -1, 1, 4,4, True, False, True, 0.0, "Gaussian", 0.03, False, -1, -1, "$C"),
-            "4-chain": (False, True, "4-chain", -1, 1, 4,4, True, False, True, 0.0, "Gaussian", 0.03, False, -1, -1, "$D"),
+variants = {"3-chain": (False, True, "3-chain", -1, 1, 4,4, True, False, True, 0.0, "Gaussian", 0.007, False, -1, -1, "$C"),
+            "4-chain": (False, True, "4-chain", -1, 1, 4,4, True, False, True, 0.0, "Gaussian", 0.007, False, -1, -1, "$D"),
             "2-in": (False, False, "2-inchain", -1, 1, 4,4, False, True, True, 0.0, "Gaussian", 0.000, True, -1, -1, ""),
             "3-in": (False, False, "3-inchain", -1, 1, 4,4, False, True, True, 0.0, "Gaussian", 0.000, True, -1, -1, ""),
             "1-in": (False, False, "3-chain", -1, 1, 4,4, False, True, True, 0.0, "Gaussian", 0.000, True, -1, -1, ""),

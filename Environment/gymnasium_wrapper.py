@@ -96,8 +96,8 @@ class GymnasiumWrapper(gym.Env):
     def get_trace(self, factored_state, action, names):
         return self.gym.get_trace(factored_state, action, names)
 
-    def get_full_trace(self, factored_state, action):
-        return self.gym.get_full_trace(factored_state, action)
+    def get_full_trace(self, factored_state, action, outcome_variable=""):
+        return self.gym.get_full_trace(factored_state, action, outcome_variable=outcome_variable)
 
     def demonstrate(self):
         return self.gym.demonstrate()

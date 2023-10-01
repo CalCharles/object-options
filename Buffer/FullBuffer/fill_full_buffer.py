@@ -3,7 +3,7 @@ from Causal.Utils.get_error import get_full_proximity
 from tianshou.data import Batch
 import numpy as np
 
-def fill_full_buffer(full_model, environment, data, args, object_names, norm, predict_dynamics):
+def fill_full_buffer(full_model, environment, data, args, object_names, norm, predict_dynamics, outcome_variable=""):
     alpha, beta = (1e-10, 0) if len(args.collect.prioritized_replay) == 0 else args.collect.prioritized_replay
     buffer = FullReplayBuffer(len(data), stack_num=1)
     object_buffers = {name: ObjectReplayBuffer(len(data), stack_num=1, alpha=alpha, beta=beta) for name in environment.object_names}
@@ -26,7 +26,8 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
         if "VALID_NAMES" in factored_state: valid = factored_state["VALID_NAMES"][:-2] # don't include reward or done in validity vector
         else: valid = np.ones((len(environment.all_names)))[:-2]
         # print(i, use_done, last_done, predict_dynamics)
-        full_traces = environment.get_full_trace(factored_state, act)
+        # print(factored_state["$B"])
+        full_traces = environment.get_full_trace(factored_state, act, outcome_variable=outcome_variable)
         for name in environment.object_names:
             denorm_target = full_model.target_selectors[name](factored_state)
             target = norm(denorm_target, name=name)
@@ -49,7 +50,7 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
                 inter = np.ones(environment.instance_length)
             
 
-            # print(name)
+            # if name == outcome_variable: print(name, full_trace, next_target, use_done)
             proximity = get_full_proximity(full_model, full_state, denorm_target, normalized=False)
             object_buffers[name].add(Batch(obs=target, obs_next=next_target, target_diff=target_diff, act=target, param=target,
                 rew=0, done=use_done, policy_mask = np.ones(environment.instance_length), param_mask=np.ones(args.pad_size),
