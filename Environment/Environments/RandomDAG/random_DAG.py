@@ -89,11 +89,11 @@ class RandomDAG(RandomDistribution):
                             parent_size,
                             self.object_sizes[target],
                             use_bias = True,
-                            target_dependent = self.instant_update, # for DAGs, no self edges
+                            target_dependent = not self.instant_update, # for DAGs, no self edges
                             conditional=True,
                             conditional_weight=self.conditional_weight,
                             passive=self.passive_functions[target],
-                            dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 0.5 / self.target_counter[target],
+                            dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 0.4 / self.target_counter[target],
                             )
             else:
                 orf = add_func(parents,
@@ -101,10 +101,10 @@ class RandomDAG(RandomDistribution):
                             parent_size,
                             self.object_sizes[target],
                             use_bias = True,
-                            target_dependent = self.instant_update, # for DAGs, no self edges
+                            target_dependent = not self.instant_update, # for DAGs, no self edges
                             conditional=False,
                             passive=self.passive_functions[target],
-                            dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 0.5 / self.target_counter[target])
+                            dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 0.4 / self.target_counter[target])
             print(orf.parents, orf.target, orf.params, self.instant_update)
             self.object_relational_functions.append(orf)
             self.internal_statistics[(" ".join(orf.parents), orf.target)] = 0
@@ -155,8 +155,8 @@ class RandomDAG(RandomDistribution):
         for obj in self.objects:
             obj.interaction_trace = list()
 
-    def step(self, action, render=False): 
-        return super().step(action, render=render, instant_update = self.instant_update, intervention_state=self.intervention_state if np.random.rand() > 0.5 and hasattr(self, 'intervention_state') else None)
+    def step(self, action, render=False, intervening_except=""): 
+        return super().step(action, render=render, instant_update = self.instant_update, intervention_state=self.intervention_state if np.random.rand() > 0.5 else None, intervening_except=intervening_except)
     
     def set_from_factored_state(self, factored_state, seed_counter=-1, render=False, valid_names=None):
         '''
@@ -170,4 +170,3 @@ class RandomDAG(RandomDistribution):
         if valid_names is not None:
             self.valid_names = valid_names
             factored_state["VALID_NAMES"] = self.valid_binary(valid_names)
-

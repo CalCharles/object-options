@@ -31,7 +31,7 @@ def generate_buffers(environment, args, object_names, full_model, train=True, fu
     if full == 2:
         buffer = fill_all_buffer(full_model, environment, data, args, object_names, full_model.norm, full_model.predict_dynamics)
     elif full == 1:
-        buffer, object_buffers = fill_full_buffer(full_model, environment, data, args, object_names, full_model.norm, full_model.predict_dynamics)
+        buffer, object_buffers = fill_full_buffer(full_model, environment, data, args, object_names, full_model.norm, full_model.predict_dynamics, outcome_variable=args.full_inter.train_names[0] if len(args.full_inter.train_names) > 0 else "")
     else: buffer = fill_buffer(environment, data, args, object_names, full_model.norm, full_model.predict_dynamics)
     if not train: return buffer
 
