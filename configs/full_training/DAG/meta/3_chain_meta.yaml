@@ -1,0 +1,41 @@
+---
+metaparam: 
+  multi_filename: dag_3_chain_tests_
+  log_endpoint: /work/pi_sniekum_umass_edu/calebc/object_data/full/hyperparam/hyperparam_logs/dag_3_chain_tests/
+  yaml_endpoint: /work/pi_sniekum_umass_edu/calebc/object_data/full/hyperparam/hyperparam_yamls/dag_3_chain_tests/
+  save_endpoint: /work/pi_sniekum_umass_edu/calebc/object_data/full/hyperparam/hyperparam/dag_3_chain_tests/
+  graph_endpoint: /work/pi_sniekum_umass_edu/calebc/object_data/full/hyperparam/hyperparam_graphs/dag_3_chain_tests/
+  bash_path: bashes/dag_3_chain_tests.sh
+  base_config: configs/full_training/DAG/3_chain/base.yaml
+  runfile: train_full_interaction.py
+  gpu: 0
+  match: 0
+  simul_run: 4
+  num_trials: 5
+  cycle_gpu: 1
+# train:
+#   batch_size: 128,256,512
+# inter:
+#   # predict_dynamics: True
+#   passive:
+#     passive_iters: 0,1000,2000,5000,10000
+#     pretrain_active: True,False
+#   active:
+#     interaction_schedule: 0,1000,5000,10000,25000,50000
+#     intrain_passive: 1,0
+full_inter:
+#   mixed_interaction: mixed,relaxed
+#   use_active_as_passive: True,False
+  adaptive_lasso: 3,5,7,10,12
+# interaction_net:
+#   hidden_sizes: 512 512,512,256 256,128,128 128 128 128 128,128 128 128 128,128 128 128,128 128,128
+#   activation: leakyrelu,sin,prelu,sinc,sigmoid,tanh
+#   init_form: uni,orth,xnorm,xuni,knorm,kuni
+#   pair:
+#     reduce_function: sum,max
+  # embed_inputs: 512
+#   optimizer:
+#     lr: .001,.0001,.00001
+#     alt_lr: .001,.0005,.0001,.00005,.00001,.000005
+#     weight_decay: 0.001,0.0001,0.00001,0.0
+...
