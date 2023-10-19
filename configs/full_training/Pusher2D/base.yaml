@@ -2,9 +2,12 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /hdd/datasets/object_data/full/Pusher2D/small/base/log/inter.log
-    # load_dir: /hdd/datasets/object_data/full/Pusher2D/small/testrun/
-    save_dir: /hdd/datasets/object_data/full/Pusher2D/small/base/
+    # log_filename: /hdd/datasets/object_data/full/Pusher2D/small/base/log/inter.log
+    # # load_dir: /hdd/datasets/object_data/full/Pusher2D/small/testrun/
+    # save_dir: /hdd/datasets/object_data/full/Pusher2D/small/base/
+    log_filename: /data/calebc/object_data/full/Pusher2D/small/base/log/inter.log
+    # load_dir: /data/calebc/object_data/full/Pusher2D/small/testrun/
+    save_dir: /data/calebc/object_data/full/Pusher2D/small/base/
     # log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/small/log/inter.log
     # # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/Pusher2D/small/testrun/
     # save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/Pusher2D/small/base/
@@ -12,16 +15,18 @@
     env: Pusher2D
     variant: small
     # load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/Pusher2D/rand_greedy_sticky/
-    load_environment: /hdd/datasets/object_data/Pusher2D/rand_greedy_sticky/
+    # load_environment: /hdd/datasets/object_data/Pusher2D/rand_greedy_sticky/
+    load_environment: /data/calebc/object_data/Pusher2D/rand_greedy_sticky/
   torch:
-    gpu: 2
+    gpu: 1
     no_cuda: False
   train:
     train: True
     num_frames: 500000
     train_test_order: time
     # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/Pusher2D/rand_greedy_sticky/
-    load_rollouts: /hdd/datasets/object_data/Pusher2D/rand_greedy_sticky/
+    # load_rollouts: /hdd/datasets/object_data/Pusher2D/rand_greedy_sticky/
+    load_rollouts: /data/calebc/object_data/Pusher2D/rand_greedy_sticky/
     num_iters: 50000
     batch_size: 512
   inter:
@@ -29,11 +34,11 @@
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
     # load_intermediate: /hdd/datasets/object_data/full/Pusher2D/small/base/temp/
-    save_intermediate: /hdd/datasets/object_data/full/Pusher2D/small/base/temp/
+    # save_intermediate: /hdd/datasets/object_data/full/Pusher2D/small/base/temp/
     compare_trace: True
-    proximity_epsilon: 7
+    proximity_epsilon: 2.0
     passive:
-      passive_iters: 2000
+      passive_iters: 5000
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
@@ -52,7 +57,7 @@
     soft_distribution: Identity
     use_active_as_passive: True
     train_names: Block
-    adaptive_lasso: 5 1
+    adaptive_lasso: 1 1
     delay_inter_train: 1000
   interaction_net:
     hidden_sizes: 256 256 256
