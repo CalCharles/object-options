@@ -73,10 +73,25 @@ class BouncePolicy(Policy):
         else:
             return 0
 
+class RandomAnglePolicy(Policy):
+    def __init__(self, action_space, random_rate=0.5, screen=None):
+        self.internal_policy = AnglePolicy(action_space, screen=screen)
+        self.random_rate = random_rate
+    
+    def reset_screen(self, screen):
+        self.internal_policy.internal_screen = copy.deepcopy(screen)
+        self.internal_screen.angle_mode = False
+        self.internal_screen.save_path = ""
+
+    def act(self, screen, angle=0, force=False):
+        action = self.internal_policy.act(screen, angle=angle, force=force)
+        return action if np.random.rand() > self.random_rate else np.random.randint(4)
+
 class AnglePolicy(Policy):
-    def __init__(self, action_space):
+    def __init__(self, action_space, screen=None):
         self.action_space = action_space
         self.internal_screen = Breakout()
+        if screen is not None: self.reset_screen(screen)
         self.objective_location = 84//2
         self.last_paddlehits = -1
         self.counter = 0
@@ -101,10 +116,10 @@ class AnglePolicy(Policy):
             self.reset_screen(screen)
             # print(self.internal_screen.ball.pos, screen.ball.pos, self.last_paddlehits)
 
-            while self.internal_screen.ball.pos[0] < 69 and not self.internal_screen.done:
+            while self.internal_screen.ball.pos[0] < 69 and not self.internal_screen.done.attribute:
                 # print("running internal")
                 self.internal_screen.step(0)
-            # print("completed")
+            # print("completed", self.internal_screen.done, self.internal_screen.ball.pos[0])
             # print(self.internal_screen.ball.pos, screen.ball.pos, self.last_paddlehits)
             base_location = self.internal_screen.ball.pos[1]
             sv = self.internal_screen.ball.vel[1]

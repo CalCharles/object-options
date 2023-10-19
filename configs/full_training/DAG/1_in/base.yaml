@@ -18,7 +18,7 @@
     no_cuda: False
   train:
     train: True
-    num_frames: 10000
+    num_frames: 100000
     train_test_order: time
     # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/1_in/
     load_rollouts: /hdd/datasets/object_data/RandomDAG/1_in/
@@ -33,12 +33,12 @@
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 3000
+      passive_iters: 1000
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
     active:
-      active_log_interval: 500
+      active_log_interval: 200
       # inline_iters: 10 0 5000
       inline_iters: 1 0 0
       interaction_weighting: 100 -1
@@ -52,7 +52,7 @@
     soft_distribution: Identity
     use_active_as_passive: True
     train_names: $C
-    adaptive_lasso: 7
+    adaptive_lasso: 7 1
   interaction_net:
     hidden_sizes: 256 256 256
     net_type: keypair

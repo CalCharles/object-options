@@ -13,12 +13,14 @@
     variant: 3-chain
     # load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/3_chain/
     load_environment: /hdd/datasets/object_data/RandomDAG/3_chain/
+  collect:
+    omit_done: True
   torch:
     gpu: 0
     no_cuda: False
   train:
     train: True
-    num_frames: 10000
+    num_frames: 100000
     train_test_order: time
     # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/3_chain/
     load_rollouts: /hdd/datasets/object_data/RandomDAG/3_chain/
@@ -33,7 +35,7 @@
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 3000
+      passive_iters: 1500
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
@@ -42,9 +44,13 @@
       # inline_iters: 10 0 5000
       inline_iters: 1 0 0
       interaction_weighting: 100 -1
-      interaction_schedule: 10000
+      interaction_schedule: 5000
       # weighting: 0 200000 100 100000
       intrain_passive: 1
+      train_true: True
+    interaction:
+      # interaction_pretrain: 50000
+      soft_train: 0.00
   full_inter:
     object_id: True
     lasso_lambda: 3 0 0 0 1000
@@ -52,15 +58,17 @@
     soft_distribution: Identity
     use_active_as_passive: True
     train_names: $C
-    adaptive_lasso: 7
+    predict_next_state: False
+    adaptive_lasso: 7 1
   interaction_net:
-    hidden_sizes: 256 256 256
+    hidden_sizes: 256 256 256 256
     net_type: keypair
     init_form: xnorm
     embed_inputs: 512
     activation: crelu
     pair:
       reduce_function: sum
+      num_pair_layers: 2
     optimizer:
       lr: .0001
       alt_lr: .00001

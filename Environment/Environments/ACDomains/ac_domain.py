@@ -82,6 +82,7 @@ class ACDomain(Environment):
             state = tuple(state.tolist())
             # by construction, there should never be a double mapping
             sos[state] = self.objects[self.outcome_variable].attribute
+            print(name_dict_assignment, sos[state], frozen_relations)
         return sos, len(combinations)
 
     def exhaustive_evaluation(self):
@@ -116,7 +117,7 @@ class ACDomain(Environment):
             self.set_state(state)
 
             # get all the counterfactuals 
-            counterfactuals, cost = self._get_counterfactuals(names, frozen_relations=one_check_names)
+            counterfactuals, cost = self._get_counterfactuals(names, frozen_relations=one_check_names if default == 1 else zero_check_names)
             if len(counterfactuals) == 0: # the zero mask
                 return default, 0
             state_outcome = counterfactuals[state_tuple]

@@ -1,5 +1,6 @@
 # graph read files
 import numpy as np
+import re
 
 
 TeR = "test_reward: "
@@ -115,6 +116,9 @@ IAM = "inter_average_miss"
 AAT = "active at "
 PAT = "passive at "
 IAT = "interaction at "
+FERR = "flat error:"
+SFP = "soft FP:"
+SFN = "soft FN:"
 
 def read_full_inter(filename):
     # reads a file for the performance the the iterations
@@ -136,4 +140,29 @@ def read_full_inter(filename):
         if line.find(IAT) != -1:
             score = float(line.split(", ")[1].split(": ")[-1])
             vals["iat"].append(score)
+        if line.find(FERR):
+            rex = re.compile(r'\W+')
+            nline = rex.sub(' ', line)
+            ferrs = nline.split(' ')
+            for i, v in enumerate(ferrs[1:]):
+                if FERR + str(i) in vals: vals[FERR + str(i)].append(float(v.strip("[]")))
+                else: vals[FERR + str(i)] = [float(v.strip("[]"))]
+        if line.find(SFP):
+            rex = re.compile(r'\W+')
+            nline = rex.sub(' ', line)
+            sfps = nline.split(' ')
+            for i, v in enumerate(sfps[1:]):
+                if SFP + str(i) in vals: vals[SFP + str(i)].append(float(v.strip("[]")))
+                else: vals[SFP + str(i)] = [float(v.strip("[]"))]
+        if line.find(SFN):
+            rex = re.compile(r'\W+')
+            nline = rex.sub(' ', line)
+            sfns = nline.split(' ')
+            for i, v in enumerate(sfns[1:]):
+                if SFN + str(i) in vals: vals[SFN + str(i)].append(float(v.strip("[]")))
+                else: vals[SFN + str(i)] = [float(v.strip("[]"))]
+
+
     return test_at, vals
+
+

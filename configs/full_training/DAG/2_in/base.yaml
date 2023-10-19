@@ -29,11 +29,11 @@
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
     # load_intermediate: /hdd/datasets/object_data/full/DAG/2_in/base/temp/
-    # save_intermediate: /hdd/datasets/object_data/full/DAG/2_in/base/temp/
+    save_intermediate: /hdd/datasets/object_data/full/DAG/2_in/base/temp/
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 3000
+      passive_iters: 1000
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
@@ -52,9 +52,9 @@
     soft_distribution: Identity
     use_active_as_passive: True
     train_names: $D
-    adaptive_lasso: 7
+    adaptive_lasso: 9 1
   interaction_net:
-    hidden_sizes: 256 256 256
+    hidden_sizes: 512 512 512 512
     net_type: keypair
     init_form: xnorm
     embed_inputs: 512

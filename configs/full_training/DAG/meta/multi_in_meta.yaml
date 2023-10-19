@@ -1,18 +1,18 @@
 ---
 metaparam: 
   multi_filename: dag_multi_in_tests2_
-  log_endpoint: /work/pi_sniekum_umass_edu/calebc/object_data/full/hyperparam/hyperparam_logs/dag_multi_in_tests2/
-  yaml_endpoint: /work/pi_sniekum_umass_edu/calebc/object_data/full/hyperparam/hyperparam_yamls/dag_multi_in_tests2/
-  save_endpoint: /work/pi_sniekum_umass_edu/calebc/object_data/full/hyperparam/hyperparam/dag_multi_in_tests2/
-  graph_endpoint: /work/pi_sniekum_umass_edu/calebc/object_data/full/hyperparam/hyperparam_graphs/dag_multi_in_tests2/
+  log_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_logs/dag_multi_in_tests2/
+  yaml_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_yamls/dag_multi_in_tests2/
+  save_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam/dag_multi_in_tests2/
+  graph_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_graphs/dag_multi_in_tests2/
   bash_path: bashes/dag_multi_in_tests2.sh
   base_config: configs/full_training/DAG/multi_in/base.yaml
   runfile: train_full_interaction.py
-  gpu: 0
+  gpu: 1
   match: 0
   simul_run: 4
-  num_trials: 5
-  cycle_gpu: 1
+  num_trials: 10
+  # cycle_gpu: 1
 # train:
 #   batch_size: 128,256,512
 # inter:
@@ -26,7 +26,7 @@ metaparam:
 full_inter:
 #   mixed_interaction: mixed,relaxed
 #   use_active_as_passive: True,False
-  adaptive_lasso: 1.5,2,2.5,2.7,3.3
+  adaptive_lasso: 1.5 #1.5,2,2.5,2.7,3.3
 # interaction_net:
 #   hidden_sizes: 512 512,512,256 256,128,128 128 128 128 128,128 128 128 128,128 128 128,128 128,128
 #   activation: leakyrelu,sin,prelu,sinc,sigmoid,tanh

@@ -39,6 +39,10 @@ def compute_counterfactual_cause(full_model, full_batch, batch, args):
         bins[:,i] = counterfactual_variance[:,i] > args.inter_baselines.counterfactual_threshold
     return bins, counterfactual_variance
 
+def compute_counterfactual_loss(full_model, full_batch, batch, args):
+    return 0
+
+
 def compute_distributional_distance(actual_full, actual_log_probs, reassign_full, reassign_log_probs):
     # TODO: add  other distributional distances
     return (actual_log_probs.mean(dim=-1).unsqueeze(-1) - reassign_log_probs.mean(dim=-1).unsqueeze(-1)).abs()

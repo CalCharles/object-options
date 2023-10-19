@@ -48,6 +48,7 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
             # print(np.concatenate([batch.target_diff, batch.valid, valid], axis=-1)[:10])
             # print("running passive")
             passive_prediction_params, passive_mask, target, passive_dist, passive_log_probs, passive_input = full_model.passive_likelihoods(batch)
+            # print(np.concatenate([pytorch_model.unwrap(target[:10]), done_flags[:10]], axis=-1))
             passive_log_probs = - passive_log_probs
             passive_done_log_probs = passive_log_probs * pytorch_model.wrap(done_flags, cuda=full_model.iscuda)
 
@@ -106,7 +107,7 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
                 loss = mean_r.reshape(mean_r.shape[0], mean_r.shape[1], -1) - pytorch_model.wrap(batch.tarinter_state, cuda=full_model.iscuda)
         if i % args.inter.passive.passive_log_interval == 0:
             print("trace values", np.mean(batch.trace, axis=0))
-            print(full_model.name,batch.tarinter_state[0]  ,  full_model.norm.reverse(full_batch.obs[0], form="inter", name=full_model.name), target[0], full_model.norm.reverse(target[0], name=full_model.name, form="dyn" if full_model.predict_dynamics else "target"))
+            print(full_model.name,batch.tarinter_state[0],  full_model.norm.reverse(full_batch.obs[0], form="inter", name=full_model.name), target[0], full_model.norm.reverse(target[0], name=full_model.name, form="dyn" if full_model.predict_dynamics else "target"))
             print(full_model.extractor.reverse_extract(full_model.norm.reverse(target[0], name=full_model.name, form="dyn" if full_model.predict_dynamics else "target")))
             print("total time", time.time() - start)
             # print(passive_done_log_probs[:20])

@@ -12,3 +12,4 @@ Testing/testing_data/*
 *.json
 *.tfevents.*
 *.png
+*.pdf

@@ -107,7 +107,7 @@ class NeuralInteractionForwardModel(nn.Module):
         self.num_clusters = self.active_model_args.cluster.num_clusters # uses a mixture of experts implementation, which shoudl return different interaction masks
         self.selection_mask = args.full_inter.selection_mask
         self.population_mode = args.EMFAC.is_emfac
-        self.predict_next_state = args.full_inter.predict_next_state
+        self.is_predict_next_state = args.full_inter.predict_next_state
         self.valid_indices = list()
 
         # set the distributions
@@ -402,13 +402,13 @@ class NeuralInteractionForwardModel(nn.Module):
     def normalize_batch(self, batch): # normalizes the components in the batch to be used for likelihoods, assumes the batch is an object batch
         batch.inter_state = self.norm(batch.inter_state, form="inter")
         batch.next_inter_state = self.norm(batch.next_inter_state, form="inter")
-        if not self.predict_next_state:
-            batch.inter_state = batch.inter_state.reshape(batch.inter_state.shape[0], len(self.valid_indices), -1)
-            batch.inter_state[:,self.valid_indices] = 0 # zero out target
-            batch.next_inter_state = batch.next_inter_state.reshape(batch.inter_state.shape[0], len(self.valid_indices), -1)
-            batch.next_inter_state[:,self.valid_indices] = 0
-            batch.inter_state = batch.inter_state.reshape(batch.inter_state.shape[0], -1)
-            batch.next_inter_state = batch.next_inter_state.reshape(batch.next_inter_state.shape[0], -1)
+        # if not self.is_predict_next_state:
+        #     batch.inter_state = batch.inter_state.reshape(batch.inter_state.shape[0], len(self.valid_indices), -1)
+        #     batch.inter_state[:,self.valid_indices] = 0 # zero out target
+        #     batch.next_inter_state = batch.next_inter_state.reshape(batch.inter_state.shape[0], len(self.valid_indices), -1)
+        #     batch.next_inter_state[:,self.valid_indices] = 0
+        #     batch.inter_state = batch.inter_state.reshape(batch.inter_state.shape[0], -1)
+        #     batch.next_inter_state = batch.next_inter_state.reshape(batch.next_inter_state.shape[0], -1)
         batch.obs = self.norm(batch.obs, name=self.name)
         batch.tarinter_state = batch.inter_state if self.form == "all" else np.concatenate([batch.target, batch.inter_state], axis=-1)
         batch.obs_next = self.norm(batch.obs_next, name=self.name)
@@ -485,7 +485,8 @@ class NeuralInteractionForwardModel(nn.Module):
                         mixed="", input_grad=False, 
                         soft_select=False, soft_eval=False, skip_dists=0, # cluster specific parameters
                         return_selection=False, # interaction selection specific parameters
-                        compute_values = "all", # a list of some subset of ["hard", "soft", "full", "given", "passive"] or "all" to denote all 
+                        compute_values = "all", # a list of some subset of ["hard", "soft", "full", "given", "true",  "flat", "passive"] or "all" to denote all 
+                                                # regardless of input order, will always return in this order 
                         given_inter_mask = None, # if given in compute_values (or this is not-none and all), uses the inter_mask given here
                     ):
         if normalize: batch = self.normalize_batch(batch)
@@ -499,7 +500,8 @@ class NeuralInteractionForwardModel(nn.Module):
         use_full = (compute_values == "all") or ("full" in compute_values)
         use_flat = ("flat" in compute_values) # all does NOT include flat
         use_given = (compute_values == "all" and given_inter_mask is not None) or ("given" in compute_values)
-        use_active = use_hard or use_soft or use_full or use_flat or use_given
+        use_true = "true" in compute_values
+        use_active = use_hard or use_soft or use_full or use_flat or use_given or use_true
 
         # logic for handling input gradients, if needed
         valid = pytorch_model.wrap(batch.valid, cuda=self.iscuda)
@@ -509,6 +511,7 @@ class NeuralInteractionForwardModel(nn.Module):
         active_full_input = pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda) if use_full in compute_values and input_grad else iv
         active_flat_input = pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda) if use_flat in compute_values and input_grad else iv
         active_given_input = pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda) if use_given in compute_values and input_grad else iv
+        active_true_input = pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda) if use_true in compute_values and input_grad else iv
         passive_input = pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda) if use_passive in compute_values and input_grad else iv
         active_hard_input.requires_grad, active_soft_input.requires_grad, active_full_input.requires_grad, active_flat_input.requires_grad, passive_input.requires_grad = input_grad, input_grad, input_grad, input_grad, input_grad
         if use_active: # otherwise, the active model is not needed
@@ -525,8 +528,10 @@ class NeuralInteractionForwardModel(nn.Module):
                     if use_hard: active_hard_params, hard_inter_mask = self.active_model(active_hard_input, hot_inter_hard, soft=False, mixed=False, flat=False, valid=valid)
                     if use_flat: active_flat_params, flat_inter_mask = self.active_model(active_hard_input, hot_inter_hard, soft=False, mixed=False, flat=True, valid=valid)
                     if use_soft: active_soft_params, soft_inter_mask = self.active_model(active_soft_input, use_hot_mask, soft=True, mixed=mixed, flat=False, valid=valid)
-                    if use_given: hot_given_soft, hot_given_hard = self.apply_cluster_mask(given_inter_mask, cluster_hard=False), self.apply_cluster_mask(given_inter_mask, cluster_hard=True) 
-                    if use_given: active_given_params, given_inter_mask = self.active_model(active_given_input, hot_given_soft, soft=True, mixed=mixed, flat=False, valid=valid)
+                    if use_given: 
+                        hot_given_soft, hot_given_hard = self.apply_cluster_mask(given_inter_mask, cluster_hard=False), self.apply_cluster_mask(given_inter_mask, cluster_hard=True) 
+                        active_given_params, given_inter_mask = self.active_model(active_given_input, hot_given_soft, soft=True, mixed=mixed, flat=False, valid=valid)
+                    # TODO: implement for use_true, not supported atm
                     inter = soft_inter_mask
                 # the full output either outputs all of the inputs
                 if use_full:
@@ -541,6 +546,9 @@ class NeuralInteractionForwardModel(nn.Module):
                 if use_full:
                     full_mask = pytorch_model.wrap(torch.ones(len(self.all_names) * self.target_num), cuda = self.iscuda)
                     active_full_params, m = self.active_model(active_full_input, None, soft=False, mixed=mixed, valid=valid) # this one is not really a good idea to train on
+                if use_true:
+                    true_inter_mask = pytorch_model.wrap(batch.trace, cuda=self.iscuda)
+                    active_true_params, m = self.active_model(active_true_input, None, soft=False, mixed=mixed, valid=valid) # this one is not really a good idea to train on
                 hot_mask = hard_inter_mask
                 inter = soft_inter_mask
             else:
@@ -569,6 +577,9 @@ class NeuralInteractionForwardModel(nn.Module):
                     mixed_mask = self.combine_mask(soft_inter_mask, hard_inter_mask, mixed=mixed)
                     soft_inter_mask = mixed_mask
                     active_soft_params, m = self.active_model(active_soft_input, mixed_mask, valid=valid)
+                if use_true:
+                    true_inter_mask = pytorch_model.wrap(batch.trace, cuda=self.iscuda)
+                    active_true_params, m = self.active_model(active_true_input, true_inter_mask, valid=valid)
                 # print(full_mask, mixed_mask)
         if use_passive: passive_params, passive_mask = self.apply_passive((pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda), pytorch_model.wrap(batch.obs, cuda=self.iscuda)))
 
@@ -576,6 +587,7 @@ class NeuralInteractionForwardModel(nn.Module):
         if use_soft: target, active_soft_dist, active_soft_log_probs = self._target_dists(batch, active_soft_params)
         if use_flat: target, active_flat_dist, active_flat_log_probs = self._target_dists(batch, active_flat_params)
         if use_given: target, active_given_dist, active_given_log_probs = self._target_dists(batch, active_given_params)
+        if use_true: target, active_true_dist, active_true_log_probs = self._target_dists(batch, active_true_params)
         if self.cluster_mode:
             skip_dist_indexes = np.ones(self.num_clusters)
             if skip_dists > 0: #otherwise, don't skip anything
@@ -624,6 +636,12 @@ class NeuralInteractionForwardModel(nn.Module):
             dists += [active_given_dist]
             log_probs += [active_given_log_probs]
             inps += [active_given_input]
+        if use_true:
+            params += [active_true_params]
+            masks += [true_inter_mask]
+            dists += [active_true_dist]
+            log_probs += [active_true_log_probs]
+            inps += [active_true_input]
         if use_flat:
             params += [active_flat_params]
             masks += [flat_inter_mask]

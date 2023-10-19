@@ -65,6 +65,6 @@ if __name__ == "__main__":
             string_values.append(line)
     names = sys.argv[2:]
     env_name = sys.argv[1].replace("_", " ")
-    create_bar(env_name, names, string_values)
-    # for line in string_values:
-    #     generate_latex_from_string(env_name, names, line, tabular=True)
+    # create_bar(env_name, names, string_values)
+    for line in string_values:
+        generate_latex_from_string(env_name, names, line, tabular=True)

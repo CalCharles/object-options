@@ -102,8 +102,8 @@ class MultiHeadAttentionParallelLayer(Network):
         values = values.reshape(batch_size, num_keys * num_queries, self.num_heads, self.model_dim).transpose(1,2) # batch x num_heads x num_keys * num_queries x model_dim
         values = values.transpose(-1,-2).reshape(batch_size, self.num_heads, self.model_dim, num_keys, num_queries).transpose(2,3).transpose(3,4) # batch x num_heads x num_keys x num_queries x model_dim
         # print(values.shape, keys.shape, queries.shape, mask.shape, valid)
-        if query_final: # uses a sigmoid for weights
-            weights = evaluate_key_query(torch.sigmoid, keys, queries, mask, valid, single_key=False, gumbel=self.gumbel, renormalize=self.renormalize) # batch x heads x keys x queries
+        if query_final: # should I uses a sigmoid for weights? torch.sigmoid
+            weights = evaluate_key_query(self.softmax, keys, queries, mask, valid, single_key=False, gumbel=self.gumbel, renormalize=self.renormalize) # batch x heads x keys x queries
             # batch x heads x keys x queries x 1 * batch x heads x keys x queries x model_dim = batch x heads x keys x queries x model_dim
             values = (weights.unsqueeze(-1) * values )
             if self.merge_function == 'cat': values = values.transpose(4,3).transpose(3,2)

@@ -52,7 +52,7 @@
     soft_distribution: Identity
     use_active_as_passive: True
     train_names: $E
-    adaptive_lasso: 5
+    adaptive_lasso: 5 1
   interaction_net:
     hidden_sizes: 256 256 256
     net_type: keypair

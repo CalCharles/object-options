@@ -25,6 +25,7 @@ network_args = {
         "num_pair_layers": 1,
         "repeat_layers": False,
         "preencode": False,
+        "pre_dropout": 0.0
     },
     "embedpair": {
         "new_embedding": True, # indicates if the network needs a new embedding, or the inputs are already embedded
@@ -104,6 +105,7 @@ full_args = {
         "gym_to_gymnasium": True,
         "flat_obs": False,
         "append_id": False,
+        "debug_mode": False, # puts the environment in a debugging mode where attributes are easier to identify. Implemented: RandomDAG
     },
     "torch": {
         "gpu": 1,
@@ -128,7 +130,8 @@ full_args = {
         "object_id": True, # appends a 1 hot identifier of the object class to the object
         "lasso_lambda": [1, 0, 0, -1, -1], # lasso_lambda, open mask forcing, 0.5 mask forcing, one mask schedule, masking schedule
         "lasso_order": 1,
-        "adaptive_lasso": -1.0, # adapts the lasso value according to the magnitude of the active interaction loss (multiplied by this hyperparameter)
+        "adaptive_lasso": [-1.0, -1.0], # adapts the lasso value according to the magnitude of the active interaction loss (multiplied by this hyperparameter), flattens the decay rate (exp(-\|perf diff\| / adaptive[1]))
+        "adaptive_lasso_type": "likelihood", # different ways of computing adaptive lasso, uses: likelihood, l2 mean, l1 mean and variance
         "dual_lasso": [0,0],
         "entropy_lambda": [0,0], # penalizes the individual values of the binary mask for having high entropy (close to 0.5)
         "soft_distribution": "Identity",
@@ -147,6 +150,7 @@ full_args = {
         "selection_train": "",
         "nextstate_interaction": False, # uses the outcome for the interaction network
         "predict_next_state": True, # predicts the next state, otherwise, predicts the current state (useful for DAG methods)
+        "delay_inter_train": -1, # delays starting interaciton training for this number of batches
     },
     "inter": {
         "predict_dynamics": False,
@@ -173,12 +177,14 @@ full_args = {
             "weighting": [0,0,-1,0], # must be length 4
             "active_log_interval": 100,
             "log_gradients": False,
-            "interaction_schedule": -1,
+            "interaction_schedule": -1, # if negative, uses 0.5 fixed tradeoff, if 0<= is <=1 uses the value at fixed value, if > 1 uses exp(-i/is)
             "inline_iters": [5, 1, 1000],
             "interaction_weighting": [0,0], # must be length 2
             "intrain_passive": 0,
             "error_binary_upweight": 1,
-            "adaptive_inter_lambda": -1.0 # adaptive weight for training the forward model with full or inter inputs, still uses interaction schedule for tradeoff 
+            "adaptive_inter_lambda": -1.0, # adaptive weight for training the forward model with full or inter inputs, still uses interaction schedule for tradeoff 
+            "log_timestamps": True,
+            "train_true": False, # trains using the true trace values
         },
     },
     "EMFAC": {
@@ -257,7 +263,8 @@ full_args = {
             "sum_rewards": True,
             "only_termination": False,
         },
-        "time_check": False, # returns a miss only if timing check fails 
+        "time_check": False, # returns a miss only if timing check fails
+        "omit_done": False, # omits dones (EOE) from the buffer entirely
     },
     "policy": {
         "learning_type": "dqn",

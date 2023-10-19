@@ -56,7 +56,7 @@ def separate_weights(weighting, full_model, rollouts, proximity, trace=None, obj
         if np.sum(binaries) == 0:
             print("NO PASSIVE FOUND")
             passive_error, weights, binaries = uni_weights(rollouts)
-        print("assive error", np.sum(binaries), passive_error[passive_error > 0], binaries, weights)
+        print("assive error", np.sum(binaries), np.nonzero(binaries)[0][:10], passive_error[passive_error > 0], binaries, weights)
         # error
     elif trace is not None:
         passive_error = trace.copy()
@@ -102,7 +102,7 @@ def get_weights(ratio_lambda, binaries):
 
     # for a ratio lambda of 1, will get 50-50 probability of sampling a "live" (high passive error) versus "dead" (low passive error)
     live_factor = np.float64(np.round(total_dead / total_live * ratio_lambda))
-    # print("live factor", ratio_lambda, np.sum((weights + 1)), total_dead, total_live, live_factor)
+    print("live factor", ratio_lambda, np.sum((weights + 1)), total_dead, total_live, live_factor)
     weights = (weights * live_factor) + 1
     weights = (weights.astype(np.float64) / np.sum(weights).astype(np.float64))
     if len(weights.shape) == 2: weights = weights[:,0] # squeeze the last dimension

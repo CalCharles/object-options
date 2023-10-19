@@ -47,6 +47,23 @@ def construct_namespace(data):
                         except ValueError as e:
                             add_dict[key] = add_dict[key].split(" ")
         return add_dict
+    if "alter_base" in data: # the config changes a base config, which is read here
+        base = read_config(data["alter_base"])
+        # def change_val(base_dict, change_dict, current_path):
+        #     for k in change_dict.keys():
+        #         print(k, type(change_dict[k]))
+        #         if type(change_dict[k]) == dict:
+        #             change_val(base_dict, change_dict[k], current_path + [k])
+        #         else:
+        #             base_change = base_dict
+        #             for cpk in current_path:
+        #                 print(cpk)
+        #                 base_change = base_change[cpk]
+        #             print("changing", k, change_dict[k])
+        #             base_change[k] = change_dict[k]
+        base = add_data(ObjDict(), data, base)
+        print (base)
+        return base
     if "arg_dict" in data:
         if data["arg_dict"] == "hype":
             expected_args = hype_args

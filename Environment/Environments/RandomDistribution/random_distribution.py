@@ -14,6 +14,12 @@ def get_random_string(length):
     result_str = ''.join(letters[np.random.randint(len(letters))] for i in range(length))
     return result_str
 
+def passive_name(name):
+    return "#" + name[1:]
+
+def is_passive_name(name):
+    return name.find("#") != -1
+
 class Action():
     def __init__(self, discrete, num_actions):
         self.name = "Action"
@@ -71,6 +77,7 @@ class passive_func():
         self.params = [self.target_bias, self.target_matrix]
 
     def __call__(self, ps, ts, require_passive=False):
+        # print("pas", ts, (np.matmul(self.target_matrix, np.expand_dims(ts,-1))[...,0] + self.target_bias * float(self.use_target_bias))[...,0], self.target_matrix, self.target_bias, float(self.use_target_bias))
         return True, (np.matmul(self.target_matrix, np.expand_dims(ts,-1))[...,0] + self.target_bias * float(self.use_target_bias))[...,0]
 
 class add_func():
@@ -88,7 +95,7 @@ class add_func():
         self.target_bias = np.expand_dims(2 * (np.random.rand(target_size) - .5) * dstep / np.sqrt(num_sets + target_size) * trf, axis=-1) * float(self.use_bias)
         # self.target_weights = np.expand_dims(2 * (np.random.rand(target_size) - .5) * dstep / np.sqrt(num_sets + target_size) * trf, axis=-1)
         self.parent_weight_matrix = 2 * (np.random.rand(target_size, parent_size)-0.5)  * dstep / np.sqrt(parent_size) * prf
-        self.target_weight_matrix = 2 * (np.random.rand(target_size, target_size)-0.5)  * dstep / np.sqrt(target_size) * trf
+        self.target_weight_matrix = 2 * (np.random.rand(target_size, target_size)-0.5)  * dstep / np.sqrt(target_size) * trf * float(self.target_dependent)
         self.conditional = False
         self.conditional_weight = conditional_weight
         # for ws in self.parent_weight_sets:
@@ -111,6 +118,7 @@ class add_func():
         sum_val = (np.matmul(self.parent_weight_matrix, ps - self.parent_bias * float(self.use_bias)) * self.scale + (np.matmul(self.target_weight_matrix, ts) - self.target_bias * float(self.use_bias)) * float(self.target_dependent))[...,0]
         if self.conditional:
             return np.sum(sum_val, axis=-1) > self.conditional_weight, None
+        # print("add", sum_val, ps, ts, np.matmul(self.parent_weight_matrix, ps - self.parent_bias * float(self.use_bias)) * self.scale, self.parent_weight_matrix, self.scale, np.matmul(self.target_weight_matrix, ts))
         # print(ts, "sumval", sum_val, "parent effect", np.matmul(self.parent_weight_matrix, ps - self.parent_bias) * self.scale, "taret_effect", self.target_weights * ts + self.target_bias)
         return True, sum_val
 
@@ -119,6 +127,9 @@ class rel_func():
         self.parents = parents
         self.target = target
         self.use_bias = use_bias
+        self.conditional = conditional
+        self.conditional_weight = conditional_weight
+        self.target_dependent = target_dependent
         # if conditional:
         #     self.parent_weight_sets = [2 * (np.random.rand(parent_size) - .5) / np.sqrt(num_sets + parent_size) for k in range(num_sets)] # right now just creates 1 no matter what
         #     self.target_weight_sets = [2 * (np.random.rand(target_size) - .5) / np.sqrt(num_sets + target_size) for k in range(num_sets)] # right now just creates 1 no matter what
@@ -126,10 +137,7 @@ class rel_func():
         #     self.parent_weight_sets = [2 * (np.random.rand(parent_size) - .5) * DYNAMICS_STEP / np.sqrt(num_sets + parent_size) for k in range(num_sets)] # right now just creates 1 no matter what
         #     self.target_weight_sets = [2 * (np.random.rand(target_size) - .5) * DYNAMICS_STEP / np.sqrt(num_sets + parent_size) for k in range(num_sets)] # right now just creates 1 no matter what
         self.parent_bias = 2 * (np.random.rand(parent_size) - .5)  * float(self.use_bias)
-        self.target_bias = 2 * (np.random.rand(target_size) - .5)  * float(self.use_bias)
-        self.conditional = conditional
-        self.conditional_weight = conditional_weight
-        self.target_dependent = target_dependent
+        self.target_bias = 2 * (np.random.rand(target_size) - .5)  * float(self.use_bias) * float(self.target_dependent)
 
         # self.parent_weight_matrix = np.stack([np.zeros(parent_size) for _ in range(target_size)], axis=0)
         # for ws in self.parent_weight_sets:
@@ -144,13 +152,14 @@ class rel_func():
         else: self.weight_matrix = np.random.rand(1, parent_size) / np.sqrt(parent_size)
         # self.target_weight_matrix = np.random.rand(parent_size, target_size) / np.sqrt(target_size)
         self.params = [self.weight_matrix, self.parent_bias, self.target_bias]
-        print(self.conditional_weight)
+        # print(self.conditional_weight)
 
 
     def __call__(self, ps, ts, require_passive=False):
         # print(ts, ps, np.matmul(self.target_weight_matrix, ts),self.parent_bias, np.matmul(self.parent_weight_matrix, ps - np.matmul(self.target_weight_matrix, ts) - self.parent_bias))
         if self.target_dependent: rel_val = np.matmul(self.weight_matrix, np.expand_dims(np.concatenate([ts - self.target_bias, ps - self.parent_bias], axis =-1), axis=-1))[...,0]
         else: rel_val = np.matmul(self.weight_matrix, np.expand_dims(np.concatenate([ps - self.parent_bias], axis =-1), axis=-1))[...,0]
+        # print("rel", rel_val, ps, ts, np.concatenate([ps - self.parent_bias], axis =-1), self.weight_matrix)
         if self.conditional:
             # print("cond weight", np.sum(rel_val, axis=-1))
             return np.sum(rel_val, axis=-1) > self.conditional_weight, None
@@ -177,13 +186,15 @@ def get_object_name(n):
     return n.strip("0123456789")
 
 class RandomDistribution(Environment):
-    def __init__(self, frameskip = 1, variant="default", fixed_limits=False):
+    def __init__(self, frameskip = 1, variant="default", fixed_limits=False, debug_mode=False):
         # generates "objects" as conditional distributions of each other
         self.self_reset = True
         self.variant = variant
         self.fixed_limits = fixed_limits
+        self.debug_mode = debug_mode
         self.discrete_actions, self.allow_uncontrollable, self.num_objects, self.max_dim, self.min_dim, self.multi_instanced, self.num_related, self.max_control, self.relate_dynamics, self.conditional, self.conditional_weight, self.distribution, self.noise_percentage, self.require_passive, self.num_valid_min, self.num_valid_max = variants[self.variant]
-        
+        self.horizon = 50 # make horizon a changeable hyperparameter
+
         print(self.discrete_actions, self.allow_uncontrollable, self.num_objects, self.max_dim, self.min_dim, self.multi_instanced, self.num_related, self.max_control, self.relate_dynamics, self.conditional, self.conditional_weight, self.distribution, self.noise_percentage, self.require_passive, self.variant)
         self.set_objects()
         self.num_actions = self.discrete_actions # this must be defined, -1 for continuous. Only needed for primitive actions
@@ -259,7 +270,7 @@ class RandomDistribution(Environment):
         
         self.passive_functions = dict()
         for name in self.object_names[1:-2]: # not actions or done/reward
-            if self.require_passive:
+            if self.require_passive and not is_passive_name(name):
                 self.passive_functions[name] = passive_func(name, self.object_sizes[name], use_target_bias=True)
                 self.internal_statistics[(" ".join(self.passive_functions[name].parents), self.passive_functions[name].target)] = 0
                 self.internal_statistics[(" ".join(self.passive_functions[name].parents), self.passive_functions[name].target +"_clip")] = 0
@@ -285,7 +296,7 @@ class RandomDistribution(Environment):
             self.object_relational_sets.append((parents, target))
             parent_size = int(np.sum([self.object_sizes[p] for p in parents]))
             if self.conditional and (i != 0 or self.allow_uncontrollable):
-                print(parent_size, self.object_sizes, parents)
+                print(parent_size, self.object_sizes, parents, self.relate_dynamics, self.require_passive)
                 orf = conditional_add_func(parents,
                             target,
                             parent_size,
@@ -294,7 +305,7 @@ class RandomDistribution(Environment):
                             conditional=True,
                             conditional_weight=self.conditional_weight,
                             passive=self.passive_functions[target],
-                            target_dependent = self.relate_dynamics, # if not relating dynamics, it IS target dependent
+                            target_dependent = (not self.debug_mode) and (self.relate_dynamics or self.require_passive), # if not relating dynamics, it IS target dependent
                             dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 0.5,
                             )
             else:
@@ -305,8 +316,9 @@ class RandomDistribution(Environment):
                             use_bias = True,
                             conditional=False,
                             dynamics_step = DYNAMICS_STEP / self.target_counter[target] if self.relate_dynamics else 0.5,
+                            target_dependent = (not self.debug_mode) and (self.relate_dynamics or self.require_passive),
                             passive=self.passive_functions[target])
-            print(orf.parents, orf.target, orf.params)
+            print(orf.parents, orf.target, orf.params, orf.target_dependent)
             self.object_relational_functions.append(orf)
             self.internal_statistics[(" ".join(orf.parents), orf.target)] = 0
             self.internal_statistics[(" ".join(orf.parents), orf.target + "_clip")] = 0
@@ -401,10 +413,14 @@ class RandomDistribution(Environment):
             self.action.attribute = action
             updated = dict()
             for target in self.all_names:
-                if self.relate_dynamics: 
+                if self.relate_dynamics:
                     self.object_name_dict[target].next_state = copy.deepcopy(self.object_name_dict[target].get_state())
                 else:
                     if target in self.target_counter:
+                        if self.require_passive:
+                            self.object_name_dict[passive_name(target)].state = copy.deepcopy(self.object_name_dict[target].get_state()) # passive state recorded
+                            self.object_name_dict[passive_name(target)].next_state = copy.deepcopy(self.object_name_dict[target].get_state()) # passive state recorded
+                            self.object_name_dict[target].interaction_trace += [passive_name(target)]
                         if intervening_except is None or target == intervening_except:
                             self.object_name_dict[target].next_state = np.zeros(self.object_name_dict[target].get_state().shape)
                         else:
@@ -467,25 +483,26 @@ class RandomDistribution(Environment):
 
                         clip_average = (int(np.any(np.abs(nds) > DYNAMICS_CLIP)) + (clip_average * n)) / (n + 1) if self.relate_dynamics else (int(np.any(np.abs(nds) > 1)) + (clip_average * n)) / (n + 1)
                             
-                        # print(orf.parents, orf.target, inter)
+                        # print(orf.parents, orf.target, inter, intervening_except, intervention_state, target != intervention_state and (i == self.target_last[target_class]))
                         # print(inter, orf.target, nds)
                         if self.relate_dynamics:
                             # if an interaction occurred, or this is the last one and no interaction occurred (using the passive dynamics)
                             if inter or ((not (target_active[target] > 0)) and (j == len(parent_mesh) - 1) and (i == self.target_last[target_class])):
                                 self.object_name_dict[target].next_state += np.clip(nds, -DYNAMICS_CLIP, DYNAMICS_CLIP)
                         else:
-                            if intervening_except is not None: # intervene on all variables except the one given, only transition the target_class
+                            if intervening_except is not None: # intervene (already set) on all variables except intervening except, only transition the target_class
                                 # print(target_class, inter, ps, self.object_name_dict[target].next_state, self.object_name_dict[target].state, nds)
                                 if target_class == intervening_except and (
                                     inter or ((not (target_active[target] > 0)) and (j == len(parent_mesh) - 1) and (i == self.target_last[target_class]))):
                                     self.object_name_dict[target].next_state += nds # adds together, but from zero, no clipping
                             else:
-                                if intervention_state is not None and target != intervention_state and (i == self.target_last[target_class]): # intervene and assign it to a random value
+                                if intervention_state is not None and len(intervention_state) > 0 and target != intervention_state and (i == self.target_last[target_class]): # intervene and assign it to a random value
                                     self.object_name_dict[target].next_state = 2 * (np.random.rand(*self.object_name_dict[target].next_state.shape) - 0.5)
-                                if inter or ((not (target_active[target] > 0)) and (j == len(parent_mesh) - 1) and (i == self.target_last[target_class])):
+                                elif inter or ((not (target_active[target] > 0)) and (j == len(parent_mesh) - 1) and (i == self.target_last[target_class])):
                                     self.object_name_dict[target].next_state += nds # adds together, but from zero, no clipping
                             # if i < 3: print(self.itr, self.done.attribute, orf.parents, orf.target, self.get_state()["factored_state"][orf.target])
                         if instant_update:
+                            # print("instant_update", target, self.object_name_dict[target].state, self.object_name_dict[target].next_state)
                             self.object_name_dict[target].state = self.object_name_dict[target].next_state
                         if i == self.target_last[target_class]:
                             if self.noise_percentage > 0: # TODO: right now, noise only added to related classes. it appears taking random actions is correlated with the random noise, so we removed this impl
@@ -514,7 +531,8 @@ class RandomDistribution(Environment):
         if self.itr % 1000 == 0:
             for k in self.internal_statistics.keys():
                 print(k, self.internal_statistics[k] / self.itr)
-        if self.itr % 50 == 0:
+        if not hasattr(self, "horizon"): self.horizon = 50
+        if self.itr % self.horizon == 0:
             self.reset()
             self.done.attribute = True
             return self.get_state(), self.reward.attribute, self.done.attribute, {'Timelimit.truncated': True, "valid_names": self.valid_names}

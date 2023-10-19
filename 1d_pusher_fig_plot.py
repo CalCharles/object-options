@@ -4,10 +4,10 @@ import numpy as np
 
 SCALE = 0.1
 
-pusher = np.arange(3, 5, SCALE / 5)
+pusher = np.arange(3, 5, SCALE / 2)
 obstacle = np.arange(0, 10, SCALE)
 
-block = np.zeros((int(10 / SCALE),int(10 / SCALE)))
+block = np.zeros((int(10 / (10 * SCALE / 4)),int(10 / SCALE)))
 for i, p in enumerate(pusher):
     for j, o in enumerate(obstacle):
         after_push = 5.0
@@ -34,4 +34,4 @@ plt.xlabel('obstacle')
 plt.ylabel('pusher')
 plt.show()
 fig.set_size_inches(3*3,1.2*3)
-plt.savefig("1d_pusher.svg")
+plt.savefig("1d_pusher.pdf")

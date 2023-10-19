@@ -1,0 +1,8 @@
+---
+  alter_base: configs/full_training/Pusher2D/base.yaml
+  inter:
+    interaction:
+      interaction_pretrain: 10000
+      soft_train: 0.15
+      subset_training: 3000
+...

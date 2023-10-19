@@ -1,0 +1,18 @@
+---
+metaparam: 
+  multi_filename: cfact_3_chain_
+  log_endpoint: /hdd/datasets/object_data/ac_base/hyperparam/hyperparam_logs/cfact_3_chain/
+  yaml_endpoint: /hdd/datasets/object_data/ac_base/hyperparam/hyperparam_yamls/cfact_3_chain/
+  save_endpoint: /hdd/datasets/object_data/ac_base/hyperparam/hyperparam/cfact_3_chain/
+  graph_endpoint: /hdd/datasets/object_data/ac_base/hyperparam/hyperparam_graphs/cfact_3_chain/
+  bash_path: bashes/cfact_3_chain.sh
+  base_config: configs/ac_baselines/DAG/3_chain/cfact.yaml
+  runfile: train_full_baselines.py
+  gpu: 3
+  match: 0
+  simul_run: 3
+  num_trials: 10
+  cycle_gpu: 0
+inter_baselines:
+  counterfactual_threshold: 137
+...

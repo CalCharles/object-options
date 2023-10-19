@@ -38,6 +38,7 @@ class PairNetwork(Network):
                 preencode_layer_args.hidden_sizes = list()
                 preencode_layer_args.output_dim = self.first_obj_dim
                 preencode_layer_args.activation_final = "none"
+                preencode_layer_args.dropout = args.pair.pre_dropout
                 self.preencode_layer = ConvNetwork(preencode_layer_args)
                 layers += [self.preencode_layer]
             if len(self.hs) != 0:
@@ -48,6 +49,7 @@ class PairNetwork(Network):
                 encode_layer_args.output_dim = self.layer_conv_dim
                 encode_layer_args.activation_final = "none"
                 encode_layer_args.hidden_sizes = list()
+                encode_layer_args.dropout = args.pair.pre_dropout
                 self.encode_layer = ConvNetwork(encode_layer_args)
                 layers += [self.encode_layer]
 

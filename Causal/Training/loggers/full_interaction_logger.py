@@ -41,8 +41,10 @@ class full_interaction_logger(Logger):
         self.weight_count = 0
         self.active_loss = list()
         self.total_true = 0
+        self.num_iters = 0
+        self.lambdas = None
 
-    def log(self, i, loss, active_loss, soft_interactions, hard_interactions, done_flags, weights, trace=None, no_print=False):
+    def log(self, i, loss, active_loss, soft_interactions, hard_interactions, done_flags, weights, trace=None, no_print=False, lambdas=None):
         self.loss.append(pytorch_model.unwrap(loss))
         self.active_loss.append(pytorch_model.unwrap(active_loss))
 
@@ -57,6 +59,8 @@ class full_interaction_logger(Logger):
         self.weight_count += weights
         self.sum_soft_entropy += np.sum(-np.sum(soft_interactions * np.log(soft_interactions), axis=-1))
 
+        if lambdas is not None:
+            self.lambdas = np.array(lambdas) if self.lambdas is None else self.lambdas + np.array(lambdas)
         if trace is not None:
             self.sum_flat_error = np.sum(np.abs(flat_interactions - trace) * done_flags, axis=0) if self.sum_flat_error is None else self.sum_soft_error + np.sum(np.abs(flat_interactions - trace) * done_flags, axis=0)
             self.sum_soft_error = np.sum(np.abs(soft_interactions - trace) * done_flags, axis=0) if self.sum_soft_error is None else self.sum_soft_error + np.sum(np.abs(soft_interactions - trace) * done_flags, axis=0)
@@ -68,10 +72,12 @@ class full_interaction_logger(Logger):
             sum_soft_under[sum_soft_under>0] = 0
             self.sum_soft_under = np.sum(np.abs(sum_soft_under), axis=0) if self.sum_soft_under is None else self.sum_soft_under + np.sum(np.abs(sum_soft_under), axis=0)
         self.total_seen += len(soft_interactions) - np.sum((done_flags == 0).astype(float))
+        self.num_iters += 1
         
         if i % self.log_interval == 0 and not no_print:
             log_str = self.name + f' interaction at {i}, mean loss: {np.mean(self.loss)}, active loss: {np.mean(self.active_loss)}'
             log_str += f'\ntotal_inter: {self.total_inter/self.total_seen}, entropy: {self.sum_soft_entropy/self.total_seen}'
+            log_str += f'\nlambda values: {self.lambdas / self.num_iters}'
             if self.total_true > 0: log_str += f'\ntotal true: {self.total_true/self.total_seen}, weight rate: {self.weight_count/self.total_seen}' # assumes that there would not be no true interactions unless unused
             if self.sum_flat_error is not None: log_str  += '\nflat error: ' + str(self.sum_flat_error / self.total_seen)
             if self.sum_soft_error is not None: log_str  += '\nsoft error: ' + str(self.sum_soft_error / self.total_seen)

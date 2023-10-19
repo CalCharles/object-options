@@ -9,10 +9,9 @@ def evaluate_key_query(softmax, keys, queries, mask, valid, single_key=False, gu
     # and valid is binary
     # Batch, heads, num queries, embed x Batch, heads, embed, num_keys 
     weights = torch.matmul(queries, keys).transpose(-1,-2) # batch, heads, num_keys, num_queries
-    weights = softmax(weights / np.sqrt(queries.shape[-1])) # softmax expected along dim=-1, values in 0,1
-    # if we are using a stochastic attention weights, apply the gumbel softmax here
+    # if we are using a stochastic attention weights, apply the gumbel softmax instead here
     if gumbel > 0: weights = F.gumbel_softmax(weights, tau = gumbel, hard = False, dim=-1) # does not change shape, but assumes queries in last layer
-
+    else: weights = softmax(weights / np.sqrt(queries.shape[-1])) # softmax expected along dim=-1, values in 0,1
     # masks override the weights, then renormalizes TODO: use -inf instead?
     # if valid is not None: print(valid.shape, mask.shape, queries.shape, keys.shape, weights.shape)
     if mask is not None:

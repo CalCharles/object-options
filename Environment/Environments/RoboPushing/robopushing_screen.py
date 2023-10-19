@@ -139,7 +139,7 @@ class RoboPushing(Environment):
             obs_dict['Action'] = [self.action]
         for i in range(self.num_obstacles):
             # print("settin", obs_dict[f"obstacle{i}_pos"])
-            obs_dict['Obstacle' + str(i)] = obs_dict[f"obstacle{i}_pos"]
+            obs_dict['Obstacle' + str(i)] = obs_dict["obstacle" + str(i) + "_pos"]
         obs_dict['Reward'], obs_dict['Done'] = [self.reward], [self.done]
 
     def construct_full_state(self, factored_state, raw_state):

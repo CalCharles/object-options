@@ -1,7 +1,8 @@
 import sys, time, cv2, os
 import argparse
 from Environment.Environments.initialize_environment import initialize_environment
-from Environment.Environments.Breakout.breakout_policies import AnglePolicy
+from Environment.Environments.Breakout.breakout_policies import AnglePolicy, RandomAnglePolicy
+from Environment.Environments.Pusher2D.pusher_2D import GreedyTowards, RandGreedy, RandGreedySticky
 from Record.file_management import display_frame, display_param, save_to_pickle
 from Causal.Sampling.sampling import samplers
 import numpy as np
@@ -23,16 +24,29 @@ def generate_args():
     args.num_frames = 10000 
     args.seed = -1
     args.demonstrate = False
-    args.angle = False
+    args.policy = "" # Usable: Breakout-Angle
     args.seed = args.seed if args.seed >= 0 else np.random.randint(10000)
     args.render = args.demonstrate or args.render
     args.gym_to_gymnasium = False
+    args.flat_obs = False
     return args
 
 def generate_random(args, save_state = False):
     environment, record = initialize_environment(args, args)
-    if args.angle: 
+    if args.policy == "Angle": 
         policy = AnglePolicy(4)
+        angle = np.random.randint(4, screen=environment)
+    if args.policy == "RandAngle": 
+        policy = RandomAnglePolicy(4, random_rate = .80, screen =environment)
+        angle = np.random.randint(4)
+    if args.policy == "Greedy": 
+        policy = GreedyTowards(environment.discrete_actions, environment.action_shape)
+        angle = np.random.randint(4)
+    if args.policy == "RandGreedy": 
+        policy = RandGreedy(environment.discrete_actions, environment.action_shape, random_rate = 0.6)
+        angle = np.random.randint(4)
+    if args.policy == "RandGreedySticky": 
+        policy = RandGreedySticky(environment.discrete_actions, environment.action_shape, random_rate = 0.6)
         angle = np.random.randint(4)
     if args.variant == "proximity":
         environment.sampler = samplers["exist"](obj_dim=5, target_select=construct_object_selector(["Block"], environment),parent_select=None,additional_select=None,test_sampler=False,mask=None)
@@ -40,17 +54,17 @@ def generate_random(args, save_state = False):
     start = time.time()
     state_buffer = list()
     for i in range(args.num_frames):
-        if args.angle and environment.ball.paddle: angle = angle = np.random.randint(4)
+        if args.policy in ["Angle", "RandAngle"] and environment.ball.paddle: angle = angle = np.random.randint(4)
         action = environment.action_space.sample() if not args.demonstrate else environment.demonstrate()
         # action = np.ones(environment.action_space._shape) * (-0.5 + i/args.num_frames) if not args.demonstrate else environment.demonstrate()
         # action = np.random.rand(*environment.action_space._shape) * (environment.action_space.high - environment.action_space.low) + environment.action_space.low if not args.demonstrate else environment.demonstrate()
-        action = action if not args.angle else policy.act(environment, angle=angle)
+        action = action if not (args.policy in ["Angle", "RandAngle", "Greedy", "RandGreedy", "RandGreedySticky"]) else policy.act(environment, angle=angle)
         full_state, reward, done, info = environment.step(action, render=args.render)
-        if args.render and args.display_frame: 
-            frame = cv2.resize(full_state["raw_state"], (full_state["raw_state"].shape[0] * 5, full_state["raw_state"].shape[1] * 5), interpolation = cv2.INTER_NEAREST)
-            display_frame(frame, waitkey=10)
+        # if args.render and args.display_frame: 
+        #     frame = cv2.resize(full_state["raw_state"], (full_state["raw_state"].shape[0] * 5, full_state["raw_state"].shape[1] * 5), interpolation = cv2.INTER_NEAREST)
+        #     display_frame(frame, waitkey=10)
         if args.render and args.variant == "proximity" and args.display_frame: display_param(full_state['raw_state'], param=environment.sampler.param[:2], waitkey=100, rescale = 10, dot=False)
-        elif args.render and args.display_frame: display_frame(full_state['raw_state'], rescale=10, waitkey=30)
+        elif args.render and args.display_frame: display_frame(full_state['raw_state'], rescale=3, waitkey=1)
         if i == args.num_frames - 1: full_state['factored_state']["Done"] = np.array([True]) # force the last factored state to be true
         if record is not None: record.save(full_state['factored_state'], full_state["raw_state"], environment.toString)
         if save_state: state_buffer.append(full_state)
@@ -87,8 +101,14 @@ if __name__ == "__main__":
                         help='number of frames to run')
     parser.add_argument('--demonstrate', action='store_true', default=False,
                         help='get the data from demonstrations or from random actions')
-    parser.add_argument('--angle', action='store_true', default=False,
-                        help='uses the angle policy if true')
+    parser.add_argument('--policy', default="",
+                        help='uses the "Angle" policy or "RandAngle" policy')
+    parser.add_argument('--flat-obs', action='store_true', default=False,
+                        help='uses flattened observations')
+    parser.add_argument('--append-id', action='store_true', default=False,
+                        help='uses appended ids')
+    parser.add_argument('--debug-mode', action='store_true', default=False,
+                        help='generates the debug version of the environment')
     args = parser.parse_args()
     args.gym_to_gymnasium = False
     args.seed = args.seed if args.seed >= 0 else np.random.randint(10000)

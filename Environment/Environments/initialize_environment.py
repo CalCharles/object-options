@@ -31,7 +31,11 @@ def initialize_environment(args, record_args, no_record=False):
     elif args.env == "RandomDAG":
         from Environment.Environments.RandomDAG.random_DAG import RandomDAG
         if len(args.load_environment) > 0: environment = load_from_pickle(os.path.join(args.load_environment, "environment.pkl"))
-        else: environment = RandomDAG(frameskip = args.frameskip, variant=args.variant, fixed_limits=args.fixed_limits)
+        else: environment = RandomDAG(frameskip = args.frameskip, variant=args.variant, fixed_limits=args.fixed_limits, debug_mode=args.debug_mode)
+        environment.seed(args.seed)
+    elif args.env == "Pusher2D":
+        from Environment.Environments.Pusher2D.pusher_2D import Pusher2D
+        environment = Pusher2D(frameskip = args.frameskip, variant=args.variant)
         environment.seed(args.seed)
     # elif args.env == "Nav2D":
         # environment = Nav2D()

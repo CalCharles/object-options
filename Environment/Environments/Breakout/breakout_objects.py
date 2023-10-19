@@ -60,8 +60,9 @@ def intersection(a, b):
     return (abs(midax - midbx) * 2 < (a.width + b.width)) and (abs(miday - midby) * 2 < (a.height + b.height))
 
 class Ball(animateObject):
-    def __init__(self, pos, attribute, vel, top_reset = False, hard_mode=False):
+    def __init__(self, pos, attribute, vel, top_reset = False, hard_mode=False, simple_collision=False):
         super(Ball, self).__init__(pos, attribute, vel)
+        self.simple_collision = simple_collision
         self.hot_id = [0,0,1,0,0,0]
         self.width = 2
         self.height = 2
@@ -121,9 +122,11 @@ class Ball(animateObject):
                 self.apply_move = False
                 self.paddlehits += 1
                 self.paddle = True
+                self.interaction_trace.append(other.name)
             elif other.name.find("SideWall") != -1:
                 self.vel = np.array([self.vel[0], -self.vel[1]])
                 self.apply_move = False
+                self.interaction_trace.append(other.name)
             elif other.name.find("TopWall") != -1:
                 self.top_wall = True
                 if self.top_reset: # basically only the big block domain
@@ -132,22 +135,23 @@ class Ball(animateObject):
                 else:
                     self.vel = np.array([-self.vel[0], self.vel[1]])
                     self.apply_move = False
+                self.interaction_trace.append(other.name)
             elif other.name.find("BottomWall") != -1:
                 self.bottom_wall = True
                 self.losses += 1
                 print(self.pos, self.vel, "dropped", intersection(self,other))
                 # position reset handled by breakout screen
+                self.interaction_trace.append(other.name)
             elif other.name.find("Block") != -1 and other.attribute != 0:
                 self.block = True
                 self.block_id = other
                 rel_x = self.pos[1] - other.pos[1]
                 rel_y = self.pos[0] - other.pos[0]
-                print(rel_x, rel_y, self.vel, self.pos[0], other.pos[0], other.height, other.name, intersection(self, other))
-                if not self.hard_mode or other.attribute != -1: other.attribute = 0
+                if not (self.hard_mode and other.attribute != -1): other.attribute = 0
                 next_vel = self.vel
                 # if (rel_y == -2 or rel_y == -3 or rel_y == 3 or rel_y == 2) and not self.flipped:
                 # if rel_y == -2 or rel_y == -3 or rel_y == 3 or rel_y == 2:
-                if rel_y <= -1 or 1 <= rel_y:
+                if self.simple_collision or (rel_y <= -1 or 1 <= rel_y): # TODO: implement complex collision with vector tracing and edge detection
                     next_vel[0] = - self.vel[0]
                     self.flipped = True
                 if other.attribute == -1 and self.hard_mode:
@@ -161,12 +165,13 @@ class Ball(animateObject):
                         if trace_rel != rel_y:
                             if np.sign(next_vel[1]) == np.sign(rel_x):
                                 next_vel[1] = - self.vel[1]
+                print(rel_x, rel_y, self.vel, next_vel, self.pos[0], other.pos[0], other.height, other.name, other.attribute, intersection(self, other))
                 self.vel = np.array(next_vel)
                 self.apply_move = False
                 self.hit_trace.append(other)
                 other.interaction_trace.append(self.name)
                 # self.nohit_delay = 2
-            self.interaction_trace.append(other.name)
+                self.interaction_trace.append(other.name)
 
 class Paddle(animateObject):
     def __init__(self, pos, attribute, vel):

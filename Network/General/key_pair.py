@@ -83,6 +83,7 @@ class KeyPairNetwork(Network):
             decode_layer_args.pair.first_obj_dim = self.embed_dim
             decode_layer_args.num_outputs = self.conv_dim
             decode_layer_args.pair.aggregate_final = False
+            decode_layer_args.pair.pre_dropout = 0.0
             decode_layer_args.pair.num_pair_layers = 1 # TODO: multilayer possible if the mask is applied at EVERY layer
             self.decode_layer = PairNetwork(decode_layer_args)
 
@@ -188,4 +189,4 @@ class KeyPairNetwork(Network):
         return x
 
     def weights(self, x, m=None, valid=None):
-        return self.forward(x, m=m, valid=valid, return_weights=return_weights)
+        return self.forward(x, m=m, valid=valid, return_weights=True)

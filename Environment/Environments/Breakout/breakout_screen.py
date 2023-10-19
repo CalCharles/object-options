@@ -59,7 +59,7 @@ class Breakout(Environment):
         self.object_dynamics = dynamics_fixed if self.fixed_limits else dynamics
 
         # asign variant values
-        var_form, num_rows, num_columns, max_block_height, hit_reset, negative_mode, random_exist, bounce_cost, bounce_reset, completion_reward, timeout_penalty, drop_stopping = breakout_variants[breakout_variant]
+        var_form, num_rows, num_columns, max_block_height, min_block_height, hit_reset, negative_mode, random_exist, bounce_cost, bounce_reset, completion_reward, timeout_penalty, drop_stopping, drop_reset = breakout_variants[breakout_variant]
         self.object_instanced = get_instanced(num_rows, num_columns, random_exist, self.variant == "big_block")
         self.target_mode = (var_form == 1)
         if var_form == 2: negative_mode = "hardedge"
@@ -72,12 +72,14 @@ class Breakout(Environment):
         self.completion_reward = completion_reward
         self.assessment_stat = 0 if self.variant != "proximity" else (0,0)# a measure of performance specific to the variant
         self.drop_stopping = drop_stopping
+        self.drop_reset = drop_reset
         self.top_dropping = self.variant == "big_block"
         self.bounce_cost = bounce_cost
         self.bounce_reset = bounce_reset
         self.num_rows = num_rows # must be a factor of 10
         self.num_columns = num_columns # must be a factor of 60
         self.max_block_height = max_block_height
+        self.min_block_height = min_block_height
         self.random_exist = random_exist
         self.action_record = deque(maxlen=10000)
         self.append_id = append_id
@@ -86,8 +88,8 @@ class Breakout(Environment):
         self.default_reward = 1
         if self.target_mode: self.num_blocks = 1
         elif negative_mode == "hardscatter": self.num_blocks = 6 # hardcoded for now
-        else: self.num_blocks = num_rows * num_columns
-        self.block_height = min(self.max_block_height, 10 // self.num_rows)
+        else: self.num_blocks = num_rows * num_columns if random_exist < 0 else random_exist
+        self.block_height = max(min(self.max_block_height, 10 // self.num_rows), self.min_block_height)
         self.block_width = 60 // self.num_columns
         self.hard_mode = self.negative_mode[:4] == "hard"
         self.sampler = BreakoutBlockSampler(self.num_blocks)
@@ -230,7 +232,7 @@ class Breakout(Environment):
         '''
         handles block resetting for multiple blocks as targets domains
         '''
-        blockheight = min(self.max_block_height, 10 // self.num_rows)
+        blockheight = max(min(self.max_block_height, 10 // self.num_rows), self.min_block_height)
         blockwidth = 60 // self.num_columns
         for i in range(self.num_rows):
             block2D_row = list()
@@ -250,7 +252,7 @@ class Breakout(Environment):
 
     def reset(self):
         vel= np.array([np.random.randint(1,2), np.random.choice([-1,1])])
-        self.ball = Ball(np.array([np.random.randint(38, 45), np.random.randint(14, 70)]), 1, vel, top_reset=self.target_mode and self.bounce_cost == 0, hard_mode=self.hard_mode)
+        self.ball = Ball(np.array([np.random.randint(38, 45), np.random.randint(14, 70)]), 1, vel, top_reset=self.target_mode and self.bounce_cost == 0, hard_mode=self.hard_mode, simple_collision = self.variant=="rand_small")
         self.ball.reset_pos()
         self.paddle = Paddle(np.array([71, 84//2]), 1, np.zeros((2,), dtype = np.int64))
         self.actions = Action(np.zeros((2,), dtype = np.int64), 0)
@@ -455,7 +457,7 @@ class Breakout(Environment):
                     self.reset_rewards = True
                 print("itr: ", self.itr, ", eoe", self.total_score, self.ball.losses, self.reward.attribute, self.action_rates())
                 if self.drop_stopping:
-                    if self.variant == "big_block":
+                    if self.variant == "big_block" or self.drop_reset:
                         self.reset_rewards = True
                         print("Breakout episode score:", self.total_score + self.reward.attribute)
                         needs_reset = True

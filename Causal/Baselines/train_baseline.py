@@ -11,9 +11,9 @@ from Causal.Training.loggers.forward_logger import forward_logger
 from Causal.Utils.instance_handling import compute_likelihood, get_batch, get_valid
 from Causal.Utils.weighting import proximity_binary, get_weights
 from Network.network_utils import pytorch_model, run_optimizer, get_gradient
-from Causal.Baselines.gradient import compute_gradient_cause
-from Causal.Baselines.attention import compute_attention_cause
-from Causal.Baselines.counterfactual import compute_counterfactual_cause
+from Causal.Baselines.gradient import compute_gradient_cause, compute_gradient_loss
+from Causal.Baselines.attention import compute_attention_cause, compute_attention_loss
+from Causal.Baselines.counterfactual import compute_counterfactual_cause, compute_counterfactual_loss
 from Causal.Baselines.baseline_logger import baseline_interaction_logger
 
 def get_baseline_type(inter_baseline_args):
@@ -39,10 +39,21 @@ def train_basic_model(full_model, args, rollouts, object_rollout, test_rollouts,
         valid = get_valid(batch.valid, full_model.valid_indices) # valid is batch x num target indices binary vector indicating which targets are valid (NOT the full batch x num instances)
         done_flags = np.expand_dims(1-full_batch.done.squeeze(), -1)
 
+        # forward modeling loss
         active_full, inter, hot_mask, full_mask, target, _, active_full_log_probs, active_full_inputs = full_model.active_open_likelihoods(batch)
         active_likelihood_full, active_prediction_params = - active_full_log_probs, active_full if not full_model.cluster_mode else (active_full[0][...,target.shape[-1]:target.shape[-1] * 2], active_full[1][...,target.shape[-1]:target.shape[-1] * 2])
         active_loss = compute_likelihood(full_model, args.train.batch_size, active_likelihood_full, done_flags=done_flags, is_full = True, valid = valid)
-        run_optimizer(active_optimizer, full_model.active_model, active_loss)
+        
+        additional_losses = 0
+        if args.inter_baselines.gradient_threshold > 0:
+            additional_losses = compute_gradient_loss(full_model, full_batch, batch, args) * args.inter_baselines.grad_lasso_lambda
+        elif args.inter_baselines.attention_threshold > 0:
+            additional_losses = compute_attention_loss(full_model, batch, args) * args.inter_baselines.attention_lambda
+        elif args.inter_baselines.counterfactual_threshold > 0:
+            additional_losses = compute_counterfactual_loss(full_model, batch, args) * args.inter_baselines.counterfactual_lambda
+
+        
+        run_optimizer(active_optimizer, full_model.active_model, active_loss * 0.01 + additional_losses)
         active_logger.log(i, active_loss, None, None, active_likelihood_full * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, 1.0, batch.done,
                             active_prediction_params, target, None, full_model, valid=valid)
         if i % args.inter.passive.passive_log_interval == 0:

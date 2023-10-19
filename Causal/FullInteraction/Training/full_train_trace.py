@@ -84,7 +84,7 @@ def train_binaries(full_model, rollouts, object_rollout, args, interaction_optim
                 trace=trace)
         # change the weighting if necesary
         if i % args.inter.passive.passive_log_interval == 0:
-            print(np.concatenate((trace, pytorch_model.unwrap(interaction_likelihood)), axis=-1)[:5])
+            print("traces", trace.shape, np.concatenate((trace, pytorch_model.unwrap(interaction_likelihood)), axis=-1)[:5])
             weights = get_weights(args.inter.active.weighting[2], binaries.squeeze())
             if args.inter.interaction.subset_training > 0: # replace the subsets with the values
                 weights = weights[indices] / np.sum(weights[indices])
@@ -101,6 +101,7 @@ def train_interaction(full_model, rollouts, object_rollout, args, interaction_op
     # forms of training:
     indices=None
     traces = object_rollout.sample(0)[0].trace if object_rollout is not None else rollouts.sample(0)[0].trace
+    print(traces.shape)
     if args.full_inter.selection_train == "separate":
         traces = hot_traces(traces, args.interaction_net.cluster.num_clusters)
     elif args.full_inter.selection_train == "softened":

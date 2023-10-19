@@ -41,6 +41,7 @@ if __name__ == '__main__':
     if len(args.inter.save_intermediate) > 0: save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_traintest.pkl"), (train_full_buffer, train_object_buffers, test_full_buffer, test_object_buffers))
 
     passive_weights = dict()
+    outputs = list()
     if len(args.inter.load_intermediate) > 0: 
         print("loaded model")
         full_models = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_inter_model.pkl"))
@@ -53,8 +54,9 @@ if __name__ == '__main__':
         # if name in ["vgqccm", "egutgube"]: # TODO: switch back to this to test attention module
         if name in train_names: # TODO remove reward and done eventually from tis
             print("TRAINING", name)
-            outputs = None
-            if args.train.train and args.inter.passive.passive_iters > 0: outputs, passive_weights[name] = run_train_passive(full_models[name], train_full_buffer, train_object_buffers[name], test_full_buffer, test_object_buffers[name], args, environment)
+            if args.train.train and args.inter.passive.passive_iters > 0: 
+                outputs = None
+                outputs, passive_weights[name] = run_train_passive(full_models[name], train_full_buffer, train_object_buffers[name], test_full_buffer, test_object_buffers[name], args, environment)
     # saving the passive models and weights
     if len(args.inter.save_intermediate) > 0:
         save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_inter_model.pkl"), full_models)
@@ -62,12 +64,15 @@ if __name__ == '__main__':
         save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name +  "_passive_outputs.pkl"), outputs)
 
     # pretraining with the true traces, not used for the main algorithm
+    print(list(full_models.keys()))
     for name in environment.object_names:
         # if name in ["vgqccm"]: # TODO: switch back to this to test attention module
+        print("Trace Training", name)
         if name in train_names:
             if args.train.train and args.inter.interaction.interaction_pretrain > 0: run_train_interaction(full_models[name], train_full_buffer, train_object_buffers[name], test_full_buffer, test_object_buffers[name], args, environment)
-    
+    print("Finished Trace Training")
     # training the active and interaction models
+    print(list(full_models.keys()))
     for name in environment.object_names:
         if name not in ["Action"]:
             full_models[name].regenerate(extractor, normalization, environment)
@@ -80,8 +85,13 @@ if __name__ == '__main__':
                 print(full_models[name].iscuda)
         for full_model in full_models.values():
             full_model.cpu().cuda(device = args.torch.gpu)
-    args.full_inter.converged_active_loss_value = np.mean([active_loss for passive_loss, active_loss in outputs[-100:]])
-    args.full_inter.converged_passive_loss_value = np.mean([passive_loss for passive_loss, active_loss in outputs[-100:]])
+    if len(outputs) > 0:
+        args.full_inter.converged_active_loss_value = np.mean([active_loss for passive_loss, active_loss in outputs[-100:]])
+        args.full_inter.converged_passive_loss_value = np.mean([passive_loss for passive_loss, active_loss in outputs[-100:]])
+    else: # if no outputs, set to a reasonable value
+        args.full_inter.converged_active_loss_value = -12
+        args.full_inter.converged_passive_loss_value = -12
+
     print("average losses:", args.full_inter.converged_active_loss_value)
     for name in environment.object_names:
         # if name in ["phpt"]:

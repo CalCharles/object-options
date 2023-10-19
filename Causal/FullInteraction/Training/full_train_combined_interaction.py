@@ -3,22 +3,40 @@ from Network.network_utils import pytorch_model, run_optimizer, get_gradient
 from Causal.Utils.instance_handling import compute_likelihood, get_batch
 import torch
 import torch.nn.functional as F
+import time
 
-LOSS_DIFFERENCE_CONSTANT = 3
+LOSS_DIFFERENCE_CONSTANT = 0
 
-def compute_adaptive_lasso(active_nlikelihood, args, lasso_lambda):
-    # print(np.exp(-np.abs(args.full_inter.converged_active_loss_value - LOSS_DIFFERENCE_CONSTANT - pytorch_model.unwrap(active_nlikelihood.mean()))), np.abs(args.full_inter.converged_active_loss_value - pytorch_model.unwrap(active_nlikelihood.mean())), pytorch_model.unwrap(active_nlikelihood.mean()), args.full_inter.adaptive_lasso * (np.exp(-np.abs(args.full_inter.converged_active_loss_value - LOSS_DIFFERENCE_CONSTANT - pytorch_model.unwrap(active_nlikelihood.mean())))))
-    return (args.full_inter.adaptive_lasso * (np.exp(-np.abs(args.full_inter.converged_active_loss_value - LOSS_DIFFERENCE_CONSTANT - pytorch_model.unwrap(active_nlikelihood.mean()))))
+def compute_likelihood_adaptive_lasso(active_nlikelihood, args, lasso_lambda):
+    print(args.full_inter.converged_active_loss_value, 
+          np.exp(-np.abs(args.full_inter.converged_active_loss_value - pytorch_model.unwrap(active_nlikelihood.mean())) / args.full_inter.adaptive_lasso[1]), 
+          np.abs(args.full_inter.converged_active_loss_value - pytorch_model.unwrap(active_nlikelihood.mean())), pytorch_model.unwrap(active_nlikelihood.mean()), args.full_inter.adaptive_lasso[0] * (np.exp(-np.abs(args.full_inter.converged_active_loss_value - pytorch_model.unwrap(active_nlikelihood.mean())) / args.full_inter.adaptive_lasso[1])))
+    return (args.full_inter.adaptive_lasso[0] * (np.exp(-np.abs(args.full_inter.converged_active_loss_value - LOSS_DIFFERENCE_CONSTANT - pytorch_model.unwrap(active_nlikelihood.mean())) / args.full_inter.adaptive_lasso[1]))
                                                       if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
     # return (args.full_inter.adaptive_lasso * (np.exp(-np.abs(active_nlikelihood.shape[-1] * 3 + pytorch_model.unwrap(active_nlikelihood.mean()))))
     #                                                   if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
 
-def evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda, active_params, interaction_likelihood, interaction_mask, active_log_probs, done_flags, proximity):
+def compute_mean_adaptive_lasso(means, target, args, lasso_lambda):
+    mean_difference = pytorch_model.unwrap(torch.linalg.norm(means - target, p=2, dim=-1))
+    return (args.full_inter.adaptive_lasso[0] * np.exp(-mean_difference / args.full_inter.adaptive_lasso[1])
+                if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
+
+
+def compute_mean_var_adaptive_lasso(active_params, target, args, lasso_lambda):
+    mean_difference = pytorch_model.unwrap(torch.linalg.norm(active_params[0] - target, p=1, dim=-1))
+    confidence = pytorch_model.unwrap(torch.linalg.norm(active_params[1], p=1, dim=-1))
+    return (args.full_inter.adaptive_lasso[0] * np.exp(-(mean_difference + confidence) / args.full_inter.adaptive_lasso[1])
+                if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
+
+
+def evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda, active_params, interaction_likelihood, interaction_mask, active_log_probs, done_flags, proximity, target):
     active_nlikelihood = compute_likelihood(full_model, len(active_log_probs), - active_log_probs, done_flags=done_flags, reduced=False, is_full = True)
     # passive_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - passive_log_probs, done_flags=done_flags, reduced=False, is_full = True)
     # adapts the lasso_lambda based on the input. If the active nlikelihood is low (large negative), it will approach e^{-0} = 1 if the error is high, it will approach e^-inf = 0
     # TODO: adaptive weighting value 3.0 is environment specific based on the level of natural stochasticity
-    lasso_lambda = compute_adaptive_lasso(active_nlikelihood, args, lasso_lambda)
+    if args.full_inter.adaptive_lasso_type == "likelihood": lasso_lambda = compute_likelihood_adaptive_lasso(active_nlikelihood[done_flags.nonzero()[:,0]], args, lasso_lambda)
+    elif args.full_inter.adaptive_lasso_type == "mean": lasso_lambda = compute_mean_adaptive_lasso(active_params[0][done_flags.nonzero()[:,0]], args, lasso_lambda)
+    elif args.full_inter.adaptive_lasso_type == "meanvar": lasso_lambda = compute_mean_var_adaptive_lasso((active_params[0][done_flags.nonzero()[:,0]], active_params[1][done_flags.nonzero()[:,0]]), args, lasso_lambda)
     mask_loss = (interaction_likelihood - full_model.check_passive_mask(interaction_likelihood)).norm(p=args.full_inter.lasso_order, dim=-1).unsqueeze(-1) # penalize for deviating from the passive mask
     zero_mask_loss = (interaction_likelihood).norm(p=args.full_inter.lasso_order, dim=-1).unsqueeze(-1) # penalize for deviating from the passive mask
     one_mask_loss = (1-interaction_likelihood).norm(p=args.full_inter.lasso_order, dim=-1).unsqueeze(-1)
@@ -39,7 +57,7 @@ def evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambd
     return full_loss.mean(), active_nlikelihood.mean(), lasso_lambda
 
 def evaluate_active_interaction_expert(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda, active_params, 
-                                        hot_likelihood, interaction_mask, active_log_probs, done_flags, proximity):
+                                        hot_likelihood, interaction_mask, active_log_probs, done_flags, proximity, target):
     active_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - active_log_probs, 
                                             done_flags=done_flags, reduced=False, is_full = True)
     # passive_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - passive_log_probs, done_flags=done_flags, reduced=False, is_full = True)
@@ -76,7 +94,7 @@ def get_masking_gradients(full_model, args, rollouts=None, object_rollout=None, 
 
     # combine the cost function (extend possible interaction losses here)
     interaction_loss, active_nlikelihood, lasso_lambda = evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda,
-                        active_soft_params, interaction_likelihood, soft_interaction_mask, active_soft_log_probs, done_flags, batch.proximity)
+                        active_soft_params, interaction_likelihood, soft_interaction_mask, active_soft_log_probs, done_flags, batch.proximity, target)
     
     # # loss and optimizer interaction_mask
     # grad_variables = [interaction_likelihood, active_soft_inputs]
@@ -165,11 +183,14 @@ def get_given_gradients(full_model, args, rollouts, object_rollout, weights, giv
     return grad_variables, 
 
 
-def _train_combined_interaction(full_model, args, rollouts, object_rollout, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda, weights, inter_loss, interaction_optimizer, normalize=False):
+def _train_combined_interaction(full_model, args, rollouts, object_rollout, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda, weights, inter_loss, interaction_optimizer, normalize=False, time_dict=None):
     # resamples because the interaction weights are different from the normal weights, and get the weight count for this
     full_model.dist_temperature = args.full_inter.dist_temperature
 
     full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollout, weights, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
+    if time_dict is not None: time_dict["inter_batch"] = time.time()
+    # print(batch.trace[:10])
+
 
     # a statistic on weighting
     weight_count = np.sum(weights[idxes])
@@ -177,6 +198,7 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, onem
     # run the networks and get both the active and passive outputs (passive for interaction binaries)
     active_soft_params, interaction_likelihood, hot_likelihood, hard_interaction_mask, soft_interaction_mask, target, active_soft_dist, active_soft_log_probs, active_soft_inputs = \
                             full_model.active_likelihoods(batch, normalize=normalize, soft=True, mixed = "mixed" if args.full_inter.mixed_interaction == "hard" else args.full_inter.mixed_interaction)
+    if time_dict is not None: time_dict["inter_forward"] = time.time()
 
     # done flags
     done_flags = pytorch_model.wrap(1-full_batch.done, cuda = full_model.iscuda).squeeze().unsqueeze(-1)
@@ -186,12 +208,13 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, onem
     # print((active_hard_log_probs * done_flags).mean(), (active_soft_log_probs * done_flags).mean(), (active_full_log_probs * done_flags), (passive_log_probs * done_flags).mean())
     # lasso_lambda = F.sigmoid(lasso_lambda) * 10
     interaction_loss, active_nlikelihood, lasso_lambda = evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda,
-                        active_soft_params, interaction_likelihood, soft_interaction_mask, active_soft_log_probs, done_flags, batch.proximity) \
+                        active_soft_params, interaction_likelihood, soft_interaction_mask, active_soft_log_probs, done_flags, batch.proximity, target) \
                         if not full_model.cluster_mode else evaluate_active_interaction_expert(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda,
-                        active_soft_params, hot_likelihood, soft_interaction_mask, active_full_log_probs, done_flags, batch.proximity)
+                        active_soft_params, hot_likelihood, soft_interaction_mask, active_soft_log_probs, done_flags, batch.proximity, target)
     
     # print(interaction_loss)
     # loss and optimizer
     grad_variables = [interaction_likelihood, active_soft_inputs] if args.inter.active.log_gradients else list()
     grad_variables = run_optimizer(interaction_optimizer, full_model.active_model if full_model.attention_mode else full_model.interaction_model, interaction_loss, grad_variables=grad_variables)
+    if time_dict is not None: time_dict["inter_grad"] = time.time()
     return idxes, interaction_loss, active_nlikelihood, interaction_likelihood, hard_interaction_mask, hot_likelihood, weight_count, done_flags, grad_variables, lasso_lambda

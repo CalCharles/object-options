@@ -130,7 +130,7 @@ def binary_state_compatibility(all_binaries, all_states, environment):
     print(cost)
     return compatibility
 
-def compute_possible_efficient(environment, one_constant, zero_constant, save_path):
+def compute_possible_efficient(environment, one_constant, zero_constant, save_path="", use_invariant=True):
     # a binary includes the object, or does not
     all_binaries = np.array(np.meshgrid(*[[0,1] for i in range(environment.num_objects)])).T.reshape(-1,environment.num_objects)
     use_zero = environment.use_zero
@@ -188,7 +188,8 @@ def compute_possible_efficient(environment, one_constant, zero_constant, save_pa
     print("num subsets", len(list(all_subsets)))
     print("num binaries", len(all_binaries))
     for i, subset in enumerate(all_subsets):
-        subset_binary[i] = check_compatible(subset, check_valid(subset, all_binaries), compatibility, one_constant, zero_constant)
+        valid_binaries = check_valid(subset, all_binaries) if use_invariant else np.arange(len(all_binaries))
+        subset_binary[i] = check_compatible(subset, valid_binaries, compatibility, one_constant, zero_constant)
         subset_index_mapping[tuple(subset)] = i
     # create all disjoint, complete partitionings of the subsets
     disjoint_sets = list(get_all_disjoint_sets(range(len(all_states))))
@@ -252,12 +253,13 @@ def compute_possible_efficient(environment, one_constant, zero_constant, save_pa
     costs.sort(key=lambda x: x[0])
     print("num per cost", costs)
     print(min_cost_strings)
-    with open(save_path, 'w') as f:
-        for strv in min_cost_strings:
-            f.write(strv + "\n")
-    with open(save_path[:-4] + "_hist.txt", 'w') as f:
-        for key, value in costs:
-            f.write(str(key) + "," + str(value) + "\n")
+    if len(save_path) > 0:
+        with open(save_path, 'w') as f:
+            for strv in min_cost_strings:
+                f.write(strv + "\n")
+        with open(save_path[:-4] + "_hist.txt", 'w') as f:
+            for key, value in costs:
+                f.write(str(key) + "," + str(value) + "\n")
 
 
 
@@ -305,4 +307,4 @@ if __name__ == '__main__':
         env = Voting()
     elif env_name == "ModDAG":
         env = ModDAG(variant=variant)
-    compute_possible_efficient(env, one_constant, zero_constant, os.path.join("logs", "exhaustive", env_name + "_" + variant + str(one_constant) + "_" + str(zero_constant) + ".txt") )
+    compute_possible_efficient(env, one_constant, zero_constant, save_path=os.path.join("logs", "exhaustive", env_name + "_" + variant + str(one_constant) + "_" + str(zero_constant) + ".txt"), use_invariant=True )
