@@ -54,7 +54,8 @@ def run_train_interaction(full_model, rollouts, object_rollout, test_rollout, te
                                                 args.interaction_net.optimizer.alt_lr, eps=args.interaction_net.optimizer.eps, betas=args.interaction_net.optimizer.betas, weight_decay=args.interaction_net.optimizer.weight_decay)
 
     # get weights based on interacting states
-    passive_error, active_weights, binaries = separate_weights(args.inter.active.weighting, full_model, rollouts, None, object_rollouts=object_rollout) # trace=trace, object_rollouts=object_rollout)
+    proximal = get_error(full_model, rollouts, object_rollout, error_type=error_types.PROXIMITY_FULL if full_model.form == "full" else error_types.PROXIMITY_ALL, normalized = True)
+    passive_error, active_weights, binaries = separate_weights(args.inter.active.weighting, full_model, rollouts, proximal, object_rollouts=object_rollout) # trace=trace, object_rollouts=object_rollout)
 
     outputs, inter_weights = train_interaction(full_model, rollouts, object_rollout, args, interaction_optimizer)
 

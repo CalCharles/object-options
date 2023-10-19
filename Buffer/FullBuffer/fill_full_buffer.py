@@ -81,7 +81,7 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
         obs_next = norm(args.inter_select(next_factored_state), form="inter")
         info, policy, time, option_choice, option_resample = dict(), dict(), i, 0, False
         # print(obs, obs_next, norm.inter_norm, factored_state["Action"])
-        if args.collect.omit_done and not use_done:
+        if (args.collect.omit_done and not use_done) or (not args.collect.omit_done):
             buffer.add(Batch(obs = obs, obs_next=obs_next, act=act, done=use_done, true_done=use_done, rew=rew, true_reward=rew,
                 info = info, policy=policy, time = time, terminated=False, truncated=use_done, option_choice=option_choice, option_resample=option_resample, valid=valid))
         last_done = factored_state["Done"]
