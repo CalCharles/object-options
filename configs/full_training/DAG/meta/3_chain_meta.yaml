@@ -27,6 +27,7 @@ full_inter:
   mixed_interaction: mixed,relaxed
   use_active_as_passive: True,False
   adaptive_lasso: 1 1,2 1,3 1,4 1,5 1,6 1,7 1,8 1,9 1,10 1,4 2,5 2,6 2,4 3,5 3,6 3
+  adaptive_lasso_type: mean,meanvar
 interaction_net:
   hidden_sizes: 512 512,512,256 256,128,128 128 128 128 128,128 128 128 128,128 128 128,128 128,128
   activation: leakyrelu,sin,prelu,sinc,sigmoid,tanh,crelu
@@ -37,6 +38,6 @@ interaction_net:
   embed_inputs: 256,512,1024
   optimizer:
     lr: .001,.0001,.00001
-    alt_lr: .001,.0005,.0001,.00005,.00001,.000005
+    alt_lr: .001,.0005,.0001,.00005,.00002,.00001,.000005
     weight_decay: 0.001,0.0001,0.00001,0.0
 ...
