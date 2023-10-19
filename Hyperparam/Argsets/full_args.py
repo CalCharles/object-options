@@ -177,7 +177,7 @@ full_args = {
             "weighting": [0,0,-1,0], # must be length 4
             "active_log_interval": 100,
             "log_gradients": False,
-            "interaction_schedule": -1, # if negative, uses 0.5 fixed tradeoff, if 0<= is <=1 uses the value at fixed value, if > 1 uses exp(-i/is)
+            "interaction_schedule": -1.0, # if negative, uses 0.5 fixed tradeoff, if 0<= is <=1 uses the value at fixed value, if > 1 uses exp(-i/is)
             "inline_iters": [5, 1, 1000],
             "interaction_weighting": [0,0], # must be length 2
             "intrain_passive": 0,

@@ -1,18 +1,18 @@
 ---
 metaparam: 
   multi_filename: dag_3_chain_tests_
-  log_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_logs/dag_3_chain_tests/
-  yaml_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_yamls/dag_3_chain_tests/
-  save_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam/dag_3_chain_tests/
-  graph_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_graphs/dag_3_chain_tests/
+  log_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam_logs/dag_3_chain_tests/
+  yaml_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam_yamls/dag_3_chain_tests/
+  save_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam/dag_3_chain_tests/
+  graph_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam_graphs/dag_3_chain_tests/
   bash_path: bashes/dag_3_chain_tests.sh
   base_config: configs/full_training/DAG/3_chain/base.yaml
   runfile: train_full_interaction.py
   gpu: 0
   match: 0
-  simul_run: 4
-  num_trials: 10
-  cycle_gpu: 1
+  simul_run: 12
+  num_trials: 1
+  cycle_gpu: 4
 train:
   batch_size: 128,256,512,1024
 inter:
@@ -34,7 +34,7 @@ interaction_net:
   init_form: uni,orth,xnorm,xuni,knorm,kuni
   pair:
     reduce_function: sum,max
-    pre_dropout: 0.0 0.1 0.2 0.3
+    pre_dropout: 0.0,0.1,0.2,0.3
   embed_inputs: 256,512,1024
   optimizer:
     lr: .001,.0001,.00001

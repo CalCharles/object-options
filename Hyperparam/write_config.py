@@ -116,9 +116,10 @@ def write_multi_config(multi_pth):
         row = 0
         col = 0
         for i in range(sum([len(s) for s in all_settings_grid])):
-            params = str(all_settings_grid[row][col])
-            if type(all_settings_grid[row][col]) == list():
+            params = all_settings_grid[row][col]
+            if type(all_settings_grid[row][col]) == list:
                 params = "-".join([str(v) for v in all_settings_grid[row][col]])
+            else: params = str(params)
             name_array.append(name_paths[row][-1] + params)
             comb_array[i][row] = col
             col += 1
@@ -178,6 +179,7 @@ def write_multi_config(multi_pth):
     print(comb_array)
     use_gpu = gpu # cycles through GPUs if activated
     for i, combination in enumerate(comb_array):
+        print(name_array[i])
         names, configs, use_gpu = create_config(base_config, combination, num_trials, i, use_gpu % cycle_gpu if cycle_gpu > 0 else gpu, comb_name = name_array[i] if len(name_array) > 0 else "")
         all_args += configs
         all_names += names

@@ -248,7 +248,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
         #                     batch.trace], axis=-1)[:10])
         if args.full_inter.adaptive_lasso[0] != -1 and i != 0 and i % (args.inter.active.active_log_interval * 3) == 0:
             # best_performance = max(args.full_inter.converged_active_loss_value, np.mean(active_full_loss), best_performance) # TODO: we could use best performance here
-            args.full_inter.converged_active_loss_value = np.mean(active_full_loss) # TODO: must be training active or this line will error
+            args.full_inter.converged_active_loss_value = max(args.full_inter.converged_active_loss_value, np.mean(active_full_loss)) # TODO: must be training active or this line will error
         if args.inter.active.adaptive_inter_lambda > 0:
             best_performance = max(args.full_inter.converged_active_loss_value, np.mean(active_full_loss), best_performance)# TODO: must be training active or this line will error
             interaction_lambda = args.inter.active.adaptive_inter_lambda * (np.exp(-np.abs(best_performance - np.mean(active_loss)) * args.inter.active.adaptive_inter_lambda)) * interaction_schedule(i)

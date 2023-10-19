@@ -12,21 +12,21 @@ def compute_likelihood_adaptive_lasso(active_nlikelihood, args, lasso_lambda):
           np.exp(-np.abs(args.full_inter.converged_active_loss_value - pytorch_model.unwrap(active_nlikelihood.mean())) / args.full_inter.adaptive_lasso[1]), 
           np.abs(args.full_inter.converged_active_loss_value - pytorch_model.unwrap(active_nlikelihood.mean())), pytorch_model.unwrap(active_nlikelihood.mean()), args.full_inter.adaptive_lasso[0] * (np.exp(-np.abs(args.full_inter.converged_active_loss_value - pytorch_model.unwrap(active_nlikelihood.mean())) / args.full_inter.adaptive_lasso[1])))
     return (args.full_inter.adaptive_lasso[0] * (np.exp(-np.abs(args.full_inter.converged_active_loss_value - LOSS_DIFFERENCE_CONSTANT - pytorch_model.unwrap(active_nlikelihood.mean())) / args.full_inter.adaptive_lasso[1]))
-                                                      if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
+                                                      if args.full_inter.adaptive_lasso[0] > 0 else lasso_lambda)
     # return (args.full_inter.adaptive_lasso * (np.exp(-np.abs(active_nlikelihood.shape[-1] * 3 + pytorch_model.unwrap(active_nlikelihood.mean()))))
     #                                                   if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
 
 def compute_mean_adaptive_lasso(means, target, args, lasso_lambda):
     mean_difference = pytorch_model.unwrap(torch.linalg.norm(means - target, p=2, dim=-1))
     return (args.full_inter.adaptive_lasso[0] * np.exp(-mean_difference / args.full_inter.adaptive_lasso[1])
-                if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
+                if args.full_inter.adaptive_lasso[0] > 0 else lasso_lambda)
 
 
 def compute_mean_var_adaptive_lasso(active_params, target, args, lasso_lambda):
     mean_difference = pytorch_model.unwrap(torch.linalg.norm(active_params[0] - target, p=1, dim=-1))
     confidence = pytorch_model.unwrap(torch.linalg.norm(active_params[1], p=1, dim=-1))
     return (args.full_inter.adaptive_lasso[0] * np.exp(-(mean_difference + confidence) / args.full_inter.adaptive_lasso[1])
-                if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
+                if args.full_inter.adaptive_lasso[0] > 0 else lasso_lambda)
 
 
 def evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda, active_params, interaction_likelihood, interaction_mask, active_log_probs, done_flags, proximity, target):
