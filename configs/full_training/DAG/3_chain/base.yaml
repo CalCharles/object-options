@@ -5,6 +5,9 @@
     log_filename: /hdd/datasets/object_data/full/DAG/3_chain/base/log/inter.log
     # load_dir: /hdd/datasets/object_data/full/DAG/3_chain/testrun/
     save_dir: /hdd/datasets/object_data/full/DAG/3_chain/base/
+    log_filename: /data/calebc/object_data/full/DAG/3_chain/base/log/inter.log
+    # load_dir: /data/calebc/object_data/full/DAG/3_chain/testrun/
+    save_dir: /data/calebc/object_data/full/DAG/3_chain/base/
     # log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/3_chain/log/inter.log
     # # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/DAG/3_chain/testrun/
     # save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/DAG/3_chain/base/
@@ -12,7 +15,8 @@
     env: RandomDAG
     variant: 3-chain
     # load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/3_chain/
-    load_environment: /hdd/datasets/object_data/RandomDAG/3_chain/
+    # load_environment: /hdd/datasets/object_data/RandomDAG/3_chain/
+    load_environment: /data/calebc/object_data/RandomDAG/3_chain/
   collect:
     omit_done: True
   torch:
@@ -23,7 +27,8 @@
     num_frames: 100000
     train_test_order: time
     # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/3_chain/
-    load_rollouts: /hdd/datasets/object_data/RandomDAG/3_chain/
+    # load_rollouts: /hdd/datasets/object_data/RandomDAG/3_chain/
+    load_rollouts: /data/calebc/object_data/RandomDAG/3_chain/
     num_iters: 50000
     batch_size: 512
   inter:

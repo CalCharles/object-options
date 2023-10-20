@@ -12,7 +12,7 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
     buffer = FullReplayBuffer(len(data), stack_num=1)
     object_buffers = {name: ObjectReplayBuffer(len(data), stack_num=1, alpha=alpha, beta=beta) for name in environment.object_names}
     factored_state = data[0]
-    if len(outcome_variable) > 0 and get_passive_name(outcome_variable) in full_model.target_selectors: args.inter_select.names.pop(args.inter_select.names.find(get_passive_name(outcome_variable)))
+    # if len(outcome_variable) > 0 and get_passive_name(outcome_variable) in full_model.target_selectors: args.inter_select.names.pop(args.inter_select.names.index(get_passive_name(outcome_variable)))
     last_done = [0.0] # dones are shifted one back because we want to zero out the invalid frame (with the next state as the first state of the next episode)
     for i, next_factored_state in enumerate(data[1:]):
         # assign general components
