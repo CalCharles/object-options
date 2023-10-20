@@ -1,12 +1,12 @@
 ---
 metaparam: 
-  multi_filename: dag_3_chain_tests_
-  log_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam_logs/dag_3_chain_tests/
-  yaml_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam_yamls/dag_3_chain_tests/
-  save_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam/dag_3_chain_tests/
-  graph_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam_graphs/dag_3_chain_tests/
-  bash_path: bashes/dag_3_chain_tests.sh
-  base_config: configs/full_training/DAG/3_chain/base.yaml
+  multi_filename: dag_3_c_small_tests_
+  log_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam_logs/dag_3_c_small_tests/
+  yaml_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam_yamls/dag_3_c_small_tests/
+  save_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam/dag_3_c_small_tests/
+  graph_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam_graphs/dag_3_c_small_tests/
+  bash_path: bashes/dag_3_c_small_tests.sh
+  base_config: configs/full_training/DAG/3_chain/3_c_small.yaml
   runfile: train_full_interaction.py
   gpu: 0
   match: 0

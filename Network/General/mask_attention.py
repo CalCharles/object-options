@@ -166,7 +166,7 @@ class MultiHeadAttentionParallelLayer(Network):
         start = time.time()
         batch_size = key.shape[0]
         queries = mask_query(queries, mask, valid, single_key=True) if self.mask_mode == "query" else queries
-        # print(key[0], qaueries[0], mask[0])
+        # print(key[0], queries[0], mask[0])
         # error
         if self.append_keys: value_inputs = torch.cat([key.unsqueeze(1)] + [queries], dim=1).reshape(batch_size, -1) # todo: relative state operations here
         else: value_inputs = queries.transpose(-2,-1) # todo: relative state operations here
@@ -377,7 +377,8 @@ class MaskedAttentionNetwork(Network):
         # start = time.time()
         if self.needs_encoding:
             batch_size = x.shape[0]
-            keys, queries = self.slice_input(x) # [batch, n_k, single_obj_dim], [batch, n_k, obj_dim]
+            keys, queries = self.slice_input(x) # [batch, n_k, single_obj_dim], [batch, n_q, obj_dim]
+            # keys = keys * 0.0
             # print(keys, queries, self.gpu, self.key_encoding.model[0].weight.device, self.iscuda)
             keys = self.key_encoding(keys) # [batch, d_k, n_k]
             queries = self.query_encoding(queries) # [batch, d_q, n_q]

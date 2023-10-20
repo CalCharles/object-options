@@ -14,7 +14,7 @@ from Causal.Training.loggers.logging import print_errors
 from Causal.FullInteraction.Training.full_test import test_full
 from Causal.Utils.weighting import get_weights
 from Causal.Utils.get_error import error_types, get_error
-from Network.network_utils import pytorch_model, run_optimizer
+from Network.network_utils import pytorch_model, run_optimizer, reset_parameters
 from Causal.Utils.instance_handling import compute_likelihood, get_batch
 from Causal.FullInteraction.Training.full_train_combined_interaction import evaluate_active_interaction, get_masking_gradients, _train_combined_interaction, LOSS_DIFFERENCE_CONSTANT
 
@@ -248,12 +248,17 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
         #                     batch.trace], axis=-1)[:10])
         if args.full_inter.adaptive_lasso[0] != -1 and i != 0 and i % (args.inter.active.active_log_interval * 3) == 0:
             # best_performance = max(args.full_inter.converged_active_loss_value, np.mean(active_full_loss), best_performance) # TODO: we could use best performance here
-            args.full_inter.converged_active_loss_value = max(args.full_inter.converged_active_loss_value, np.mean(active_full_loss)) # TODO: must be training active or this line will error
+            args.full_inter.converged_active_loss_value = min(args.full_inter.converged_active_loss_value, np.mean(active_full_loss)) # TODO: must be training active or this line will error
         if args.inter.active.adaptive_inter_lambda > 0:
-            best_performance = max(args.full_inter.converged_active_loss_value, np.mean(active_full_loss), best_performance)# TODO: must be training active or this line will error
+            best_performance = min(args.full_inter.converged_active_loss_value, np.mean(active_full_loss), best_performance)# TODO: must be training active or this line will error
             interaction_lambda = args.inter.active.adaptive_inter_lambda * (np.exp(-np.abs(best_performance - np.mean(active_loss)) * args.inter.active.adaptive_inter_lambda)) * interaction_schedule(i)
         else:
             interaction_lambda = interaction_schedule(i)
+        
+        if args.full_inter.partial_active_reset[0] > 0 and i != 0 and i % args.full_inter.partial_active_reset[1] == 0 and i // args.full_inter.partial_active_reset[2] == 0:
+            reset_parameters(full_model.active_model, args.interaction_net.init_form, n_layers=args.full_inter.partial_active_reset[0])
+        if args.full_inter.partial_inter_reset[0] > 0 and i != 0 and i % args.full_inter.partial_inter_reset[1] == 0 and i // args.full_inter.partial_inter_reset[2] == 0:
+            reset_parameters(full_model.interaction_model, args.interaction_net.init_form, n_layers=args.full_inter.partial_inter_reset[0])
 
         if i % args.inter.active.active_log_interval == 0:
             print(i, "speed", (args.inter.active.active_log_interval * i) / (time.time() - start))

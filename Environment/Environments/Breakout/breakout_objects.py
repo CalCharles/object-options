@@ -60,8 +60,9 @@ def intersection(a, b):
     return (abs(midax - midbx) * 2 < (a.width + b.width)) and (abs(miday - midby) * 2 < (a.height + b.height))
 
 class Ball(animateObject):
-    def __init__(self, pos, attribute, vel, top_reset = False, hard_mode=False, simple_collision=False):
+    def __init__(self, screen_height, screen_width, pos, attribute, vel, top_reset = False, hard_mode=False, simple_collision=False):
         super(Ball, self).__init__(pos, attribute, vel)
+        self.screen_height, self.screen_width = screen_height, screen_width
         self.simple_collision = simple_collision
         self.hot_id = [0,0,1,0,0,0]
         self.width = 2
@@ -106,8 +107,11 @@ class Ball(animateObject):
         self.hit_trace = list()
 
     def reset_pos(self):
+        # self.vel = np.array([np.random.randint(1,2), np.random.choice([-1,1])])
+        # self.pos = np.array([np.random.randint(43, 46), np.random.randint(14, 70)])
+        self.pos = [np.random.randint(int((self.screen_height // 2) - 1), int((self.screen_height // 2) + 3)), np.random.randint(14, self.screen_width - 14)]
+        # self.pos = [np.random.randint(38, 45), np.random.randint(14, 70)]
         self.vel = np.array([np.random.randint(1,2), np.random.choice([-1,1])])
-        self.pos = np.array([np.random.randint(43, 46), np.random.randint(14, 70)])
 
     def interact(self, other):
         '''
@@ -174,8 +178,9 @@ class Ball(animateObject):
                 self.interaction_trace.append(other.name)
 
 class Paddle(animateObject):
-    def __init__(self, pos, attribute, vel):
+    def __init__(self, screen_height, screen_width, pos, attribute, vel):
         super(Paddle, self).__init__(pos, attribute, vel)
+        self.screen_height, self.screen_width = screen_height, screen_width
         self.width = paddle_width
         self.height = 2
         self.name = "Paddle"
@@ -191,17 +196,17 @@ class Paddle(animateObject):
                 self.vel = np.array([0,0], dtype=np.int64)
             elif other.attribute == 2:
                 if self.pos[1] == 4:
-                    if self.nowall:
-                        self.pos = np.array([0,72])
+                    if self.nowall: 
+                        self.pos = np.array([0,self.screen_width - 12])
                     self.vel = np.array([0,0])
                     self.interaction_trace.append("LeftSideWall")
                 else:
                     self.vel = np.array([0,-paddle_velocity])
                 # self.vel = np.array([0,-2])
             elif other.attribute == 3:
-                if self.pos[1] >= 72:
+                if self.pos[1] >= self.screen_width-12:
                     if self.nowall:
-                        self.pos = np.array([0,8])
+                        self.pos = np.array([0,4])
                     self.interaction_trace.append("RightSideWall")
                     self.vel = np.array([0,0])
                 else:
@@ -210,20 +215,20 @@ class Paddle(animateObject):
 
 
 class Wall(Object):
-    def __init__(self, pos, attribute, side):
+    def __init__(self,screen_height, screen_width, pos, attribute, side):
         super(Wall, self).__init__(pos, attribute)
         self.hot_id = [0,0,0,0,0,1]
         if side == "Top":
-            self.width = 84
+            self.width = screen_width
             self.height = 4
         elif side == "RightSide":
             self.width = 4
-            self.height = 84
+            self.height = screen_height
         elif side == "LeftSide":
             self.width = 4
-            self.height = 84
+            self.height = screen_height
         elif side == "Bottom":
-            self.width = 84
+            self.width = screen_width
             self.height = 4
         self.name = side + "Wall"
 

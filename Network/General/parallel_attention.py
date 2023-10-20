@@ -118,6 +118,7 @@ class MultiHeadAttentionParallelLayer(Network):
             # cat requires the heads and value dimension to get concatenated
             if self.merge_function == "cat": values = values = reduce_function(self.merge_function, values.transpose(1,2), dim=2)
             else: values = reduce_function(self.merge_function, values, dim=1)
+            # print(values.shape, self.final_network)
             values = self.final_network(values.transpose(-2,-1)).transpose(-2,-1) # batch x keys x model_dim
         return values, weights
 

@@ -44,9 +44,9 @@ if __name__ == '__main__':
     outputs = list()
     if len(args.inter.load_intermediate) > 0: 
         print("loaded model")
-        full_models = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_inter_model.pkl"))
-        for full_model in full_models.values():
-            full_model.cpu().cuda(device = args.torch.gpu)
+        # full_models = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_inter_model.pkl"))
+        # for full_model in full_models.values():
+        #     full_model.cpu().cuda(device = args.torch.gpu)
         passive_weights = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_weights.pkl"))
         outputs = load_from_pickle(os.path.join(args.inter.load_intermediate, environment.name + "_passive_outputs.pkl"))
     # training the passive models

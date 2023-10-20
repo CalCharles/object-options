@@ -413,21 +413,19 @@ class RandomDistribution(Environment):
             self.action.attribute = action
             updated = dict()
             for target in self.all_names:
-                if self.relate_dynamics:
-                    self.object_name_dict[target].next_state = copy.deepcopy(self.object_name_dict[target].get_state())
-                else:
-                    if target in self.target_counter:
-                        if self.require_passive:
-                            self.object_name_dict[passive_name(target)].state = copy.deepcopy(self.object_name_dict[target].get_state()) # passive state recorded
-                            self.object_name_dict[passive_name(target)].next_state = copy.deepcopy(self.object_name_dict[target].get_state()) # passive state recorded
-                            self.object_name_dict[target].interaction_trace += [passive_name(target)]
-                        if intervening_except is None or target == intervening_except:
-                            self.object_name_dict[target].next_state = np.zeros(self.object_name_dict[target].get_state().shape)
-                        else:
-                            self.object_name_dict[target].next_state = copy.deepcopy(self.object_name_dict[target].get_state())
-                        # print("setting", target, self.object_name_dict[target].next_state)
-                            
-                    else: self.object_name_dict[target].next_state = copy.deepcopy(self.object_name_dict[target].get_state())
+                if target in self.target_counter:
+                    if self.require_passive and self.instant_update:
+                        self.object_name_dict[passive_name(target)].state = copy.deepcopy(self.object_name_dict[target].get_state()) # passive state recorded
+                        self.object_name_dict[passive_name(target)].next_state = copy.deepcopy(self.object_name_dict[target].get_state()) # passive state recorded
+                        self.object_name_dict[target].interaction_trace += [passive_name(target)]
+                    if (self.instant_update and (intervening_except is None or target == intervening_except)) or not self.relate_dynamics:
+                        self.object_name_dict[target].next_state = np.zeros(self.object_name_dict[target].get_state().shape)
+                    else:
+                        self.object_name_dict[target].next_state = copy.deepcopy(self.object_name_dict[target].get_state())
+                    # print("setting", target, self.object_name_dict[target].next_state)
+                        
+                else: self.object_name_dict[target].next_state = copy.deepcopy(self.object_name_dict[target].get_state())
+                # if target == "$C": print("next state", self.object_name_dict[target].next_state)
             
             # print(self.get_state())
             target_active = dict()
@@ -484,7 +482,7 @@ class RandomDistribution(Environment):
                         clip_average = (int(np.any(np.abs(nds) > DYNAMICS_CLIP)) + (clip_average * n)) / (n + 1) if self.relate_dynamics else (int(np.any(np.abs(nds) > 1)) + (clip_average * n)) / (n + 1)
                             
                         # print(orf.parents, orf.target, inter, intervening_except, intervention_state, target != intervention_state and (i == self.target_last[target_class]))
-                        # print(inter, orf.target, nds)
+                        # if target == "$C": print(inter, ts, nds)
                         if self.relate_dynamics:
                             # if an interaction occurred, or this is the last one and no interaction occurred (using the passive dynamics)
                             if inter or ((not (target_active[target] > 0)) and (j == len(parent_mesh) - 1) and (i == self.target_last[target_class])):
@@ -508,7 +506,7 @@ class RandomDistribution(Environment):
                             if self.noise_percentage > 0: # TODO: right now, noise only added to related classes. it appears taking random actions is correlated with the random noise, so we removed this impl
                                 if self.distribution == "Gaussian":
                                     self.object_name_dict[target].next_state = self.object_name_dict[target].next_state + np.random.normal(scale=self.noise_percentage, size=self.object_name_dict[target].next_state.shape)
-
+                        # if target == "$C": print("updating", self.object_name_dict[target].state, self.object_name_dict[target].next_state)
                         n += 1
                 self.internal_statistics[ (" ".join(orf.parents), orf.target)] += orf_average
                 self.internal_statistics[ (" ".join(orf.parents), orf.target  + "_clip")] += clip_average
@@ -527,7 +525,6 @@ class RandomDistribution(Environment):
         # print(self.all_names)
         # print(self.get_full_current_trace())
         # error
-        # print(self.get_state()["factored_state"])
         if self.itr % 1000 == 0:
             for k in self.internal_statistics.keys():
                 print(k, self.internal_statistics[k] / self.itr)
@@ -535,7 +532,9 @@ class RandomDistribution(Environment):
         if self.itr % self.horizon == 0:
             self.reset()
             self.done.attribute = True
+            # print(self.get_state()["factored_state"]["$C"], self.done.attribute)
             return self.get_state(), self.reward.attribute, self.done.attribute, {'Timelimit.truncated': True, "valid_names": self.valid_names}
+        # print(self.get_state()["factored_state"]["$C"], self.done.attribute, self.object_name_dict["$C"].interaction_trace)
         return self.get_state(), self.reward.attribute, self.done.attribute, {'Timelimit.truncated': False, "valid_names": self.valid_names}
 
     def set_from_factored_state(self, factored_state, seed_counter=-1, render=False, valid_names=None):

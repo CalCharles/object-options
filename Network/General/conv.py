@@ -30,7 +30,7 @@ class ConvNetwork(Network): # basic 1d conv network
         else:
             if len(self.hs) == 1:
                 if self.use_layer_norm:
-                    layers = [nn.Conv1d(self.object_dim, self.hs[0], 1, bias=args.use_bias), get_inplace_acti(args.activation), nn.GroupNorm(1, self.hs[0])]
+                    layers = [nn.Conv1d(self.object_dim, self.hs[0], 1, bias=args.use_bias), get_inplace_acti(args.activation), nn.GroupNorm(1, self.hs[0] * crelu_mul)]
                 else:
                     layers = [nn.Conv1d(self.object_dim, self.hs[0], 1, bias=args.use_bias), get_inplace_acti(args.activation)]
             else:

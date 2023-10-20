@@ -138,7 +138,7 @@ def get_inplace_acti(acti):
     elif acti == "sinc": return InplaceOperator(torch.sinc)
     elif acti == "sigmoid": return nn.Sigmoid()
     elif acti == "tanh": return InplaceOperator(torch.tanh)
-    elif acti == "softmax": return nn.SoftMax(-1)(x)
+    elif acti == "softmax": return nn.SoftMax(-1)
     elif acti == "cos": return InplaceOperator(torch.cos)
     elif acti == "none": return nn.Identity()
     elif acti == "prelu": return nn.PReLU()
@@ -151,7 +151,7 @@ def get_acti(acti):
     elif acti == "sinc": return torch.sinc
     elif acti == "sigmoid": return torch.sigmoid
     elif acti == "tanh": return torch.tanh
-    elif acti == "softmax": return nn.SoftMax(-1)(x)
+    elif acti == "softmax": return nn.SoftMax(-1)
     elif acti == "cos": return torch.cos
     elif acti == "none": return identity
     elif acti == "prelu": return lambda x: F.prelu(x, 0.2) # should not use a not-inplace prelu
@@ -220,13 +220,13 @@ def reset_parameters(network, init_form, n_layers=-1):
                 layer_at = layer_next
                 continue
         if type(layer) == nn.Conv2d:
-            if self.init_form == "orth": nn.init.orthogonal_(layer.weight.data, gain=nn.init.calculate_gain('relu'))
-            elif self.init_form == "zero": nn.init.uniform_(layer.weight.data, 0,0)
+            if init_form == "orth": nn.init.orthogonal_(layer.weight.data, gain=nn.init.calculate_gain('relu'))
+            elif init_form == "zero": nn.init.uniform_(layer.weight.data, 0,0)
             else: nn.init.kaiming_normal_(layer.weight, mode='fan_out', nonlinearity='relu') 
         elif hasattr(layer, "reset_network_parameters"): # this is a resettable network
             use_layers = n_layers - (total_layers - layer_at - size_next) if n_layers > 0 else n_layers
             layer.reset_network_parameters(n_layers=use_layers)
-        elif type(layer) == ts.utils.net.common.MLP:
+        elif type(layer) == ts.utils.net.common.MLP: # reset all of the TIANSHOU style networks
             reset_parameters(layer, init_form)
         elif type(layer) == nn.Parameter:
             nn.init.uniform_(layer.data, 0.0, 1.0)

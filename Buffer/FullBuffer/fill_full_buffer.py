@@ -12,6 +12,7 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
     buffer = FullReplayBuffer(len(data), stack_num=1)
     object_buffers = {name: ObjectReplayBuffer(len(data), stack_num=1, alpha=alpha, beta=beta) for name in environment.object_names}
     factored_state = data[0]
+    if len(outcome_variable) > 0 and get_passive_name(outcome_variable) in full_model.target_selectors: args.inter_select.names.pop(args.inter_select.names.find(get_passive_name(outcome_variable)))
     last_done = [0.0] # dones are shifted one back because we want to zero out the invalid frame (with the next state as the first state of the next episode)
     for i, next_factored_state in enumerate(data[1:]):
         # assign general components
@@ -27,7 +28,8 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
         else: # don't shift, the actions are used for the current state evaluation
             act = factored_state["Action"][-1] if environment.discrete_actions else factored_state["Action"]
             new_factored = copy.deepcopy(factored_state)
-            new_factored[outcome_variable] = new_factored[outcome_variable] * 0.0 # block out the outcome variable for this step
+            if get_passive_name(outcome_variable) in full_model.target_selectors: new_factored[outcome_variable] = new_factored[get_passive_name(outcome_variable)]
+            else: new_factored[outcome_variable] = new_factored[outcome_variable] * 0.0 # block out the outcome variable for this step
             full_state = args.inter_select(new_factored)
         rew = factored_state["Reward"]
         if "VALID_NAMES" in factored_state: valid = factored_state["VALID_NAMES"][:-2] # don't include reward or done in validity vector
@@ -69,11 +71,12 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
                     rew=0, done=use_done, policy_mask = np.ones(environment.instance_length), param_mask=np.ones(args.pad_size),
                     terminate=False, terminated=False, truncated=use_done, mapped_act=np.ones(args.pad_size), inter=inter, info=dict(), policy=dict(), 
                     trace=full_trace, proximity=proximity, weight_binary=0, valid=valid))
-                # if name == outcome_variable: 
-                #     # hit_block = factored_state["Block" + str(np.nonzero(full_trace[3:])[0][0])] if len(np.nonzero(full_trace[3:])[0]) > 0 else 0
-                #     print(name, full_trace,denorm_target, target_diff, target, next_target, use_done)
+            #     if name == outcome_variable: 
+            #         # hit_block = factored_state["Block" + str(np.nonzero(full_trace[3:])[0][0])] if len(np.nonzero(full_trace[3:])[0]) > 0 else 0
+            #         print(name, full_trace,denorm_target, target_diff, target, next_target, use_done)
             # else:
-            #     print("SKIPPED", full_trace,denorm_target, target_diff, target, next_target, use_done)
+            #     if name == outcome_variable: 
+            #         print("SKIPPED", full_trace,denorm_target, target_diff, target, next_target, use_done)
             
             
         # assign selections of the state

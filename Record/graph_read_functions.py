@@ -1,6 +1,7 @@
 # graph read files
 import numpy as np
 import re
+import os
 
 
 TeR = "test_reward: "
@@ -165,4 +166,34 @@ def read_full_inter(filename):
 
     return test_at, vals
 
+def group_assess(read_fn, folder):
+    results = list()
+    for path, subdirs, files in os.walk(folder):
+        for name in files:
+            file_path = os.path.join(path, name)
+            if read_fn.find("stack") != -1:
+                if read_fn.find("gripper") != -1:
+                    mode = "Gripper"
+                if read_fn.find("paddle") != -1:
+                    mode = "Paddle"
+                if read_fn.find("block") != -1:
+                    mode = "Block"
+                if read_fn.find("ball") != -1:
+                    mode = "Ball"
+                result = read_iterations(file_path, hitmiss=True, mode=mode)
+            elif read_fn.find("ride") != -1:
+                result = read_ts_format(file_path)
+            elif read_fn.find("cdl") != -1:
+                result = read_iterations_cdl(file_path)
+            elif read_fn.find("full") != -1:
+                result = read_full_inter(file_path)
+            else:
+                result = read_iterations(file_path)
+            mml = dict()
+            for k in result[1].keys():
+                min_r, max_r, last_r = np.min(result[1][k]), np.max(result[1][k]), result[1][k][-1]
+                mml[k] = (min_r, max_r, last_r)
+            results.append((file_path, mml))
+            print(file_path, mml)
+    return results
 

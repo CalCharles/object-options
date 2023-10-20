@@ -237,6 +237,7 @@ class Pusher(MobileObject2D):
         if self.possible_next[0] > self.size: self.possible_next[0] = self.size
         if self.possible_next[1] < 0: self.possible_next[1] = 0
         if self.possible_next[1] > self.size: self.possible_next[1] = self.size
+        # print("post pusher", self.possible_next, self.size)
 
 class Block(MobileObject2D):
     def respond_pusher(self, pusher):
@@ -379,8 +380,8 @@ class Pusher2D(Environment):
         for i in range(self.num_obstacles):
             next_obs = Object2D(self.create_random_pos(), 1, self.obstacle_dims, "Obstacle" + str(i))
             while ((aabb_check(next_obs.pos, self.pusher.pos, next_obs.lw, self.pusher.lw)) 
-                    and (aabb_check(next_obs.pos, self.block.pos, next_obs.lw, self.block.lw))
-                    and (aabb_check(next_obs.pos, self.target.pos, next_obs.lw, self.target.lw))):
+                    or (aabb_check(next_obs.pos, self.block.pos, next_obs.lw, self.block.lw))
+                    or (aabb_check(next_obs.pos, self.target.pos, next_obs.lw, self.target.lw))):
                 next_obs = Object2D(self.create_random_pos(), 1, self.obstacle_dims, "Obstacle" + str(i))
             self.object_name_dict["Obstacle" + str(i)] = next_obs
             self.obstacles.append(next_obs)

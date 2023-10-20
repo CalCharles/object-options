@@ -70,6 +70,10 @@ python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object
 python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/3_in/ --num-frames 1000 --variant 3-in
 python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1_hdim/ --num-frames 1000 --variant 1-hdim
 python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1_rare/ --num-frames 1000 --variant 1-rare
+python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1_in_ndym/ --num-frames 1000 --variant 1-in-ndym
+python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1_in_nt/ --num-frames 1000 --variant 1-in-nt
+python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/2_chain/ --num-frames 1000 --variant 2-chain
+
 
 # create data for Breakout interaction
 python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/Breakout/rand_small --num-frames 1000000 --variant rand_small --policy RandAngle > logs/full/breakout/small_gen.txt

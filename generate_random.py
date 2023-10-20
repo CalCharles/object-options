@@ -43,7 +43,7 @@ def generate_random(args, save_state = False):
         policy = GreedyTowards(environment.discrete_actions, environment.action_shape)
         angle = np.random.randint(4)
     if args.policy == "RandGreedy": 
-        policy = RandGreedy(environment.discrete_actions, environment.action_shape, random_rate = 0.6)
+        policy = RandGreedy(environment.discrete_actions, environment.action_shape, random_rate = 0.8 if args.variant == "rand_tiny" else 0.6)
         angle = np.random.randint(4)
     if args.policy == "RandGreedySticky": 
         policy = RandGreedySticky(environment.discrete_actions, environment.action_shape, random_rate = 0.6)

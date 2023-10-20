@@ -1,0 +1,23 @@
+---
+  alter_base: configs/full_training/DAG/3_chain/base.yaml
+  record:
+    # record_rollouts: ""
+    record_recycle: -1
+    log_filename: /hdd/datasets/object_data/full/DAG/3_c_small/base/log/inter.log
+    # load_dir: /hdd/datasets/object_data/full/DAG/3_c_small/testrun/
+    save_dir: /hdd/datasets/object_data/full/DAG/3_c_small/base/
+    # log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/3_c_small/log/inter.log
+    # # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/DAG/3_c_small/testrun/
+    # save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/DAG/3_c_small/base/
+  environment:
+    variant: 3-c-small
+    # load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/3_c_small/
+    load_environment: /hdd/datasets/object_data/RandomDAG/3_c_small/
+  train:
+    # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/3_c_small/
+    load_rollouts: /hdd/datasets/object_data/RandomDAG/3_c_small/
+  # inter:
+    # load_intermediate: /hdd/datasets/object_data/full/DAG/3_c_small/base/temp/
+    # save_intermediate: /hdd/datasets/object_data/full/DAG/3_c_small/base/temp/
+
+...

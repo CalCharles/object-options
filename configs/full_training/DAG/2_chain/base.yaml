@@ -28,8 +28,8 @@
     predict_dynamics: False
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    load_intermediate: /hdd/datasets/object_data/full/DAG/2_chain/base/temp/
-    # save_intermediate: /hdd/datasets/object_data/full/DAG/2_chain/base/temp/
+    # load_intermediate: /hdd/datasets/object_data/full/DAG/2_chain/base/temp/
+    save_intermediate: /hdd/datasets/object_data/full/DAG/2_chain/base/temp/
     compare_trace: True
     proximity_epsilon: 7
     passive:
@@ -57,9 +57,9 @@
     use_active_as_passive: True
     train_names: $C
     predict_next_state: False
-    adaptive_lasso: 10 1
+    adaptive_lasso: 5 1
   interaction_net:
-    hidden_sizes: 512 512 512 512
+    hidden_sizes: 256 256 256
     net_type: keypair
     init_form: xnorm
     embed_inputs: 512

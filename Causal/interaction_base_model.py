@@ -108,6 +108,7 @@ class NeuralInteractionForwardModel(nn.Module):
         self.selection_mask = args.full_inter.selection_mask
         self.population_mode = args.EMFAC.is_emfac
         self.is_predict_next_state = args.full_inter.predict_next_state
+        self.cap_prob = args.full_inter.cap_probability # TODO: create a testing mode where cap probability is 0
         self.valid_indices = list()
 
         # set the distributions
@@ -447,7 +448,7 @@ class NeuralInteractionForwardModel(nn.Module):
             # print(inter_mask.shape, int(np.ceil(total_len / 512)), total_len)
         if revert_mask: inter_mask = pytorch_model.wrap(inter_mask, cuda=self.iscuda)
         mixed = MASKING_FORMS[self.mixing] == 2 and mixed
-        inter_mask = inter_mask - 1e-5
+        inter_mask = inter_mask - self.cap_prob
         inter_mask[inter_mask < 0] = 0
         return apply_probabilistic_mask(inter_mask, inter_dist=self.inter_dist if ((not soft) or (soft and mixed)) else None, relaxed_inter_dist=self.relaxed_inter_dist if soft else None, mixed=mixed, test=self.test if flat else None, dist_temperature=self.dist_temperature, revert_mask=revert_mask)
 

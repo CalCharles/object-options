@@ -44,10 +44,11 @@
       # inline_iters: 10 0 5000
       inline_iters: 1 0 0
       interaction_weighting: 100 -1
-      interaction_schedule: 5000
+      interaction_schedule: 20000
       # weighting: 0 200000 100 100000
       intrain_passive: 1
       train_true: True
+      adaptive_inter_lambda: 1.0
     interaction:
       # interaction_pretrain: 50000
       soft_train: 0.00

@@ -2,17 +2,17 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /hdd/datasets/object_data/full/DAG/1_rare/base/log/inter.log
-    # load_dir: /hdd/datasets/object_data/full/DAG/1_rare/testrun/
-    save_dir: /hdd/datasets/object_data/full/DAG/1_rare/base/
-    # log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/1_rare/log/inter.log
-    # # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/DAG/1_rare/testrun/
-    # save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/DAG/1_rare/base/
+    log_filename: /hdd/datasets/object_data/full/DAG/1_ndym/base/log/inter.log
+    # load_dir: /hdd/datasets/object_data/full/DAG/1_ndym/testrun/
+    save_dir: /hdd/datasets/object_data/full/DAG/1_ndym/base/
+    # log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/1_ndym/log/inter.log
+    # # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/DAG/1_ndym/testrun/
+    # save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/DAG/1_ndym/base/
   environment:
     env: RandomDAG
-    variant: 1-rare
-    # load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/1_rare/
-    load_environment: /hdd/datasets/object_data/RandomDAG/1_rare/
+    variant: 1-in-ndym
+    # load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/1_in_ndym/
+    load_environment: /hdd/datasets/object_data/RandomDAG/1_in_ndym/
   torch:
     gpu: 0
     no_cuda: False
@@ -20,16 +20,16 @@
     train: True
     num_frames: 100000
     train_test_order: time
-    # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/1_rare/
-    load_rollouts: /hdd/datasets/object_data/RandomDAG/1_rare/
+    # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/1_in_ndym/
+    load_rollouts: /hdd/datasets/object_data/RandomDAG/1_in_ndym/
     num_iters: 50000
     batch_size: 512
   inter:
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    # load_intermediate: /hdd/datasets/object_data/full/DAG/1_in/base/temp/
-    # save_intermediate: /hdd/datasets/object_data/full/DAG/1_in/base/temp/
+    # load_intermediate: /hdd/datasets/object_data/full/DAG/1_ndym/base/temp/
+    save_intermediate: /hdd/datasets/object_data/full/DAG/1_ndym/base/temp/
     compare_trace: True
     proximity_epsilon: 7
     passive:
@@ -44,7 +44,6 @@
       interaction_weighting: 100 -1
       interaction_schedule: 10000
       # weighting: 0 200000 100 100000
-      # weighting: 0 200000 2 -1
       intrain_passive: 1
   full_inter:
     object_id: True

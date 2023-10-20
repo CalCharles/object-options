@@ -1,0 +1,12 @@
+---
+  alter_base: configs/full_training/DAG/1_in/base.yaml
+  inter:
+    # load_intermediate: /hdd/datasets/object_data/full/DAG/1_in_true/base/temp/
+    save_intermediate: /hdd/datasets/object_data/full/DAG/1_in_true/base/temp/
+    passive:
+      passive_iters: 10000
+    active:
+      inline_iters: 0 0 0
+      train_true: True
+      interaction_schedule: -1 # 5000
+...

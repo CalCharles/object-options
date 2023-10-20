@@ -59,12 +59,15 @@ class Breakout(Environment):
         self.object_dynamics = dynamics_fixed if self.fixed_limits else dynamics
 
         # asign variant values
-        var_form, num_rows, num_columns, max_block_height, min_block_height, hit_reset, negative_mode, random_exist, bounce_cost, bounce_reset, completion_reward, timeout_penalty, drop_stopping, drop_reset = breakout_variants[breakout_variant]
+        var_form, height, width, num_rows, num_columns, max_block_height, min_block_height, hit_reset, negative_mode, random_exist, bounce_cost, bounce_reset, completion_reward, timeout_penalty, drop_stopping, drop_reset = breakout_variants[breakout_variant]
         self.object_instanced = get_instanced(num_rows, num_columns, random_exist, self.variant == "big_block")
         self.target_mode = (var_form == 1)
         if var_form == 2: negative_mode = "hardedge"
         elif var_form == 3: negative_mode = "hardcenter"
         elif var_form == 4: negative_mode = "hardscatter"
+        self.height = height
+        self.width = width
+        self.magnitude = max(self.height, self.width)
         self.negative_mode = negative_mode
         self.no_breakout = hit_reset > 0
         self.hit_reset = hit_reset
@@ -90,7 +93,7 @@ class Breakout(Environment):
         elif negative_mode == "hardscatter": self.num_blocks = 6 # hardcoded for now
         else: self.num_blocks = num_rows * num_columns if random_exist < 0 else random_exist
         self.block_height = max(min(self.max_block_height, 10 // self.num_rows), self.min_block_height)
-        self.block_width = 60 // self.num_columns
+        self.block_width = (self.width-24) // self.num_columns
         self.hard_mode = self.negative_mode[:4] == "hard"
         self.sampler = BreakoutBlockSampler(self.num_blocks)
         self.param = self.sampler.param
@@ -111,8 +114,8 @@ class Breakout(Environment):
         self.valid_names = self.all_names
         self.instance_length = len(self.all_names)
         self.reset_rewards = True # resets rewards on the NEXT iteration
-        if self.flat_obs: self.observation_space = spaces.Box(low=-2, high=84, shape=self.get_state().shape, dtype=float)
-        else: self.observation_space = spaces.Box(low=0, high=255, shape=(84, 84), dtype=np.uint8) # raw space, gym.spaces
+        if self.flat_obs: self.observation_space = spaces.Box(low=-2, high=self.magnitude, shape=self.get_state().shape, dtype=float)
+        else: self.observation_space = spaces.Box(low=0, high=255, shape=(self.height, self.width), dtype=np.uint8) # raw space, gym.spaces
 
 
     def assign_assessment_stat(self):
@@ -148,22 +151,22 @@ class Breakout(Environment):
         return self.assessment_stat
 
     def ball_reset(self):
-        self.ball.pos = [41, np.random.randint(20, 52)]
-        # self.ball.pos = [np.random.randint(38, 45), np.random.randint(14, 70)]
-        self.ball.vel = np.array([np.random.randint(1,2), np.random.choice([-1,1])])
+        self.pos = [np.random.randint(int((self.screen_height // 2) - 1), int((self.screen_height // 2) + 3)), np.random.randint(14, self.screen_width - 14)]
+        # self.pos = [np.random.randint(38, 45), np.random.randint(14, 70)]
+        self.vel = np.array([np.random.randint(1,2), np.random.choice([-1,1])])
 
     def assign_attribute(self, nmode, block, atrv):
         if nmode == "side":
-            if block.pos[1] < 42:
+            if block.pos[1] < self.width // 2:
                 block.attribute = atrv
         elif nmode == "top":
-            if block.pos[0] < 22 + self.block_height * self.num_rows / 2:
+            if block.pos[0] < 12 + (self.height // 8) + self.block_height * self.num_rows / 2:
                 block.attribute = atrv
         elif nmode == "edge":
-            if block.pos[1] < 28 or block.pos[1] > 56:
+            if block.pos[1] < self.width // 3 or block.pos[1] > ((self.width // 3) * 2):
                 block.attribute = atrv
         elif nmode == "center":
-            if 28 < block.pos[1] < 56:
+            if self.width // 3 < block.pos[1] < ((self.width // 3) * 2):
                 block.attribute = atrv
         elif nmode == "checker":
             block.attribute = -1 + (int(block.name[5:]) % 2) * 2
@@ -209,6 +212,7 @@ class Breakout(Environment):
     def reset_target_mode(self):
         '''
         handles block resetting for single block as a target domains
+        TODO: target mode is hardcoded without supporting changing size of frame
         '''
         if self.bounce_cost != 0: # target mode with small blocks
             pos_block = Block(np.array([int(17 + np.random.rand() * 20),int(15 + np.random.rand() * 51)]), 1, -1, (0,0), size = 2)
@@ -233,11 +237,11 @@ class Breakout(Environment):
         handles block resetting for multiple blocks as targets domains
         '''
         blockheight = max(min(self.max_block_height, 10 // self.num_rows), self.min_block_height)
-        blockwidth = 60 // self.num_columns
+        blockwidth = (self.width - 24) // self.num_columns
         for i in range(self.num_rows):
             block2D_row = list()
             for j in range(self.num_columns):
-                block = Block(np.array([22 + i * blockheight,12 + j * blockwidth]), 1, i * self.num_columns + j, (i,j), width=blockwidth, height=blockheight)
+                block = Block(np.array([int(12 + (self.height // 8) + i * blockheight),12 + j * blockwidth]), 1, i * self.num_columns + j, (i,j), width=blockwidth, height=blockheight)
                 self.blocks.append(block)
                 # self.blocks.append(Block(np.array([32 + i * 2,12 + j * 3]), 1, i * 20 + j))
                 block2D_row.append(block)
@@ -252,9 +256,9 @@ class Breakout(Environment):
 
     def reset(self):
         vel= np.array([np.random.randint(1,2), np.random.choice([-1,1])])
-        self.ball = Ball(np.array([np.random.randint(38, 45), np.random.randint(14, 70)]), 1, vel, top_reset=self.target_mode and self.bounce_cost == 0, hard_mode=self.hard_mode, simple_collision = self.variant=="rand_small")
+        self.ball = Ball(self.height, self.width, np.array([0, 0]), 1, vel, top_reset=self.target_mode and self.bounce_cost == 0, hard_mode=self.hard_mode, simple_collision = self.variant in ["rand_tiny", "rand_small"])
         self.ball.reset_pos()
-        self.paddle = Paddle(np.array([71, 84//2]), 1, np.zeros((2,), dtype = np.int64))
+        self.paddle = Paddle(self.height, self.width, np.array([self.height - 13, self.width // 2]), 1, np.zeros((2,), dtype = np.int64))
         self.actions = Action(np.zeros((2,), dtype = np.int64), 0)
         self.animate = [self.paddle, self.ball]
 
@@ -270,10 +274,10 @@ class Breakout(Environment):
         self.object_name_dict = {**{"Action": self.actions, "Paddle": self.paddle, "Ball": self.ball, "Done": self.done, "Reward": self.reward}, **{"Block" + str(i): self.blocks[i] for i in range(len(self.blocks))}}
         # assign walls
         self.walls = []
-        self.walls.append(Wall(np.array([4, 4]), 1, "Top"))
-        self.walls.append(Wall(np.array([80, 4]), 1, "Bottom"))
-        self.walls.append(Wall(np.array([0, 8]), 1, "LeftSide"))
-        self.walls.append(Wall(np.array([0, 72]), 1, "RightSide"))
+        self.walls.append(Wall(self.height, self.width, np.array([4, 4]), 1, "Top"))
+        self.walls.append(Wall(self.height, self.width, np.array([self.height - 4, 4]), 1, "Bottom"))
+        self.walls.append(Wall(self.height, self.width, np.array([0, 8]), 1, "LeftSide"))
+        self.walls.append(Wall(self.height, self.width, np.array([0, self.width - 12]), 1, "RightSide"))
         self.done = Done()
         self.reward = Reward()
         self.objects = [self.actions, self.paddle, self.ball] + self.blocks + self.walls + [self.done, self.reward]
@@ -294,7 +298,7 @@ class Breakout(Environment):
         return self.get_state()
 
     def render(self):
-        self.frame = np.zeros((84,84), dtype = 'uint8')
+        self.frame = np.zeros((self.height,self.width), dtype = 'uint8')
         for block in self.blocks:
             if block.attribute != 0:
                 self.frame[block.pos[0]:block.pos[0]+block.height, block.pos[1]:block.pos[1]+block.width] = .5 * 255
@@ -334,13 +338,13 @@ class Breakout(Environment):
                 # print(np.array(((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ 84.0).tolist()+ [0,0,1] + [0,0,0,0,1,0]).shape, 
                 #                 [np.array((np.array(obj.getMidpoint()) / 84.0).tolist() + obj.vel.tolist() + [obj.getAttribute()] + obj.hot_id).shape for obj in self.objects if obj.name not in rdset]
                 #                  )
-                return (np.array(sum([((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ 84.0).tolist()+ [0,0,1] + [0,0,0,0,1,0]] + 
-                                [(np.array(self.sampler.param) / np.array([84,84,1,1,1])).tolist() + [0,0,0,0,1,0]] +
-                                [(np.array(obj.getMidpoint()) / 84.0).tolist() + obj.vel.tolist() + [obj.getAttribute()] + obj.hot_id for obj in self.objects if obj.name not in rdaset]
+                return (np.array(sum([((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ self.magnitude).tolist()+ [0,0,1] + [0,0,0,0,1,0]] + 
+                                [(np.array(self.sampler.param) / np.array([self.magnitude,self.magnitude,1,1,1])).tolist() + [0,0,0,0,1,0]] +
+                                [(np.array(obj.getMidpoint()) / self.magnitude).tolist() + obj.vel.tolist() + [obj.getAttribute()] + obj.hot_id for obj in self.objects if obj.name not in rdaset]
                                  , start=list())).flatten())
-            return (np.array(sum([((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ 84.0).tolist()+ [0,0,1]] + 
-                                [(np.array(self.sampler.param) / np.array([84,84,1,1,1])).tolist()] + 
-                                [(np.array(obj.getMidpoint()) / 84.0).tolist() + obj.vel.tolist() + [obj.getAttribute()] for obj in self.objects if obj.name not in rdaset]
+            return (np.array(sum([((np.array(self.ball.getMidpoint()) - np.array(self.paddle.getMidpoint()))/ self.magnitude).tolist()+ [0,0,1]] + 
+                                [(np.array(self.sampler.param) / np.array([self.magnitude,self.magnitude,1,1,1])).tolist()] + 
+                                [(np.array(obj.getMidpoint()) / self.magnitude).tolist() + obj.vel.tolist() + [obj.getAttribute()] for obj in self.objects if obj.name not in rdaset]
                                  , start=list())).flatten())
         else:
             return self.get_full_state(render=render)
@@ -542,7 +546,7 @@ class Breakout(Environment):
 
     def compute_proximity_reward(self, target_block, block):
         dist = np.linalg.norm(target_block[:2] - block[:2], ord=1)
-        return (np.exp(-dist/10) - .2) * 2
+        return (np.exp(-dist/(self.magnitude / 8)) - .2) * 2
 
     def set_from_factored_state(self, factored_state, seed_counter=-1, render=False):
         '''
@@ -591,7 +595,7 @@ class Breakout(Environment):
 
 if __name__ == '__main__':
     screen = Screen()
-    # policy = RandomPolicy(4)
+    policy = RandomPolicy(4)
     # policy = RotatePolicy(4, 9)
     # policy = BouncePolicy(4)
     screen.run(policy, render=True, iterations = 1000, duplicate_actions=1, save_path=sys.argv[1])

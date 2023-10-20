@@ -57,7 +57,7 @@ class RandomDAG(RandomDistribution):
     def set_objects(self): # creates objects based on their dictionary, and their relational connectivity
         # factorized state properties
         self.edge_list, self.object_names = parse_edges(self.graph_skeleton)
-        if self.require_passive and not self.relate_dynamics: # create special passive variables to be used with the passive functions
+        if self.require_passive and self.instant_update: # create special passive variables to be used with the passive functions
             new_names = list()
             for name in self.object_names:
                 if name not in ["Action", "Done", "Reward"]:
