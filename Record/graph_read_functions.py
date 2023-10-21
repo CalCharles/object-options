@@ -114,8 +114,9 @@ def read_iterations_cdl(filename):
 
 FAM = "flat_average_miss"
 IAM = "inter_average_miss"
-AAT = "active at "
-PAT = "passive at "
+AAT = "active_"
+AT = "at "
+PAT = "passive_"
 IAT = "interaction at "
 FERR = "flat error:"
 SFP = "soft FP:"
@@ -130,44 +131,55 @@ def read_full_inter(filename):
         if line.find(FAM) != -1:
             score = float(line.split(" ")[-1])
             vals["fam"].append(score)
-        if line.find(AAT) != -1:
+        if line.find(AAT) != -1 and line.find(AT) != -1:
             itr_at = int(line.split(", ")[0].split(" ")[-1])
             test_at.append(itr_at)
             score = float(line.split(", ")[1].split(": ")[-1])
             vals["aat"].append(score)
-        if line.find(PAT) != -1:
+        if line.find(PAT) != -1 and line.find(AT) != -1:
             score = float(line.split(", ")[1].split(": ")[-1])
             vals["pat"].append(score)
         if line.find(IAT) != -1:
             score = float(line.split(", ")[1].split(": ")[-1])
             vals["iat"].append(score)
-        if line.find(FERR):
-            rex = re.compile(r'\W+')
+        if line.find(FERR) != -1:
+            rex = re.compile(r'\s+')
             nline = rex.sub(' ', line)
             ferrs = nline.split(' ')
-            for i, v in enumerate(ferrs[1:]):
-                if FERR + str(i) in vals: vals[FERR + str(i)].append(float(v.strip("[]")))
-                else: vals[FERR + str(i)] = [float(v.strip("[]"))]
-        if line.find(SFP):
-            rex = re.compile(r'\W+')
+            # print("ferr", line, ferrs, nline)
+            for i, v in enumerate(ferrs[2:]):
+                try:
+                    if FERR + str(i) in vals: vals[FERR + str(i)].append(float(v.strip("[]")))
+                    else: vals[FERR + str(i)] = [float(v.strip("[]"))]
+                except ValueError as e:
+                    continue
+        if line.find(SFP) != -1:
+            rex = re.compile(r'\s+')
             nline = rex.sub(' ', line)
             sfps = nline.split(' ')
-            for i, v in enumerate(sfps[1:]):
-                if SFP + str(i) in vals: vals[SFP + str(i)].append(float(v.strip("[]")))
-                else: vals[SFP + str(i)] = [float(v.strip("[]"))]
-        if line.find(SFN):
-            rex = re.compile(r'\W+')
+            # print("false positive", line, sfps, nline)
+            for i, v in enumerate(sfps[2:]):
+                try:
+                    if SFP + str(i) in vals: vals[SFP + str(i)].append(float(v.strip("[]")))
+                    else: vals[SFP + str(i)] = [float(v.strip("[]"))]
+                except ValueError as e:
+                    continue
+        if line.find(SFN) != -1:
+            rex = re.compile(r'\s+')
             nline = rex.sub(' ', line)
             sfns = nline.split(' ')
-            for i, v in enumerate(sfns[1:]):
-                if SFN + str(i) in vals: vals[SFN + str(i)].append(float(v.strip("[]")))
-                else: vals[SFN + str(i)] = [float(v.strip("[]"))]
-
+            for i, v in enumerate(sfns[2:]):
+                try:
+                    if SFN + str(i) in vals: vals[SFN + str(i)].append(float(v.strip("[]")))
+                    else: vals[SFN + str(i)] = [float(v.strip("[]"))]
+                except ValueError as e:
+                    continue
 
     return test_at, vals
 
 def group_assess(read_fn, folder):
     results = list()
+    aggregated = dict()
     for path, subdirs, files in os.walk(folder):
         for name in files:
             file_path = os.path.join(path, name)
@@ -191,9 +203,34 @@ def group_assess(read_fn, folder):
                 result = read_iterations(file_path)
             mml = dict()
             for k in result[1].keys():
-                min_r, max_r, last_r, num_steps = np.min(result[1][k]), np.max(result[1][k]), result[1][k][-1], result[0]
+                if len(result[1][k]) > 0:
+                    min_r, max_r, last_r, num_steps = np.min(result[1][k]), np.max(result[1][k]), result[1][k][-1], result[0][-1]
+                else:
+                    min_r, max_r, last_r, num_steps = -1,-1,-1,0
                 mml[k] = (min_r, max_r, last_r, num_steps)
             results.append((file_path, mml))
             print(file_path, mml)
-    return results
+            if file_path.find("trial_") != -1 and file_path.find(".log") != -1:
+                key = file_path.split("/")[-1]
+                key = key[:key.find("trial_")]
+                if key in aggregated:
+                    aggregated[key].append(mml)
+                else:
+                    aggregated[key] = [mml]
+    new_aggregated = dict()
+    for key in aggregated.keys():
+        if key not in new_aggregated:
+            new_aggregated[key] = dict()
+        for kdict in aggregated[key]:
+            for ltype in kdict.keys():
+                if ltype in new_aggregated[key]:
+                    new_aggregated[key][ltype].append(kdict[ltype])
+                else:
+                    new_aggregated[key][ltype] = [kdict[ltype]]
+    for key in aggregated.keys():
+        for ltype in new_aggregated[key].keys():
+            print(key, ltype, np.mean(np.array(new_aggregated[key][ltype]), axis=0))
+            print(np.array(new_aggregated[key][ltype]))
+    # print(new_aggregated)
+    return results, aggregated
 
