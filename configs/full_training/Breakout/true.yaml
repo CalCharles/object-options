@@ -1,0 +1,12 @@
+---
+  alter_base: configs/full_training/Breakout/base.yaml
+  torch:
+    gpu: 1
+  passive:
+    passive_iters: 1000
+  active:
+    inline_iters: 0 0 0
+    train_true: True
+    interaction_schedule: -1 # 5000
+    weighting: 0 200000 2 -1
+...

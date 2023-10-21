@@ -131,7 +131,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
     inter_loss = nn.BCELoss()
 
     # initialize interaction schedule, computes the weight to allow the active model to ignore certain values
-    interaction_schedule = (lambda i: np.power(0.5, (i/args.inter.active.interaction_schedule))) if args.inter.active.interaction_schedule > 1 else (lambda i: 0.5 if args.inter.active.interaction_schedule < 0 else args.inter.active.interaction_schedule)
+    interaction_schedule = (lambda i: np.power(0.5, (max(0, i - args.full_inter.delay_inter_train)/args.inter.active.interaction_schedule)) ) if args.inter.active.interaction_schedule > 1 else (lambda i: 0.5 if args.inter.active.interaction_schedule < 0 else args.inter.active.interaction_schedule)
     if args.full_inter.train_full_only: interaction_schedule = lambda i: 0
     interaction_lambda = interaction_schedule(0)
     print(args.inter.active.inline_iters)

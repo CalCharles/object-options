@@ -38,7 +38,7 @@
     compare_trace: True
     proximity_epsilon: 7
     passive:
-      passive_iters: 3000
+      passive_iters: 1500
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
@@ -47,9 +47,9 @@
       # inline_iters: 10 0 5000
       inline_iters: 1 0 0
       interaction_weighting: 100 -1
-      interaction_schedule: 10000
+      interaction_schedule: 20000
       weighting: 0 200000 2 -1
-      intrain_passive: 1
+      # intrain_passive: 1
   full_inter:
     object_id: True
     lasso_lambda: 3 0 0 0 1000
@@ -58,16 +58,17 @@
     use_active_as_passive: True
     train_names: Ball
     adaptive_lasso: 1 1
+    adaptive_lasso_bias: 2 -1
     reset_caloss: True
-    delay_inter_train: 5000
+    delay_inter_train: 20000
   interaction_net:
-    hidden_sizes: 256 256 256
+    hidden_sizes: 512 512 512 512 512
     net_type: keypair
     init_form: xnorm
-    embed_inputs: 512
+    embed_inputs: 1024
     activation: crelu
     pair:
-      reduce_function: sum
+      reduce_function: max
     optimizer:
       lr: .0001
       alt_lr: .00001

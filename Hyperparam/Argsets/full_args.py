@@ -131,6 +131,7 @@ full_args = {
         "lasso_lambda": [1, 0, 0, -1, -1], # lasso_lambda, open mask forcing, 0.5 mask forcing, one mask schedule, masking schedule
         "lasso_order": 1,
         "adaptive_lasso": [-1.0, -1.0], # adapts the lasso value according to the magnitude of the active interaction loss (multiplied by this hyperparameter), flattens the decay rate (exp(-\|perf diff\| / adaptive[1]))
+        "adaptive_lasso_bias": [0.0, -1.0], # biases the adaptive lasso baseline constant by negative the adaptive bias, decayed at the schedule
         "adaptive_lasso_type": "likelihood", # different ways of computing adaptive lasso, uses: likelihood, l2 mean, l1 mean and variance
         "reset_caloss": False, # resets the converged active loss after passive training 
         "dual_lasso": [0,0],

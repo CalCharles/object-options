@@ -33,12 +33,12 @@
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    load_intermediate: /hdd/datasets/object_data/full/Pusher2D/tiny/base/temp/
+    load_intermediate: /data/calebc/object_data/full/Pusher2D/tiny/base/temp/
     # save_intermediate: /data/calebc/object_data/full/Pusher2D/tiny/base/temp/
     compare_trace: True
     proximity_epsilon: 2.0
     passive:
-      passive_iters: 5000
+      passive_iters: 4000
       # passive_iters: 100
       passive_log_interval: 100
       pretrain_active: True
@@ -60,7 +60,7 @@
     adaptive_lasso: 1 1
     delay_inter_train: 1000
   interaction_net:
-    hidden_sizes: 256 256 256
+    hidden_sizes: 512 512 512 512
     net_type: keypair
     init_form: xnorm
     embed_inputs: 512
