@@ -128,52 +128,55 @@ def read_full_inter(filename):
     test_at = list()
     vals = {"fam": list(), "aat": list(), "pat": list(), "iat": list()}
     for line in file.readlines():
-        if line.find(FAM) != -1:
-            score = float(line.split(" ")[-1])
-            vals["fam"].append(score)
-        if line.find(AAT) != -1 and line.find(AT) != -1:
-            itr_at = int(line.split(", ")[0].split(" ")[-1])
-            test_at.append(itr_at)
-            score = float(line.split(", ")[1].split(": ")[-1])
-            vals["aat"].append(score)
-        if line.find(PAT) != -1 and line.find(AT) != -1:
-            score = float(line.split(", ")[1].split(": ")[-1])
-            vals["pat"].append(score)
-        if line.find(IAT) != -1:
-            score = float(line.split(", ")[1].split(": ")[-1])
-            vals["iat"].append(score)
-        if line.find(FERR) != -1:
-            rex = re.compile(r'\s+')
-            nline = rex.sub(' ', line)
-            ferrs = nline.split(' ')
-            # print("ferr", line, ferrs, nline)
-            for i, v in enumerate(ferrs[2:]):
-                try:
-                    if FERR + str(i) in vals: vals[FERR + str(i)].append(float(v.strip("[]")))
-                    else: vals[FERR + str(i)] = [float(v.strip("[]"))]
-                except ValueError as e:
-                    continue
-        if line.find(SFP) != -1:
-            rex = re.compile(r'\s+')
-            nline = rex.sub(' ', line)
-            sfps = nline.split(' ')
-            # print("false positive", line, sfps, nline)
-            for i, v in enumerate(sfps[2:]):
-                try:
-                    if SFP + str(i) in vals: vals[SFP + str(i)].append(float(v.strip("[]")))
-                    else: vals[SFP + str(i)] = [float(v.strip("[]"))]
-                except ValueError as e:
-                    continue
-        if line.find(SFN) != -1:
-            rex = re.compile(r'\s+')
-            nline = rex.sub(' ', line)
-            sfns = nline.split(' ')
-            for i, v in enumerate(sfns[2:]):
-                try:
-                    if SFN + str(i) in vals: vals[SFN + str(i)].append(float(v.strip("[]")))
-                    else: vals[SFN + str(i)] = [float(v.strip("[]"))]
-                except ValueError as e:
-                    continue
+        try:
+            if line.find(FAM) != -1:
+                score = float(line.split(" ")[-1])
+                vals["fam"].append(score)
+            if line.find(AAT) != -1 and line.find(AT) != -1:
+                itr_at = int(line.split(", ")[0].split(" ")[-1])
+                test_at.append(itr_at)
+                score = float(line.split(", ")[1].split(": ")[-1])
+                vals["aat"].append(score)
+            if line.find(PAT) != -1 and line.find(AT) != -1:
+                score = float(line.split(", ")[1].split(": ")[-1])
+                vals["pat"].append(score)
+            if line.find(IAT) != -1:
+                score = float(line.split(", ")[1].split(": ")[-1])
+                vals["iat"].append(score)
+            if line.find(FERR) != -1:
+                rex = re.compile(r'\s+')
+                nline = rex.sub(' ', line)
+                ferrs = nline.split(' ')
+                # print("ferr", line, ferrs, nline)
+                for i, v in enumerate(ferrs[2:]):
+                    try:
+                        if FERR + str(i) in vals: vals[FERR + str(i)].append(float(v.strip("[]")))
+                        else: vals[FERR + str(i)] = [float(v.strip("[]"))]
+                    except ValueError as e:
+                        continue
+            if line.find(SFP) != -1:
+                rex = re.compile(r'\s+')
+                nline = rex.sub(' ', line)
+                sfps = nline.split(' ')
+                # print("false positive", line, sfps, nline)
+                for i, v in enumerate(sfps[2:]):
+                    try:
+                        if SFP + str(i) in vals: vals[SFP + str(i)].append(float(v.strip("[]")))
+                        else: vals[SFP + str(i)] = [float(v.strip("[]"))]
+                    except ValueError as e:
+                        continue
+            if line.find(SFN) != -1:
+                rex = re.compile(r'\s+')
+                nline = rex.sub(' ', line)
+                sfns = nline.split(' ')
+                for i, v in enumerate(sfns[2:]):
+                    try:
+                        if SFN + str(i) in vals: vals[SFN + str(i)].append(float(v.strip("[]")))
+                        else: vals[SFN + str(i)] = [float(v.strip("[]"))]
+                    except ValueError as e:
+                        continue
+        except ValueError as e:
+            continue
 
     return test_at, vals
 
@@ -229,8 +232,9 @@ def group_assess(read_fn, folder):
                     new_aggregated[key][ltype] = [kdict[ltype]]
     for key in aggregated.keys():
         for ltype in new_aggregated[key].keys():
-            print(key, ltype, np.mean(np.array(new_aggregated[key][ltype]), axis=0))
-            print(np.array(new_aggregated[key][ltype]))
+            if ltype == "flat error:1":
+                print(key, ltype, np.mean(np.array(new_aggregated[key][ltype]), axis=0))
+                print(np.array(new_aggregated[key][ltype]))
     # print(new_aggregated)
     return results, aggregated
 
