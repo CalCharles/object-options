@@ -1,10 +1,10 @@
 ---
 metaparam: 
   multi_filename: dag_1_hdim_tests_
-  log_endpoint: /work/pi_sniekum_umass_edu/calebc/object_data/full/hyperparam/hyperparam_logs/dag_1_hdim_tests/
-  yaml_endpoint: /work/pi_sniekum_umass_edu/calebc/object_data/full/hyperparam/hyperparam_yamls/dag_1_hdim_tests/
-  save_endpoint: /work/pi_sniekum_umass_edu/calebc/object_data/full/hyperparam/hyperparam/dag_1_hdim_tests/
-  graph_endpoint: /work/pi_sniekum_umass_edu/calebc/object_data/full/hyperparam/hyperparam_graphs/dag_1_hdim_tests/
+  log_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_logs/dag_1_hdim_tests/
+  yaml_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_yamls/dag_1_hdim_tests/
+  save_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam/dag_1_hdim_tests/
+  graph_endpoint: /hdd/datasets/object_data/full/hyperparam/hyperparam_graphs/dag_1_hdim_tests/
   bash_path: bashes/dag_1_hdim_tests.sh
   base_config: configs/full_training/DAG/1_hdim/base.yaml
   runfile: train_full_interaction.py
@@ -26,7 +26,7 @@ metaparam:
 full_inter:
 #   mixed_interaction: mixed,relaxed
 #   use_active_as_passive: True,False
-  adaptive_lasso: 1,3,5,6,7,10
+  adaptive_lasso: 1 1,3 1,5 1,6 1,7 1,10 1
 # interaction_net:
 #   hidden_sizes: 512 512,512,256 256,128,128 128 128 128 128,128 128 128 128,128 128 128,128 128,128
 #   activation: leakyrelu,sin,prelu,sinc,sigmoid,tanh

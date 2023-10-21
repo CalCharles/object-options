@@ -98,9 +98,16 @@ def create_graph_simple(xs, values, names, errors = None):
             ci += 1
 
 SIMPLE = True
+ANALYSIS = True
 
 if __name__=='__main__':
-    if SIMPLE:
+    if ANALYSIS:
+        parser = argparse.ArgumentParser(description='RL')
+        parser.add_argument('--name', default='full')
+        parser.add_argument('--folder', default='logs/full/DAG/')
+        args = parser.parse_args()
+        group_assess(args.name, args.folder)
+    elif SIMPLE:
         xlim = [0,10]
         yrng = [0,0.6]
         xs = [1,3,5,6,7,10]

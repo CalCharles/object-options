@@ -191,8 +191,8 @@ def group_assess(read_fn, folder):
                 result = read_iterations(file_path)
             mml = dict()
             for k in result[1].keys():
-                min_r, max_r, last_r = np.min(result[1][k]), np.max(result[1][k]), result[1][k][-1]
-                mml[k] = (min_r, max_r, last_r)
+                min_r, max_r, last_r, num_steps = np.min(result[1][k]), np.max(result[1][k]), result[1][k][-1], result[0]
+                mml[k] = (min_r, max_r, last_r, num_steps)
             results.append((file_path, mml))
             print(file_path, mml)
     return results

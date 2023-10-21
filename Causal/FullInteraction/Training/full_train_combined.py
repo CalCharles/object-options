@@ -277,6 +277,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             inter_weighting_lambda = interaction_weighting_schedule(i)
 
             print("lasso, inline, active", lasso_lambda, inline_iters, interaction_schedule(i))
+            print("converged_loss", args.full_inter.converged_active_loss_value)
 
             check_error = error_types.INTERACTION_HOT if full_model.cluster_mode else error_types.INTERACTION_RAW
             mask_binary = (np.sum(np.round(full_model.apply_mask(get_error(full_model, rollouts, object_rollout=object_rollouts, error_type = check_error), x=tarinter_all)), axis=-1) > 1).astype(int)
