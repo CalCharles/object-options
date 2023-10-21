@@ -64,7 +64,7 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
                 inter = np.ones(environment.instance_length)
             
 
-            # if name == outcome_variable: print(name, full_trace, full_model.target_selectors["$B"](factored_state), next_target, factored_state, use_done)
+            # if name == outcome_variable: print(name,args.full_inter.predict_next_state, full_trace, denorm_target, target, next_target, target_diff, use_done)
             proximity = get_full_proximity(full_model, full_state, denorm_target, normalized=False)
             if (args.collect.omit_done and not use_done) or (not args.collect.omit_done):
                 object_buffers[name].add(Batch(obs=target, obs_next=next_target, target_diff=target_diff, act=target, param=target,
