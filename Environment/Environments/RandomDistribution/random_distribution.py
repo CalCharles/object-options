@@ -343,7 +343,7 @@ class RandomDistribution(Environment):
                     self.target_last[orf.target] = i
             orf_num = max(1,orf_num)
             dynamics_step = DYNAMICS_CLIP * orf_num
-            if self.predict_dynamics:
+            if self.relate_dynamics:
                 self.object_dynamics[n] = (np.ones(self.object_sizes[n])*-dynamics_step, np.ones(self.object_sizes[n])*dynamics_step)
             else:
                 self.object_dynamics[n] = (-1 * np.ones(self.object_sizes[n]), np.ones(self.object_sizes[n]))
