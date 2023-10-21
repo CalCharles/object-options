@@ -317,6 +317,7 @@ class Pusher2D(Environment):
 
         # running values
         self.itr = 0
+        self.total_itr = 0
 
         # factorized state properties
         self.all_names = ["Action", "Pusher", "Block"] + ["Obstacle" + str(i) for i in range(self.num_obstacles)] + ["Target", "Reward", "Done"] # must be initialized, the names of all the objects including multi-instanced ones
@@ -356,6 +357,7 @@ class Pusher2D(Environment):
             "Reward": np.array([0]),
         }
         self.itr = 0
+        self.push_num = 0.0
         self.reset()
     
     def create_random_pos(self, scale = 1):
@@ -424,9 +426,13 @@ class Pusher2D(Environment):
             self.target.check_block(self.block)
             self.reward.attr = self.target.attr
         self.itr += 1
+        self.total_itr += 1
+        if len(self.block.interaction_trace) > 0: self.push_num += 1
         self.done.attr = self.itr == self.max_steps
         if self.done.attr:
             self.reset()
+        if self.total_itr % 10000 == 0:
+            print("pusher at ", self.total_itr, self.push_num / max(self.total_itr+1, 1))
         return self.get_state(render=render), self.reward.attr, self.done.attr, {"TimeLimit.truncated": self.itr == self.max_steps}
 
     def convert_pix(self, pos):

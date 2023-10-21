@@ -163,7 +163,10 @@ class Environment(gym.Env):
 
     def get_full_trace(self, factored_state, action, outcome_variable=""):
         self.set_from_factored_state(factored_state)
+        # print("stepping", factored_state["Ball"], factored_state["Block0"], factored_state["Block1"], factored_state["Block2"])
         self.step(action)
+        factored_state = self.get_state()['factored_state']
+        # print("stepped", factored_state["Ball"], factored_state["Block0"], factored_state["Block1"], factored_state["Block2"])
         all_inter_names = [n for n in self.all_names if n not in {"Reward", "Done"}]
         traces = self.get_full_current_trace()
         return traces

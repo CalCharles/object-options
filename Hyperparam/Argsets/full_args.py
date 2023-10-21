@@ -132,6 +132,7 @@ full_args = {
         "lasso_order": 1,
         "adaptive_lasso": [-1.0, -1.0], # adapts the lasso value according to the magnitude of the active interaction loss (multiplied by this hyperparameter), flattens the decay rate (exp(-\|perf diff\| / adaptive[1]))
         "adaptive_lasso_type": "likelihood", # different ways of computing adaptive lasso, uses: likelihood, l2 mean, l1 mean and variance
+        "reset_caloss": False, # resets the converged active loss after passive training 
         "dual_lasso": [0,0],
         "entropy_lambda": [0,0], # penalizes the individual values of the binary mask for having high entropy (close to 0.5)
         "soft_distribution": "Identity",

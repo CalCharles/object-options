@@ -31,6 +31,7 @@ def compute_mean_var_adaptive_lasso(active_params, target, args, lasso_lambda):
 
 def evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda, active_params, interaction_likelihood, interaction_mask, active_log_probs, done_flags, proximity, target):
     active_nlikelihood = compute_likelihood(full_model, len(active_log_probs), - active_log_probs, done_flags=done_flags, reduced=False, is_full = True)
+    # print(active_nlikelihood[:10])
     # passive_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - passive_log_probs, done_flags=done_flags, reduced=False, is_full = True)
     # adapts the lasso_lambda based on the input. If the active nlikelihood is low (large negative), it will approach e^{-0} = 1 if the error is high, it will approach e^-inf = 0
     # TODO: adaptive weighting value 3.0 is environment specific based on the level of natural stochasticity
@@ -189,7 +190,6 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, onem
 
     full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollout, weights, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
     if time_dict is not None: time_dict["inter_batch"] = time.time()
-    # print(batch.trace[:10])
 
 
     # a statistic on weighting
@@ -202,6 +202,7 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, onem
 
     # done flags
     done_flags = pytorch_model.wrap(1-full_batch.done, cuda = full_model.iscuda).squeeze().unsqueeze(-1)
+    # print(batch.trace[:10])
 
     # print("interaction_likelihood", interaction_likelihood.shape, active_soft_log_probs.shape)
     # combine the cost function (extend possible interaction losses here)

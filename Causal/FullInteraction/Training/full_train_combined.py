@@ -31,7 +31,7 @@ def _train_passive(i, full_model, args, rollouts, object_rollouts, passive_optim
 def _train_active(i,j,full_model, active_optimizer, args, rollouts, object_rollouts, active_weights, interaction_lambda, lasso_lambda, normalize, logger, active_full_loss, active_loss, time_stamps):
     full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollouts, active_weights, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
     time_stamps["batch_sample"] = time.time()
-    # print(batch.trace[:10])
+    # print(batch.trace[:20])
     # print("target", batch.target_diff[:6])
     weight_rate = np.sum(active_weights[idxes]) / len(idxes)
     # run the networks and get both the active and passive outputs (passive for interaction binaries)
@@ -249,6 +249,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
         if args.full_inter.adaptive_lasso[0] != -1 and i != 0 and i % (args.inter.active.active_log_interval * 3) == 0:
             # best_performance = max(args.full_inter.converged_active_loss_value, np.mean(active_full_loss), best_performance) # TODO: we could use best performance here
             args.full_inter.converged_active_loss_value = min(args.full_inter.converged_active_loss_value, np.mean(active_full_loss)) # TODO: must be training active or this line will error
+            if args.full_inter.reset_caloss: args.full_inter.converged_active_loss_value = np.mean(active_full_loss)
         if args.inter.active.adaptive_inter_lambda > 0:
             best_performance = min(args.full_inter.converged_active_loss_value, np.mean(active_full_loss), best_performance)# TODO: must be training active or this line will error
             interaction_lambda = args.inter.active.adaptive_inter_lambda * (np.exp(-np.abs(best_performance - np.mean(active_loss)) * args.inter.active.adaptive_inter_lambda)) * interaction_schedule(i)

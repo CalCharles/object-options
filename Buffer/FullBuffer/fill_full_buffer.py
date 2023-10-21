@@ -36,6 +36,8 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
         else: valid = np.ones((len(environment.all_names)))[:-2]
         # print(i, use_done, last_done, predict_dynamics)
         # print(factored_state["$B"])
+        # if environment.name in ["Breakout"]: full_traces = environment.get_full_trace(next_factored_state, act, outcome_variable=outcome_variable)
+        # else: full_traces = environment.get_full_trace(factored_state, act, outcome_variable=outcome_variable)
         full_traces = environment.get_full_trace(factored_state, act, outcome_variable=outcome_variable)
         # if args.full_inter.predict_next_state: full_traces = environment.get_full_trace(factored_state, act, outcome_variable=outcome_variable)
         # else: full_traces = environment.get_full_trace(next_factored_state, act, outcome_variable=outcome_variable)
@@ -63,8 +65,9 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
                 full_trace = full_traces[name]
                 inter = np.ones(environment.instance_length)
             
-
-            # if name == outcome_variable: print(name, full_trace, full_model.target_selectors["$B"](factored_state), next_target, factored_state, use_done)
+            # if name == outcome_variable: print(i, name, full_trace, full_model.target_selectors["Ball"](factored_state),
+            #                 full_model.target_selectors["Block"](factored_state)[4], full_model.target_selectors["Block"](factored_state)[9], full_model.target_selectors["Block"](factored_state)[-1],
+            #                 next_target, use_done)
             proximity = get_full_proximity(full_model, full_state, denorm_target, normalized=False)
             if (args.collect.omit_done and not use_done) or (not args.collect.omit_done):
                 object_buffers[name].add(Batch(obs=target, obs_next=next_target, target_diff=target_diff, act=target, param=target,

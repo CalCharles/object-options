@@ -119,6 +119,7 @@ class Ball(animateObject):
         '''
         self.next_pos = self.pos + self.vel
         # print(self.apply_move, self.vel)
+        # print(self.pos, other.pos, intersection(self, other))
         if intersection(self, other) and self.apply_move:
             if other.name == "Paddle":
                 rel_x = self.next_pos[1] - other.pos[1]

@@ -570,6 +570,8 @@ class Breakout(Environment):
         if "Block0" in factored_state:
             i=0
             while "Block" + str(i) in factored_state:
+                # print("setting", i, float(np.array(factored_state["Block" + str(i)]).squeeze()[-1]), factored_state["Block" + str(i)])
+                self.blocks[i].pos = self.blocks[i].getPos(np.array(factored_state["Block" + str(i)]).squeeze()[:2])
                 self.blocks[i].attribute = float(np.array(factored_state["Block" + str(i)]).squeeze()[-1])
                 i += 1
         if render: self.render_frame()

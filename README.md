@@ -77,7 +77,10 @@ python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object
 
 # create data for Breakout interaction
 python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/Breakout/rand_small --num-frames 1000000 --variant rand_small --policy RandAngle > logs/full/breakout/small_gen.txt
+python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/Breakout/rand_tiny --num-frames 1000000 --variant rand_tiny --policy RandAngle > logs/full/breakout/tiny_gen.txt
 python generate_random.py --env Pusher2D --num-frames 1000000 --variant small --record-rollouts /hdd/datasets/object_data/Pusher2D/rand_greedy_sticky --policy RandGreedySticky > logs/full/pusher2d/gen.txt
+python generate_random.py --env Pusher2D --num-frames 1000000 --variant tiny --record-rollouts /hdd/datasets/object_data/Pusher2D/rand_greedy_tiny --policy RandGreedy > logs/full/pusher2d/gen_tiny.txt
+
 
 # multi random conditionals
 python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/multi_random/ --num-frames 1000 --variant multi_passive

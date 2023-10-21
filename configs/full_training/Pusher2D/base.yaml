@@ -2,21 +2,21 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    # log_filename: /hdd/datasets/object_data/full/Pusher2D/small/base/log/inter.log
-    # # load_dir: /hdd/datasets/object_data/full/Pusher2D/small/testrun/
-    # save_dir: /hdd/datasets/object_data/full/Pusher2D/small/base/
-    log_filename: /data/calebc/object_data/full/Pusher2D/small/base/log/inter.log
-    # load_dir: /data/calebc/object_data/full/Pusher2D/small/testrun/
-    save_dir: /data/calebc/object_data/full/Pusher2D/small/base/
-    # log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/small/log/inter.log
-    # # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/Pusher2D/small/testrun/
-    # save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/Pusher2D/small/base/
+    # log_filename: /hdd/datasets/object_data/full/Pusher2D/tiny/base/log/inter.log
+    # # load_dir: /hdd/datasets/object_data/full/Pusher2D/tiny/testrun/
+    # save_dir: /hdd/datasets/object_data/full/Pusher2D/tiny/base/
+    log_filename: /data/calebc/object_data/full/Pusher2D/tiny/base/log/inter.log
+    # load_dir: /data/calebc/object_data/full/Pusher2D/tiny/testrun/
+    save_dir: /data/calebc/object_data/full/Pusher2D/tiny/base/
+    # log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/tiny/log/inter.log
+    # # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/Pusher2D/tiny/testrun/
+    # save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/Pusher2D/tiny/base/
   environment:
     env: Pusher2D
-    variant: small
+    variant: tiny
     # load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/Pusher2D/rand_greedy_sticky/
     # load_environment: /hdd/datasets/object_data/Pusher2D/rand_greedy_sticky/
-    load_environment: /data/calebc/object_data/Pusher2D/rand_greedy_sticky/
+    load_environment: /data/calebc/object_data/Pusher2D/rand_tiny/
   torch:
     gpu: 1
     no_cuda: False
@@ -26,15 +26,15 @@
     train_test_order: time
     # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/Pusher2D/rand_greedy_sticky/
     # load_rollouts: /hdd/datasets/object_data/Pusher2D/rand_greedy_sticky/
-    load_rollouts: /data/calebc/object_data/Pusher2D/rand_greedy_sticky/
+    load_rollouts: /data/calebc/object_data/Pusher2D/rand_tiny/
     num_iters: 50000
     batch_size: 512
   inter:
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
-    # load_intermediate: /hdd/datasets/object_data/full/Pusher2D/small/base/temp/
-    # save_intermediate: /hdd/datasets/object_data/full/Pusher2D/small/base/temp/
+    load_intermediate: /hdd/datasets/object_data/full/Pusher2D/tiny/base/temp/
+    # save_intermediate: /data/calebc/object_data/full/Pusher2D/tiny/base/temp/
     compare_trace: True
     proximity_epsilon: 2.0
     passive:
