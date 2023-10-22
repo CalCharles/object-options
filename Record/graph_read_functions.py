@@ -183,6 +183,7 @@ def read_full_inter(filename):
 def group_assess(read_fn, folder):
     results = list()
     aggregated = dict()
+    file_keys = list()
     for path, subdirs, files in os.walk(folder):
         for name in files:
             file_path = os.path.join(path, name)
@@ -214,6 +215,7 @@ def group_assess(read_fn, folder):
             results.append((file_path, mml))
             print(file_path, mml)
             if file_path.find("trial_") != -1 and file_path.find(".log") != -1:
+                file_keys.append(file_path)
                 key = file_path.split("/")[-1]
                 key = key[:key.find("trial_")]
                 if key in aggregated:
@@ -230,15 +232,18 @@ def group_assess(read_fn, folder):
                     new_aggregated[key][ltype].append(kdict[ltype])
                 else:
                     new_aggregated[key][ltype] = [kdict[ltype]]
-    filekeys = list(aggregated.keys())
-    filekeys.sort()
-    for key in filekeys:
+    namekeys = list(aggregated.keys())
+    namekeys.sort()
+    file_keys.sort()
+    for fkey, key in zip(file_keys, namekeys):
         for ltype in new_aggregated[key].keys():
             if ltype == "flat error:1":
                 print(key, ltype, np.mean(np.array(new_aggregated[key][ltype]), axis=0))
                 print(np.array(new_aggregated[key][ltype]))
+        print(fkey)
         if "flat error:1" not in list(new_aggregated[key].keys()):
             print("crashed", key)
+            print(fkey)
     # print(new_aggregated)
     return results, aggregated
 
