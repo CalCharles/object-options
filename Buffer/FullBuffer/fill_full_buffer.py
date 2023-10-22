@@ -38,6 +38,7 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
         # print(factored_state["$B"])
         # if environment.name in ["Breakout"]: full_traces = environment.get_full_trace(next_factored_state, act, outcome_variable=outcome_variable)
         # else: full_traces = environment.get_full_trace(factored_state, act, outcome_variable=outcome_variable)
+        # full_traces = environment.get_full_trace(factored_state, act, outcome_variable=outcome_variable)
         full_traces = environment.get_full_trace(factored_state, act, outcome_variable=outcome_variable)
         # if args.full_inter.predict_next_state: full_traces = environment.get_full_trace(factored_state, act, outcome_variable=outcome_variable)
         # else: full_traces = environment.get_full_trace(next_factored_state, act, outcome_variable=outcome_variable)
@@ -77,6 +78,7 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
             #     if name == outcome_variable: 
             # #         # hit_block = factored_state["Block" + str(np.nonzero(full_trace[3:])[0][0])] if len(np.nonzero(full_trace[3:])[0]) > 0 else 0
             #         print(name, full_trace,denorm_target, target_diff, target, next_target, use_done)
+                    # print(name, full_trace, factored_state["Action"], factored_state["$B"], denorm_target, target_diff, target, next_target, use_done)
             # else:
             #     if name == outcome_variable: 
             #         print("SKIPPED", full_trace,denorm_target, target_diff, target, next_target, use_done)

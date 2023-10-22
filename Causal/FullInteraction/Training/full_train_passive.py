@@ -100,7 +100,7 @@ def train_passive(full_model, args, rollouts, object_rollout, weights, active_op
             # error
             # print("aoptim", time.time() - aoptim)
             active_likelihoods.append(pytorch_model.unwrap(active_loss))
-            active_logger.log(i, active_loss, None, None, active_likelihood_full * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, weight_rate, batch.done,
+            active_logger.log(i, active_loss, None, None, active_likelihood_full * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), batch.trace, weight_rate, batch.done,
                                 active_prediction_params, target, None, full_model, valid=valid)
             if args.EMFAC.train_reconstruction:
                 mean_r, std_r, query_state = full_model.get_embed_recon(batch, reconstruction=True)

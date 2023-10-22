@@ -74,7 +74,7 @@ def _train_active(i,j,full_model, active_optimizer, args, rollouts, object_rollo
     if full_model.form == "all": single_trace = np.sum(single_trace, axis= -2)
     single_trace[single_trace > 1] = 1
     log_interval = logger.log(i, loss, active_full_nlikelihood * done_flags,  active_nlikelihood* done_flags, 
-                active_hard_log_probs * done_flags, single_trace, weight_rate, full_batch.done,
+                active_hard_log_probs * done_flags, batch.trace, weight_rate, full_batch.done,
                 (active_hard_params[0] * done_flags, active_hard_params[1] * done_flags), target * done_flags, 
                 np.expand_dims(np.sum(pytorch_model.unwrap(interaction_likelihood) - 1, axis=-1), axis=-1), 
                 full_model, no_print=j != 0)

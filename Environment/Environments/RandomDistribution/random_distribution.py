@@ -411,6 +411,7 @@ class RandomDistribution(Environment):
 
     def step(self, action, render=False, instant_update=False, intervention_state=None, intervening_except=None): 
         self.empty_interactions()
+        # print("before", self.get_state()["factored_state"]["Action"],self.get_state()["factored_state"]["$B"], self.get_state()["factored_state"]["$C"])
         for i in range(self.frameskip):
             self.done.attribute = False
             self.action.attribute = action
@@ -421,7 +422,7 @@ class RandomDistribution(Environment):
                         self.object_name_dict[passive_name(target)].state = copy.deepcopy(self.object_name_dict[target].get_state()) # passive state recorded
                         self.object_name_dict[passive_name(target)].next_state = copy.deepcopy(self.object_name_dict[target].get_state()) # passive state recorded
                         self.object_name_dict[target].interaction_trace += [passive_name(target)]
-                    if (self.instant_update and (intervening_except is None or target == intervening_except)) or not self.relate_dynamics:
+                    if (self.instant_update and (intervening_except is None or target == intervening_except)) and (not self.relate_dynamics):
                         self.object_name_dict[target].next_state = np.zeros(self.object_name_dict[target].get_state().shape)
                     else:
                         self.object_name_dict[target].next_state = copy.deepcopy(self.object_name_dict[target].get_state())
@@ -430,8 +431,10 @@ class RandomDistribution(Environment):
                 else: self.object_name_dict[target].next_state = copy.deepcopy(self.object_name_dict[target].get_state())
                 # if target == "$C": print("next state", self.object_name_dict[target].next_state)
             
+            # print("intervene", self.get_state()["factored_state"]["Action"],self.get_state()["factored_state"]["$B"], self.get_state()["factored_state"]["$C"])
             # print(self.get_state())
             target_active = dict()
+            # print("before orf", self.get_state())
             for i, orf in enumerate(self.object_relational_functions):
                 target_class = orf.target
                 # print(orf.parents, orf.target)
@@ -496,6 +499,9 @@ class RandomDistribution(Environment):
                                 if target_class == intervening_except and (
                                     inter or ((not (target_active[target] > 0)) and (j == len(parent_mesh) - 1) and (i == self.target_last[target_class]))):
                                     self.object_name_dict[target].next_state += nds # adds together, but from zero, no clipping
+                                # print(target_class== intervening_except,
+                                #       inter, target,self.object_name_dict[target].next_state,
+                                #       ((not (target_active[target] > 0)), (j == len(parent_mesh) - 1), (i == self.target_last[target_class])))
                             else:
                                 if intervention_state is not None and len(intervention_state) > 0 and target != intervention_state and (i == self.target_last[target_class]): # intervene and assign it to a random value
                                     self.object_name_dict[target].next_state = 2 * (np.random.rand(*self.object_name_dict[target].next_state.shape) - 0.5)
@@ -537,7 +543,7 @@ class RandomDistribution(Environment):
             self.done.attribute = True
             # print(self.get_state()["factored_state"]["$C"], self.done.attribute)
             return self.get_state(), self.reward.attribute, self.done.attribute, {'Timelimit.truncated': True, "valid_names": self.valid_names}
-        # print(self.get_state()["factored_state"]["$C"], self.done.attribute, self.object_name_dict["$C"].interaction_trace)
+        # print(self.get_state()["factored_state"]["Action"],self.get_state()["factored_state"]["$B"], self.get_state()["factored_state"]["$C"],intervening_except, self.done.attribute, self.object_name_dict["$C"].interaction_trace)
         return self.get_state(), self.reward.attribute, self.done.attribute, {'Timelimit.truncated': False, "valid_names": self.valid_names}
 
     def set_from_factored_state(self, factored_state, seed_counter=-1, render=False, valid_names=None):

@@ -31,6 +31,7 @@ class full_interaction_logger(Logger):
     def reset(self):
         self.loss = list()
         self.total_seen = 0
+        self.sum_trace = None
         self.sum_soft_error = None
         self.sum_soft_over = None
         self.sum_soft_under = None
@@ -62,6 +63,7 @@ class full_interaction_logger(Logger):
         if lambdas is not None:
             self.lambdas = np.array(lambdas) if self.lambdas is None else self.lambdas + np.array(lambdas)
         if trace is not None:
+            self.sum_trace = np.sum(trace * done_flags, axis=0) if self.sum_trace is None else self.sum_trace + np.sum(trace * done_flags, axis=0)
             self.sum_flat_error = np.sum(np.abs(flat_interactions - trace) * done_flags, axis=0) if self.sum_flat_error is None else self.sum_soft_error + np.sum(np.abs(flat_interactions - trace) * done_flags, axis=0)
             self.sum_soft_error = np.sum(np.abs(soft_interactions - trace) * done_flags, axis=0) if self.sum_soft_error is None else self.sum_soft_error + np.sum(np.abs(soft_interactions - trace) * done_flags, axis=0)
             self.sum_hard_error = np.sum(np.abs(hard_interactions - trace) * done_flags, axis=0) if self.sum_hard_error is None else self.sum_soft_error + np.sum(np.abs(hard_interactions - trace) * done_flags, axis=0)
@@ -79,6 +81,7 @@ class full_interaction_logger(Logger):
             log_str += f'\ntotal_inter: {self.total_inter/self.total_seen}, entropy: {self.sum_soft_entropy/self.total_seen}'
             log_str += f'\nlambda values: {self.lambdas / self.num_iters}'
             if self.total_true > 0: log_str += f'\ntotal true: {self.total_true/self.total_seen}, weight rate: {self.weight_count/self.total_seen}' # assumes that there would not be no true interactions unless unused
+            if self.sum_trace is not None: log_str  += '\ntrace rate: ' + str(self.sum_trace / self.total_seen)
             if self.sum_flat_error is not None: log_str  += '\nflat error: ' + str(self.sum_flat_error / self.total_seen)
             if self.sum_soft_error is not None: log_str  += '\nsoft error: ' + str(self.sum_soft_error / self.total_seen)
             if self.sum_hard_error is not None: log_str  += '\nhard error: ' + str(self.sum_hard_error / self.total_seen)
