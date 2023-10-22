@@ -119,6 +119,7 @@ AT = "at "
 PAT = "passive_"
 IAT = "interaction at "
 FERR = "flat error:"
+TRTE = "trace rate:"
 SFP = "soft FP:"
 SFN = "soft FN:"
 
@@ -152,6 +153,17 @@ def read_full_inter(filename):
                     try:
                         if FERR + str(i) in vals: vals[FERR + str(i)].append(float(v.strip("[]")))
                         else: vals[FERR + str(i)] = [float(v.strip("[]"))]
+                    except ValueError as e:
+                        continue
+            if line.find(TRTE) != -1:
+                rex = re.compile(r'\s+')
+                nline = rex.sub(' ', line)
+                trtes = nline.split(' ')
+                # print("ferr", line, ferrs, nline)
+                for i, v in enumerate(trtes[2:]):
+                    try:
+                        if TRTE + str(i) in vals: vals[TRTE + str(i)].append(float(v.strip("[]")))
+                        else: vals[TRTE + str(i)] = [float(v.strip("[]"))]
                     except ValueError as e:
                         continue
             if line.find(SFP) != -1:
@@ -240,6 +252,8 @@ def group_assess(read_fn, folder):
             if ltype == "flat error:1":
                 print(key, ltype, np.mean(np.array(new_aggregated[key][ltype]), axis=0))
                 print(np.array(new_aggregated[key][ltype]))
+            if ltype == "trace rate:1":
+                print(key, ltype, np.mean(np.array(new_aggregated[key][ltype]), axis=0))
         print(fkey)
         if "flat error:1" not in list(new_aggregated[key].keys()):
             print("crashed", key)
