@@ -230,11 +230,15 @@ def group_assess(read_fn, folder):
                     new_aggregated[key][ltype].append(kdict[ltype])
                 else:
                     new_aggregated[key][ltype] = [kdict[ltype]]
-    for key in aggregated.keys():
+    filekeys = list(aggregated.keys())
+    filekeys.sort()
+    for key in filekeys:
         for ltype in new_aggregated[key].keys():
             if ltype == "flat error:1":
                 print(key, ltype, np.mean(np.array(new_aggregated[key][ltype]), axis=0))
                 print(np.array(new_aggregated[key][ltype]))
+        if "flat error:1" not in list(new_aggregated[key].keys()):
+            print("crashed", key)
     # print(new_aggregated)
     return results, aggregated
 

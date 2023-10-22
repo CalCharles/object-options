@@ -23,6 +23,7 @@ inter:
   active:
     interaction_schedule: -1,0.1,0.2,0.5,0.7,0.9,1000,5000,10000,25000
     intrain_passive: 1,0
+    adaptive_inter_lambda: 0.5,1,2,3
 full_inter:
   mixed_interaction: mixed,relaxed
   use_active_as_passive: True,False

@@ -38,8 +38,8 @@ def evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambd
     # adapts the lasso_lambda based on the input. If the active nlikelihood is low (large negative), it will approach e^{-0} = 1 if the error is high, it will approach e^-inf = 0
     # TODO: adaptive weighting value 3.0 is environment specific based on the level of natural stochasticity
     if args.full_inter.adaptive_lasso_type == "likelihood": lasso_lambda = compute_likelihood_adaptive_lasso(active_nlikelihood[done_flags.nonzero()[:,0]], args, lasso_lambda)
-    elif args.full_inter.adaptive_lasso_type == "mean": lasso_lambda = compute_mean_adaptive_lasso(active_params[0][done_flags.nonzero()[:,0]], args, lasso_lambda)
-    elif args.full_inter.adaptive_lasso_type == "meanvar": lasso_lambda = compute_mean_var_adaptive_lasso((active_params[0][done_flags.nonzero()[:,0]], active_params[1][done_flags.nonzero()[:,0]]), args, lasso_lambda)
+    elif args.full_inter.adaptive_lasso_type == "mean": lasso_lambda = compute_mean_adaptive_lasso(active_params[0][done_flags.nonzero()[:,0]], target[done_flags.nonzero()[:,0]], args, lasso_lambda)
+    elif args.full_inter.adaptive_lasso_type == "meanvar": lasso_lambda = compute_mean_var_adaptive_lasso((active_params[0][done_flags.nonzero()[:,0]], active_params[1][done_flags.nonzero()[:,0]]), target[[done_flags.nonzero()[:,0]]], args, lasso_lambda)
     mask_loss = (interaction_likelihood - full_model.check_passive_mask(interaction_likelihood)).norm(p=args.full_inter.lasso_order, dim=-1).unsqueeze(-1) # penalize for deviating from the passive mask
     zero_mask_loss = (interaction_likelihood).norm(p=args.full_inter.lasso_order, dim=-1).unsqueeze(-1) # penalize for deviating from the passive mask
     one_mask_loss = (1-interaction_likelihood).norm(p=args.full_inter.lasso_order, dim=-1).unsqueeze(-1)

@@ -252,7 +252,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             if args.full_inter.reset_caloss: args.full_inter.converged_active_loss_value = np.mean(active_full_loss)
         if args.inter.active.adaptive_inter_lambda > 0:
             best_performance = min(args.full_inter.converged_active_loss_value, np.mean(active_full_loss), best_performance)# TODO: must be training active or this line will error
-            interaction_lambda = args.inter.active.adaptive_inter_lambda * (np.exp(-np.abs(best_performance - np.mean(active_loss)) * args.inter.active.adaptive_inter_lambda)) * interaction_schedule(i)
+            interaction_lambda = (1-np.exp(-np.abs(best_performance - np.mean(active_loss)) / args.inter.active.adaptive_inter_lambda))
         else:
             interaction_lambda = interaction_schedule(i)
         
