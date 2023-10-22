@@ -8,9 +8,13 @@ import time
 LOSS_DIFFERENCE_CONSTANT = 0
 
 def compute_likelihood_adaptive_lasso(active_nlikelihood, args, lasso_lambda):
-    # print(args.full_inter.converged_active_loss_value, 
-    #       np.exp(-np.abs(args.full_inter.converged_active_loss_value - pytorch_model.unwrap(active_nlikelihood.mean())) / args.full_inter.adaptive_lasso[1]), 
-    #       np.abs(args.full_inter.converged_active_loss_value - pytorch_model.unwrap(active_nlikelihood.mean())), pytorch_model.unwrap(active_nlikelihood.mean()), args.full_inter.adaptive_lasso[0] * (np.exp(-np.abs(args.full_inter.converged_active_loss_value - pytorch_model.unwrap(active_nlikelihood.mean())) / args.full_inter.adaptive_lasso[1])))
+    print(args.full_inter.converged_active_loss_value, 
+          np.exp(-np.abs(args.full_inter.converged_active_loss_value- 
+                        args.full_inter.adaptive_lasso_bias[0] - pytorch_model.unwrap(active_nlikelihood.mean())) / args.full_inter.adaptive_lasso[1]), 
+          np.abs(args.full_inter.converged_active_loss_value - args.full_inter.adaptive_lasso_bias[0]- pytorch_model.unwrap(active_nlikelihood.mean())), 
+          pytorch_model.unwrap(active_nlikelihood.mean()), 
+          args.full_inter.adaptive_lasso[0] * (np.exp(-np.abs(args.full_inter.converged_active_loss_value- 
+          args.full_inter.adaptive_lasso_bias[0] - pytorch_model.unwrap(active_nlikelihood.mean())) / args.full_inter.adaptive_lasso[1])))
     return (args.full_inter.adaptive_lasso[0] * (np.exp(-np.abs(args.full_inter.converged_active_loss_value - 
                                                                 args.full_inter.adaptive_lasso_bias[0] - 
                                                                 pytorch_model.unwrap(active_nlikelihood.mean())) / args.full_inter.adaptive_lasso[1]))

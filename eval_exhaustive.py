@@ -41,3 +41,4 @@ if __name__ == '__main__':
     compute_possible_efficient(env, one_constant, zero_constant, save_path=os.path.join("logs", "exhaustive", env_name + "_" + variant + str(one_constant) + "_" + str(zero_constant) + ".txt"), use_invariant=True )
     # python eval_exhaustive.py Pusher1D use 0.01 0.4
     # python eval_exhaustive.py ForestFire use 0.5 0.2
+    # python eval_exhaustive.py GangShoot use 0.2 0.2

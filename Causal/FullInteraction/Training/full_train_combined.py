@@ -274,7 +274,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             active_weighting_lambda = active_weighting_schedule(i)
             # TODO: scheduled weight changes are ignored
             # active_weights = get_weights(active_weighting_lambda, (object_rollouts if full_model.form == "full" else rollouts).weight_binary[:len(rollouts)].squeeze() if full_model.form == "full" else rollouts.weight_binary[:len(rollouts)].squeeze())
-            inter_weighting_lambda = interaction_weighting_schedule(i)
+            inter_weighting_lambda = interaction_weighting_schedule(i) # TODO: actually implement interaction weighting schedules
 
             print("lasso, inline, active", lasso_lambda, inline_iters, interaction_schedule(i))
             print("converged_loss", args.full_inter.converged_active_loss_value)
