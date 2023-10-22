@@ -116,15 +116,15 @@ def get_all_disjoint_sets(iterable):
 
 global counter
 
-def binary_state_compatibility(all_binaries, all_states, environment):
+def binary_state_compatibility(all_binaries, all_states, all_outcomes, environment):
     # returns the compatibility (measure of necessity) between the
     # binary and every other state
     cost = 0
     compatibility = dict()
     for i, binary in enumerate(all_binaries):
         compatibility[i] = list()
-        for j, state in enumerate(all_states):
-            pos_comp, neg_comp, cf_cost = environment.evaluate_split_counterfactuals(binary, state)
+        for j, (state, outcome) in enumerate(zip(all_states, all_outcomes)):
+            pos_comp, neg_comp, cf_cost = environment.evaluate_split_counterfactuals(binary, state, outcome)
             compatibility[i].append((pos_comp, neg_comp))
             cost += cf_cost
     print(cost)
@@ -141,7 +141,7 @@ def compute_possible_efficient(environment, one_constant, zero_constant, save_pa
     all_subsets = get_all_subsets(len(all_states))
     
     print(np.concatenate([np.array(all_states), np.expand_dims(np.array(outcomes), axis=-1)], axis=-1))
-    compatibility = binary_state_compatibility(all_binaries, all_states, environment)
+    compatibility = binary_state_compatibility(all_binaries, all_states, outcomes, environment)
     for k in compatibility.keys():
         for s, c in enumerate(compatibility[k]):
             print(all_binaries[int(k)], all_states[s], c)
@@ -273,7 +273,7 @@ def compute_normality_binaries(environment):
     all_subsets = get_all_subsets(len(all_states))
     
     # assigns each binary-state pair with a splitting value, indexed by binary
-    compatibility = binary_state_compatibility(all_binaries, all_states, environment)
+    compatibility = binary_state_compatibility(all_binaries, all_states, outcomes, environment)
 
     # Find a minimum cost valid binary for each state
     
@@ -285,26 +285,3 @@ def convert_subset(subset, all_subsets, sort = False):
 
 
 
-if __name__ == '__main__':
-    env_name = sys.argv[1]
-    one_constant = float(sys.argv[2]) if len(sys.argv) >= 4 else -1
-    zero_constant = float(sys.argv[3]) if len(sys.argv) >= 4 else -1
-    variant = sys.argv[4] if len(sys.argv) > 4 else ""
-    print(env_name)
-    if env_name == "Pusher1D":
-        env = Pusher1D()
-    elif env_name == "ForestFire":
-        env = ForestFire()
-    elif env_name == "RockThrowing":
-        env = RockThrowing()
-    elif env_name == "GangShoot":
-        env = GangShoot()
-    elif env_name == "HaltCharge":
-        env = HaltCharge()
-    elif env_name == "Train":
-        env = Train()
-    elif env_name == "Voting":
-        env = Voting()
-    elif env_name == "ModDAG":
-        env = ModDAG(variant=variant)
-    compute_possible_efficient(env, one_constant, zero_constant, save_path=os.path.join("logs", "exhaustive", env_name + "_" + variant + str(one_constant) + "_" + str(zero_constant) + ".txt"), use_invariant=True )

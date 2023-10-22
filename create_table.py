@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-import sys, math
+import sys, math, copy, os
 
 def generate_latex_from_string(env, names, string_values, tabular = False):
     if tabular:
@@ -40,7 +40,8 @@ def create_bar(env, names, string_values):
     plt.xlabel("Binary-subset Cost")
     plt.ylabel("No. of valid binary-subsets")
     plt.title("Cost-counts for Valid partitions for " + env)
-    plt.savefig(env[:-4] + "_cost_counts.svg")
+    folder_path = os.path.join(*env.split("/")[:-1])
+    plt.savefig(os.path.join(folder_path, "tables", env.split("/")[-1][:-4] + "_cost_counts.svg"))
     plt.show()
 
 
@@ -63,8 +64,22 @@ if __name__ == "__main__":
     with open(sys.argv[1], 'r') as f:
         for line in f.readlines():
             string_values.append(line)
+    hist_values = list()
+    hist_str = copy.copy(sys.argv[1])
+    hist_str = hist_str[:hist_str.find(".txt")] + "_hist.txt"
+    with open(hist_str, 'r') as f:
+        for line in f.readlines():
+            hist_values.append(line)
     names = sys.argv[2:]
     env_name = sys.argv[1].replace("_", " ")
-    # create_bar(env_name, names, string_values)
+    create_bar(env_name, names, hist_values)
+    table_strings = list()
     for line in string_values:
-        generate_latex_from_string(env_name, names, line, tabular=True)
+        table_strings.append(generate_latex_from_string(env_name, names, line, tabular=True))
+    folder_path = os.path.join(*sys.argv[1].split("/")[:-1])
+    with open(os.path.join(folder_path, "tables", sys.argv[1].split("/")[-1][:-4] + "tables.txt"), 'w') as f:
+        for table_str in table_strings:
+            f.write(table_str)
+
+
+    # python create_table.py logs/exhaustive/ForestFire_0.5_0.2.txt April May June Fire

@@ -1,9 +1,10 @@
 import numpy as np
 import gymnasium as gym
 from Environment.environment import Environment
+import copy
 
 class ACDomain(Environment):
-    def __init__(self, frameskip = 1, variant="", fixed_limits=False):
+    def __init__(self, frameskip = 1, variant="", fixed_limits=False, cf_states=False):
         '''
         Environmental future
         '''
@@ -42,7 +43,7 @@ class ACDomain(Environment):
         # proximity state components
         self.position_masks = {n: [1] for n in self.all_names}
         # self.all_states = np.array(np.meshgrid(*[np.arange(self.objects[n].num_values) for n in self.all_names])).T.reshape(-1,len(self.all_names))
-        self.all_states, self.outcomes = self.exhaustive_evaluation()
+        self.all_states, self.outcomes = self.exhaustive_evaluation(counterfactuals=cf_states)
         self.use_zero = True # if true, allows exhaustive EM to use the zero mask
         print(self.all_names, self.outcome_variable)
 
@@ -85,9 +86,14 @@ class ACDomain(Environment):
             print(name_dict_assignment, sos[state], frozen_relations)
         return sos, len(combinations)
 
-    def exhaustive_evaluation(self):
+    def exhaustive_evaluation(self, counterfactuals=False):
         # gets all possible state-outcome pairs in the environment
-        sos, cost = self._get_counterfactuals(self.all_names)
+        frozen_relations = None
+        if counterfactuals:
+            frozen_relations = copy.deepcopy(self.all_names)
+            frozen_relations.pop(frozen_relations.index(self.outcome_variable))
+        print(frozen_relations, counterfactuals)
+        sos, cost = self._get_counterfactuals(self.all_names, frozen_relations = frozen_relations)
         states = [np.array(s) for s in sos.keys()] # using keys() means the order might change
         outcomes = [np.array(sos[s]) for s in sos.keys()]
         return states, outcomes
@@ -98,7 +104,7 @@ class ACDomain(Environment):
         self.reset(name_dict_assignment=name_dict_assignment)
 
 
-    def evaluate_split_counterfactuals(self, binary, state):
+    def evaluate_split_counterfactuals(self, binary, state, state_outcome):
         # takes in a state-binary pair and determines the magnitude the 1s in the binary split the state
         # and the magnitude the 0s in the binary split the state
         # binary is a length object_num binary vector
@@ -117,10 +123,12 @@ class ACDomain(Environment):
             self.set_state(state)
 
             # get all the counterfactuals 
+            # counterfactuals, cost = self._get_counterfactuals(names, frozen_relations=one_check_names if default == 1 else zero_check_names)
             counterfactuals, cost = self._get_counterfactuals(names, frozen_relations=one_check_names if default == 1 else zero_check_names)
             if len(counterfactuals) == 0: # the zero mask
                 return default, 0
-            state_outcome = counterfactuals[state_tuple]
+            print(counterfactuals, one_check_names, state)
+            # state_outcome = counterfactuals[state_tuple]
             state_diff = np.sum([1 for outcome in counterfactuals.values() if outcome != state_outcome]).astype(float)
             return state_diff / len(counterfactuals), cost
         

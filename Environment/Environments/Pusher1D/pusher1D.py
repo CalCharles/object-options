@@ -15,7 +15,7 @@ def pusher_next(objects):
 
 
 class Pusher1D(ACDomain):
-    def __init__(self):
+    def __init__(self, cf_states=False):
         self.all_names = ["Pusher", "Obstacle", "PusherNext"] # Action
         self.objects = {"Pusher": ACObject("Pusher", PUSHER_LEN+1),
                         "Obstacle": ACObject("Obstacle", PUSHER_LEN),
@@ -24,7 +24,7 @@ class Pusher1D(ACDomain):
         self.relation_outcome = ["PusherNext"]
         self.passive_mask = np.array([0,0])
         self.outcome_variable = "PusherNext"
-        super().__init__()
+        super().__init__(cf_states=cf_states)
 
 # PUSHER_LEN = 3
 # def pusher_next(objects):

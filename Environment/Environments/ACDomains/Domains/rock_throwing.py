@@ -13,7 +13,7 @@ def bottle(objects):
     objects["Bottle"].attribute = int(objects["SuzyHit"].attribute or objects["BillyHit"].attribute)
 
 class RockThrowing(ACDomain):
-    def __init__(self, frameskip = 1, variant="", fixed_limits=False):
+    def __init__(self, frameskip = 1, variant="", fixed_limits=False, cf_states=False):
         self.all_names = ["SuzyHit", "SuzyThrow", "BillyHit", "BillyThrow", "Bottle"]
         self.objects = {"SuzyHit": ACObject("SuzyHit", 2),
                         "SuzyThrow": ACObject("SuzyThrow", 2),
@@ -24,4 +24,4 @@ class RockThrowing(ACDomain):
         self.relation_outcome = ["SuzyHit", "BillyHit", "Bottle"]
         self.passive_mask = np.array([0,0,0,0])
         self.outcome_variable = "Bottle"
-        super().__init__(frameskip, variant, fixed_limits)
+        super().__init__(frameskip, variant, fixed_limits, cf_states=cf_states)

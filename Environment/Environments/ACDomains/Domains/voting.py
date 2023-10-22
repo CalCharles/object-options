@@ -14,7 +14,7 @@ def outcome(objects):
         objects["Outcome"].attribute = 0 if np.sum([objects["A1"].attribute, objects["A2"].attribute, objects["A3"].attribute, objects["A4"].attribute, objects["A5"].attribute]) < 3 else 1
 
 class Voting(ACDomain):
-    def __init__(self, frameskip = 1, variant="", fixed_limits=False):
+    def __init__(self, frameskip = 1, variant="", fixed_limits=False, cf_states=False):
         self.all_names = ["A1", "A2", "A3", "A4", "A5", "Outcome"]
         # self.all_names = ["A1", "A2", "A3", "A4", "Outcome"]
         self.objects = {"A1": ACObject("A1", 2),
@@ -27,4 +27,4 @@ class Voting(ACDomain):
         self.relation_outcome = ["Outcome"]
         self.passive_mask = np.array([0,0,0,0,0])
         self.outcome_variable = "Outcome"
-        super().__init__(frameskip, variant, fixed_limits)
+        super().__init__(frameskip, variant, fixed_limits, cf_states=cf_states)
