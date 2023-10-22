@@ -2,12 +2,15 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /hdd/datasets/object_data/full/DAG/3_chain/base/log/inter.log
-    # load_dir: /hdd/datasets/object_data/full/DAG/3_chain/testrun/
-    save_dir: /hdd/datasets/object_data/full/DAG/3_chain/base/
-    log_filename: /data/calebc/object_data/full/DAG/3_chain/base/log/inter.log
-    # load_dir: /data/calebc/object_data/full/DAG/3_chain/testrun/
-    save_dir: /data/calebc/object_data/full/DAG/3_chain/base/
+    # log_filename: /hdd/datasets/object_data/full/DAG/3_chain/base/log/inter.log
+    # # load_dir: /hdd/datasets/object_data/full/DAG/3_chain/testrun/
+    # save_dir: /hdd/datasets/object_data/full/DAG/3_chain/base/
+    # log_filename: /data/calebc/object_data/full/DAG/3_chain/base/log/inter.log
+    # # load_dir: /data/calebc/object_data/full/DAG/3_chain/testrun/
+    # save_dir: /data/calebc/object_data/full/DAG/3_chain/base/
+    log_filename: /mnt/Data/calebc/object_data/full/DAG/3_chain/base/log/inter.log
+    # load_dir: /mnt/Data/calebc/object_data/full/DAG/3_chain/testrun/
+    save_dir: /mnt/Data/calebc/object_data/full/DAG/3_chain/base/
     # log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/3_chain/log/inter.log
     # # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/DAG/3_chain/testrun/
     # save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/full/DAG/3_chain/base/
@@ -16,7 +19,8 @@
     variant: 3-chain
     # load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/3_chain/
     # load_environment: /hdd/datasets/object_data/RandomDAG/3_chain/
-    load_environment: /data/calebc/object_data/RandomDAG/3_chain/
+    # load_environment: /data/calebc/object_data/RandomDAG/3_chain/
+    load_environment: /mnt/Data/calebc/object_data/RandomDAG/3_chain/
   collect:
     omit_done: True
   torch:
@@ -28,7 +32,8 @@
     train_test_order: time
     # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/3_chain/
     # load_rollouts: /hdd/datasets/object_data/RandomDAG/3_chain/
-    load_rollouts: /data/calebc/object_data/RandomDAG/3_chain/
+    # load_rollouts: /data/calebc/object_data/RandomDAG/3_chain/
+    load_rollouts: /mnt/Data/calebc/object_data/RandomDAG/3_chain/
     num_iters: 50000
     batch_size: 512
   inter:
@@ -36,7 +41,7 @@
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
     # load_intermediate: /hdd/datasets/object_data/full/DAG/3_chain/base/temp/
-    # save_intermediate: /hdd/datasets/object_data/full/DAG/3_chain/base/temp/
+    save_intermediate: /mnt/Data/datasets/object_data/full/DAG/3_chain/base/temp/
     compare_trace: True
     proximity_epsilon: 7
     passive:
@@ -49,11 +54,11 @@
       # inline_iters: 10 0 5000
       inline_iters: 1 0 0
       interaction_weighting: 100 -1
-      interaction_schedule: 20000
+      interaction_schedule: 5000
       # weighting: 0 200000 100 100000
       intrain_passive: 1
-      train_true: True
-      adaptive_inter_lambda: 1.0
+      # train_true: True
+      # adaptive_inter_lambda: 1.0
     interaction:
       # interaction_pretrain: 50000
       soft_train: 0.00
@@ -65,12 +70,12 @@
     use_active_as_passive: True
     train_names: $C
     predict_next_state: False
-    adaptive_lasso: 7 1
+    adaptive_lasso: 1 1
   interaction_net:
-    hidden_sizes: 256 256 256 256
+    hidden_sizes: 512 512 512
     net_type: keypair
     init_form: xnorm
-    embed_inputs: 512
+    embed_inputs: 1024
     activation: crelu
     pair:
       reduce_function: sum

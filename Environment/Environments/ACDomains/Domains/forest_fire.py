@@ -12,7 +12,7 @@ def check_fire(objects):
         objects["Fire"].attribute = 0
 
 class ForestFire(ACDomain):
-    def __init__(self, frameskip = 1, variant="", fixed_limits=False):
+    def __init__(self, frameskip = 1, variant="", fixed_limits=False, cf_states=False):
         self.all_names = ["RainApril", "ElectricalMay", "ElectricalJune", "Fire"]
         self.objects = {"Fire": ACObject("Fire", 3),
                         "RainApril": ACObject("RainApril", 2),
@@ -23,4 +23,4 @@ class ForestFire(ACDomain):
         self.outcome_variable = "Fire"
         self.passive_mask = np.array([0,0,0])
         self.use_zero = True
-        super().__init__(frameskip, variant, fixed_limits)
+        super().__init__(frameskip, variant, fixed_limits, cf_states=cf_states)

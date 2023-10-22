@@ -2,12 +2,12 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /nfs/data/calebc/object_data/all/randomdist/default/attn/log/inter.log
+    log_filename: /mnt/Data/calebc/object_data/all/randomdist/default/attn/log/inter.log
     # load_dir: /nfs/data/calebc/object_data/all/breakout/attn/testrun/
-    save_dir: /nfs/data/calebc/object_data/all/randomdist/attn/default/
+    save_dir: /mnt/Data/calebc/object_data/all/randomdist/attn/default/
   environment:
     env: RandomDistribution
-    load_environment: /hdd/datasets/object_data/RandomDistribution/random_conditional
+    load_environment: /mnt/Data/calebc/object_data/RandomDistribution/random_conditional
   torch:
     gpu: 0
     no_cuda: False
@@ -15,7 +15,7 @@
     train: True
     num_frames: 10000
     train_test_order: time
-    load_rollouts: /hdd/datasets/object_data/RandomDistribution/random_conditional
+    load_rollouts: /mnt/Data/calebc/object_data/RandomDistribution/random_conditional
     num_iters: 50000
     batch_size: 256
   inter:
@@ -23,7 +23,7 @@
     interaction_testing: 0.9 -1 -10 -1
     interaction_iters: 0
     # load_intermediate: /hdd/datasets/object_data/all/randomdist/attn/temp/
-    save_intermediate: /hdd/datasets/object_data/all/randomdist/attn/temp/
+    save_intermediate: /mnt/Data/calebc/object_data/all/randomdist/attn/temp/
     compare_trace: True
     proximity_epsilon: 7
     passive:
