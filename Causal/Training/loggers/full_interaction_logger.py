@@ -45,7 +45,7 @@ class full_interaction_logger(Logger):
         self.num_iters = 0
         self.lambdas = None
 
-    def log(self, i, loss, active_loss, soft_interactions, hard_interactions, done_flags, weights, params=None, trace=None, no_print=False, lambdas=None):
+    def log(self, i, loss, active_loss, soft_interactions, hard_interactions, done_flags, weights, params=None,target = None, trace=None, no_print=False, lambdas=None):
         self.loss.append(pytorch_model.unwrap(loss))
         self.active_loss.append(pytorch_model.unwrap(active_loss))
 
@@ -90,6 +90,7 @@ class full_interaction_logger(Logger):
             if trace is not None: log_str += '\ntrace '  + str(trace[0])
             log_str += '\nsoft '  + str(soft_interactions[0])
             log_str += '\nhard '  + str(hard_interactions[0])
+            if target is not None: log_str += '\ntarget ' + str(pytorch_model.unwrap(target[0]))
             if params is not None:
                 log_str += '\nmean ' + str(pytorch_model.unwrap(params[0][0]))
                 log_str += '\nvar ' + str(pytorch_model.unwrap(params[1][0]))

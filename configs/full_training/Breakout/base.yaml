@@ -21,6 +21,8 @@
     # load_environment: /hdd/datasets/object_data/Breakout/rand_tiny/
     # load_environment: /data/calebc/object_data/Breakout/rand_tiny/
     load_environment: /mnt/Data/calebc/object_data/Breakout/rand_tiny/
+  collect:
+    omit_done: True
   torch:
     gpu: 0
     no_cuda: False

@@ -75,13 +75,13 @@ def fill_full_buffer(full_model, environment, data, args, object_names, norm, pr
                     rew=0, done=use_done, policy_mask = np.ones(environment.instance_length), param_mask=np.ones(args.pad_size),
                     terminate=False, terminated=False, truncated=use_done, mapped_act=np.ones(args.pad_size), inter=inter, info=dict(), policy=dict(), 
                     trace=full_trace, proximity=proximity, weight_binary=0, valid=valid))
-            #     if name == outcome_variable: 
-            # #         # hit_block = factored_state["Block" + str(np.nonzero(full_trace[3:])[0][0])] if len(np.nonzero(full_trace[3:])[0]) > 0 else 0
-            #         print(name, full_trace,denorm_target, target_diff, target, next_target, use_done, factored_state["Done"])
-            #         # print(name, full_trace, factored_state["Action"], factored_state["$B"], denorm_target, target_diff, target, next_target, use_done)
-            # else:
-            #     if name == outcome_variable: 
-            #         print("SKIPPED", full_trace,denorm_target, target_diff, target, next_target, use_done)
+                if name == outcome_variable: 
+            #         # hit_block = factored_state["Block" + str(np.nonzero(full_trace[3:])[0][0])] if len(np.nonzero(full_trace[3:])[0]) > 0 else 0
+                    print(name, full_trace,denorm_target, target_diff, target, next_target, use_done, factored_state["Done"])
+                    # print(name, full_trace, factored_state["Action"], factored_state["$B"], denorm_target, target_diff, target, next_target, use_done)
+            else:
+                if name == outcome_variable: 
+                    print("SKIPPED", full_trace,denorm_target, target_diff, target, next_target, use_done)
             
             
         # assign selections of the state

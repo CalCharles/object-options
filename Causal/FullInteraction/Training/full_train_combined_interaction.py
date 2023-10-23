@@ -8,13 +8,13 @@ import time
 LOSS_DIFFERENCE_CONSTANT = 0
 
 def compute_likelihood_adaptive_lasso(active_nlikelihood, args, lasso_lambda):
-    print(args.full_inter.converged_active_loss_value, 
-          np.exp(-np.abs(args.full_inter.converged_active_loss_value- 
-                        args.full_inter.adaptive_lasso_bias[0] - pytorch_model.unwrap(active_nlikelihood.mean())) / args.full_inter.adaptive_lasso[1]), 
-          np.abs(args.full_inter.converged_active_loss_value - args.full_inter.adaptive_lasso_bias[0]- pytorch_model.unwrap(active_nlikelihood.mean())), 
-          pytorch_model.unwrap(active_nlikelihood.mean()), 
-          args.full_inter.adaptive_lasso[0] * (np.exp(-np.abs(args.full_inter.converged_active_loss_value- 
-          args.full_inter.adaptive_lasso_bias[0] - pytorch_model.unwrap(active_nlikelihood.mean())) / args.full_inter.adaptive_lasso[1])))
+    # print(args.full_inter.converged_active_loss_value, 
+    #       np.exp(-np.abs(args.full_inter.converged_active_loss_value- 
+    #                     args.full_inter.adaptive_lasso_bias[0] - pytorch_model.unwrap(active_nlikelihood.mean())) / args.full_inter.adaptive_lasso[1]), 
+    #       np.abs(args.full_inter.converged_active_loss_value - args.full_inter.adaptive_lasso_bias[0]- pytorch_model.unwrap(active_nlikelihood.mean())), 
+    #       pytorch_model.unwrap(active_nlikelihood.mean()), 
+    #       args.full_inter.adaptive_lasso[0] * (np.exp(-np.abs(args.full_inter.converged_active_loss_value- 
+    #       args.full_inter.adaptive_lasso_bias[0] - pytorch_model.unwrap(active_nlikelihood.mean())) / args.full_inter.adaptive_lasso[1])))
     return (args.full_inter.adaptive_lasso[0] * (np.exp(-np.abs(args.full_inter.converged_active_loss_value - 
                                                                 args.full_inter.adaptive_lasso_bias[0] - 
                                                                 pytorch_model.unwrap(active_nlikelihood.mean())) / args.full_inter.adaptive_lasso[1]))
@@ -196,7 +196,7 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, onem
 
     full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollout, weights, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
     if time_dict is not None: time_dict["inter_batch"] = time.time()
-
+    # print(batch.trace[:20])
 
     # a statistic on weighting
     weight_count = np.sum(weights[idxes])
@@ -224,4 +224,4 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, onem
     grad_variables = [interaction_likelihood, active_soft_inputs] if args.inter.active.log_gradients else list()
     grad_variables = run_optimizer(interaction_optimizer, full_model.active_model if full_model.attention_mode else full_model.interaction_model, interaction_loss, grad_variables=grad_variables)
     if time_dict is not None: time_dict["inter_grad"] = time.time()
-    return idxes, interaction_loss, active_nlikelihood, interaction_likelihood, hard_interaction_mask, hot_likelihood,active_soft_params, weight_count, done_flags, grad_variables, lasso_lambda
+    return idxes, interaction_loss, active_nlikelihood, interaction_likelihood, hard_interaction_mask, hot_likelihood,active_soft_params, target, weight_count, done_flags, grad_variables, lasso_lambda
