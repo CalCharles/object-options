@@ -80,7 +80,7 @@ def train_binaries(full_model, rollouts, object_rollout, args, interaction_optim
     
         # logging
         weight_rate = np.sum(weights[idxes]) / len(idxes)
-        inter_logger.log(i, trace_loss, interaction_likelihood, interaction_likelihood, pytorch_model.unwrap(done_flags), weight_rate,
+        inter_logger.log(i, trace_loss, interaction_likelihood, interaction_likelihood, pytorch_model.unwrap(done_flags), weight_rate, None,
                 trace=trace)
         # change the weighting if necesary
         if i % args.inter.passive.passive_log_interval == 0:

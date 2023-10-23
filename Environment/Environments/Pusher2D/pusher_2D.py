@@ -61,6 +61,7 @@ class MobileObject2D(Object2D):
                 self.possible_next[0] = opos[0] - self.length
             else: # from above
                 self.possible_next[0] = opos[0] + obstacle.length
+            # print("blocked", obstacle.name)
 
 def line_intersection(line1, line2):
     xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
@@ -245,8 +246,6 @@ class Block(MobileObject2D):
         pusher_vector = pusher.possible_next - pusher.pos
         # print(check_edges(pusher.pos, self.pos, pusher_vector, pusher.lw, self.lw))
         if aabb_check(pusher.possible_next, self.pos, pusher.lw, self.lw):
-            self.interaction_trace.append(pusher.name)
-            self.interaction_trace.append("Action")
             pusher_vector = pusher.possible_next - pusher.pos
             first_edge = get_first_edge(pusher.pos, self.pos, pusher_vector, pusher.lw, self.lw)
             response_dir = first_edge == 1 or first_edge == 3
@@ -262,6 +261,10 @@ class Block(MobileObject2D):
                     response = pusher_vector[0] + (pusher.pos[0] - (self.pos[0] + self.length))
             self.possible_next = copy.deepcopy(self.pos)
             self.possible_next[int(response_dir)] = self.pos[int(response_dir)] + response
+            if np.linalg.norm(self.possible_next - self.pos) > 0.001: # needs an appreciable change for a trace, even if "colliding"
+                self.interaction_trace.append(pusher.name)
+                self.interaction_trace.append("Action")
+            # print("moved", self.possible_next, self.pos, pusher.pos, pusher.possible_next)
             # print("pushed", response, response_dir, first_edge,self.possible_next, self.pos)
         else: self.possible_next = self.pos
 
@@ -413,6 +416,7 @@ class Pusher2D(Environment):
             info: a dict with additional info, especially TimeLimit.truncated
         '''
         for i in range(self.frameskip):
+            self.reset_interactions()
             self.action.attr = np.array(action)
             self.pusher.try_action(self.convert_action(action))
             for obstacle in self.obstacles:
@@ -424,16 +428,18 @@ class Pusher2D(Environment):
             self.pusher.pos = self.pusher.possible_next
             self.block.pos = self.block.possible_next
             self.target.check_block(self.block)
-            self.reward.attr = self.target.attr
+            self.reward.attribute = self.target.attr
         self.itr += 1
         self.total_itr += 1
         if len(self.block.interaction_trace) > 0: self.push_num += 1
-        self.done.attr = self.itr == self.max_steps
-        if self.done.attr:
+        self.done.attribute = self.itr == self.max_steps
+        if self.done.attribute:
+            rew = self.reward.attribute
             self.reset()
+            self.done.attribute, self.reward.attribute = True, rew
         if self.total_itr % 10000 == 0:
             print("pusher at ", self.total_itr, self.push_num / max(self.total_itr+1, 1))
-        return self.get_state(render=render), self.reward.attr, self.done.attr, {"TimeLimit.truncated": self.itr == self.max_steps}
+        return self.get_state(render=render), self.reward.attribute, self.done.attribute, {"TimeLimit.truncated": self.itr == self.max_steps}
 
     def convert_pix(self, pos):
         return max(0, int(np.round(pos / (self.size) * 100)))

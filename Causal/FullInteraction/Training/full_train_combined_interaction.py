@@ -224,4 +224,4 @@ def _train_combined_interaction(full_model, args, rollouts, object_rollout, onem
     grad_variables = [interaction_likelihood, active_soft_inputs] if args.inter.active.log_gradients else list()
     grad_variables = run_optimizer(interaction_optimizer, full_model.active_model if full_model.attention_mode else full_model.interaction_model, interaction_loss, grad_variables=grad_variables)
     if time_dict is not None: time_dict["inter_grad"] = time.time()
-    return idxes, interaction_loss, active_nlikelihood, interaction_likelihood, hard_interaction_mask, hot_likelihood, weight_count, done_flags, grad_variables, lasso_lambda
+    return idxes, interaction_loss, active_nlikelihood, interaction_likelihood, hard_interaction_mask, hot_likelihood,active_soft_params, weight_count, done_flags, grad_variables, lasso_lambda

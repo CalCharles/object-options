@@ -217,7 +217,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
                 print(args.full_inter.converged_active_loss_value, np.mean(active_full_loss))
             for ii in range(int(inline_iters)):
                 inter_idxes, interaction_loss, inter_active_nlikelihood, interaction_calc_likelihood,\
-                        interaction_binaries, hot_likelihood, weight_count, inter_done_flags, grad_variables, lasso_lambda = _train_combined_interaction(full_model, args, rollouts, object_rollouts,
+                        interaction_binaries, hot_likelihood, inter_params, weight_count, inter_done_flags, grad_variables, lasso_lambda = _train_combined_interaction(full_model, args, rollouts, object_rollouts,
                                                                             lasso_oneloss_lambda,lasso_halfloss_lambda, lasso_lambda, entropy_lambda, interaction_weights, inter_loss, interaction_optimizer, normalize=normalize, time_dict=time_stamps)
                 single_trace = None
                 if full_model.name == "all":
@@ -226,7 +226,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
                     single_trace = object_rollouts.trace[inter_idxes] # np.concatenate([object_rollouts.trace[inter_idxes, vi] for vi in full_model.valid_indices], axis=-1)
                 # reweight only when logging TODO: probably should not link  these two
                 inter_logger.log(i, pytorch_model.unwrap(interaction_loss), pytorch_model.unwrap(inter_active_nlikelihood), pytorch_model.unwrap(interaction_calc_likelihood), pytorch_model.unwrap(interaction_binaries), pytorch_model.unwrap(inter_done_flags), weight_count,
-                    trace=None if single_trace is None else single_trace, no_print=ii != 0, lambdas=np.array([lasso_lambda, interaction_lambda]))
+                    inter_params, trace=None if single_trace is None else single_trace, no_print=ii != 0, lambdas=np.array([lasso_lambda, interaction_lambda]))
 
         for ii in range(int(dual_lasso_iters)):
             dl_idxes, dl_loss, dl_likelihood,\
