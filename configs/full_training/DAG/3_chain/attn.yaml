@@ -20,7 +20,7 @@
     omit_done: True
   train:
     train: True
-    num_frames: 100000
+    num_frames: 200000
     train_test_order: time
     load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/3_chain/
     # load_rollouts: /hdd/datasets/object_data/RandomDAG/3_chain/
@@ -46,16 +46,16 @@
       interaction_weighting: -1 -1
       interaction_schedule: 5000
       # weighting: 0 200000 100 100000
-      intrain_passive: 1
+      # intrain_passive: 1
   full_inter:
     object_id: True
     lasso_lambda: 3 0 0 0 1000
     mixed_interaction: mixed
     soft_distribution: Identity
-    use_active_as_passive: True
+    use_active_as_passive: False
     train_names: $C
-    predict_next_state: True
-    adaptive_lasso: 7 1
+    predict_next_state: False
+    adaptive_lasso: 1 1
   interaction_net:
     hidden_sizes: 512
     net_type: maskattn
@@ -68,7 +68,7 @@
     mask_attn:
       model_dim: 256
       num_heads: 16
-      num_layers: 2
+      num_layers: 1
       cluster: False
       num_clusters: 0
       attention_dropout: 0.1
