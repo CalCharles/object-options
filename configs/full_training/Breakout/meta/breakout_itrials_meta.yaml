@@ -1,0 +1,19 @@
+---
+metaparam: 
+  multi_filename: inter_breakout_trials2_
+  log_endpoint: /mnt/Data/calebc/object_data/full/hyperparam/hyperparam_logs/inter_breakout_trials2/
+  yaml_endpoint: /mnt/Data/calebc/object_data/full/hyperparam/hyperparam_yamls/inter_breakout_trials2/
+  save_endpoint: /mnt/Data/calebc/object_data/full/hyperparam/hyperparam/inter_breakout_trials2/
+  graph_endpoint: /mnt/Data/calebc/object_data/full/hyperparam/hyperparam_graphs/inter_breakout_trials2/
+  bash_path: bashes/inter_breakout_trials2.sh
+  base_config: configs/full_training/Breakout/base.yaml
+  runfile: train_full_interaction.py
+  gpu: 0
+  match: 0
+  simul_run: 8
+  num_trials: 8
+  cycle_gpu: 4
+full_inter:
+  adaptive_lasso: 1.5 1
+  # adaptive_lasso_bias: 0 -1
+...
