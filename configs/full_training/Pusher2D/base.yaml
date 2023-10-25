@@ -20,6 +20,8 @@
   torch:
     gpu: 1
     no_cuda: False
+  collect:
+    omit_done: True
   train:
     train: True
     num_frames: 500000
@@ -36,32 +38,33 @@
     load_intermediate: /data/calebc/object_data/full/Pusher2D/tiny/base/temp/
     # save_intermediate: /data/calebc/object_data/full/Pusher2D/tiny/base/temp/
     compare_trace: True
-    proximity_epsilon: 2.0
+    # proximity_epsilon: 2.0
     passive:
-      passive_iters: 1000
+      passive_iters: 5000
       # passive_iters: 100
       passive_log_interval: 100
-      pretrain_active: True
+      pretrain_active: False
     active:
       active_log_interval: 200
       # inline_iters: 10 0 5000
       inline_iters: 1 0 0
-      interaction_weighting: 0.5 -1
-      interaction_schedule: 5000
-      weighting: 0 200000 0.5 -1
-      intrain_passive: 1
+      interaction_weighting: 2 -1
+      interaction_schedule: 30000
+      weighting: -6 200000 2 -1
+      # intrain_passive: 1
   full_inter:
     object_id: True
     lasso_lambda: 3 0 0 0 1000
     mixed_interaction: mixed
     soft_distribution: Identity
-    use_active_as_passive: True
+    use_active_as_passive: False
     train_names: Block
     adaptive_lasso: 1 1
-    adaptive_lasso_bias: 1 -1
-    # delay_inter_train: 1000
+    adaptive_lasso_bias: 0.5 -1
+    reset_caloss: True
+    delay_inter_train: 5000
   interaction_net:
-    hidden_sizes: 256 256 256 256 256
+    hidden_sizes: 256 256 256 256 256 256 256
     net_type: keypair
     init_form: xnorm
     embed_inputs: 1024
@@ -69,8 +72,9 @@
     pair:
       reduce_function: sum
       num_layers: 2
+      pre_dropout: 0.1
     optimizer:
-      lr: .0001
+      lr: .0003
       alt_lr: .00001
       eps: .00001
       alpha: 0.99
