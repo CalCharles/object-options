@@ -29,8 +29,8 @@ def compute_mean_adaptive_lasso(means, target, args, lasso_lambda):
 
 
 def compute_mean_var_adaptive_lasso(active_params, target, args, lasso_lambda):
-    mean_difference = pytorch_model.unwrap(torch.linalg.norm(active_params[0] - target, p=1, dim=-1))
-    confidence = pytorch_model.unwrap(torch.linalg.norm(active_params[1], p=1, dim=-1))
+    mean_difference = pytorch_model.unwrap(torch.linalg.norm(active_params[0] - target, ord=1, dim=-1))
+    confidence = pytorch_model.unwrap(torch.linalg.norm(active_params[1], ord=1, dim=-1))
     return (args.full_inter.adaptive_lasso[0] * np.exp(-(mean_difference + confidence) / args.full_inter.adaptive_lasso[1])
                 if args.full_inter.adaptive_lasso[0] > 0 else lasso_lambda)
 
