@@ -100,6 +100,10 @@ def train_full(full_model, rollouts, object_rollout, test_rollout, test_object_r
     # sampling weights, either wit hthe passive error or if we can upweight the true interactions
     passive_weights = get_passive_weights(args, full_model, rollouts if full_model.form == "all" else object_rollout)
     proximal = get_error(full_model, rollouts, object_rollout, error_type=error_types.PROXIMITY_FULL if full_model.form == "full" else error_types.PROXIMITY_ALL, normalized = True)
+    if args.inter.proximity_epsilon > 0:
+        proximal = np.expand_dims(np.sum(proximal, axis=-1), axis=-1)
+    else:
+        proximal = np.ones((proximal.shape[0], 1))
     passive_error, active_weights, binaries = separate_weights(args.inter.active.weighting, full_model, rollouts, proximal, None, object_rollouts=object_rollout)
     # print(passive_error, binaries)
     interaction_weights = get_weights(args.inter.active.interaction_weighting[0], object_rollout.weight_binary if full_model.form == "full" else rollouts.weight_binary)

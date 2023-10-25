@@ -9,7 +9,7 @@ import torch.optim as optim
 from collections import Counter
 from Causal.Training.loggers.forward_logger import forward_logger
 from Causal.Utils.instance_handling import compute_likelihood, get_batch, get_valid
-from Causal.Utils.weighting import proximity_binary, get_weights
+from Causal.Utils.weighting import proximity_binary, get_weights, get_trace_weights
 from Network.network_utils import pytorch_model, run_optimizer, get_gradient
 from Causal.Baselines.gradient import compute_gradient_cause, compute_gradient_loss
 from Causal.Baselines.attention import compute_attention_cause, compute_attention_loss
@@ -29,12 +29,19 @@ def train_basic_model(full_model, args, rollouts, object_rollout, test_rollouts,
     train_baseline_logger = baseline_interaction_logger("train_baseline_" + get_baseline_type(args.inter_baselines), args.record.record_graphs, args.inter.passive.passive_log_interval, full_model)
     test_baseline_logger = baseline_interaction_logger("test_baseline_" + get_baseline_type(args.inter_baselines), args.record.record_graphs, args.inter.passive.passive_log_interval, full_model)
 
+    weights = None
+    if args.inter_baselines.sample_trace > 0:
+        idxes, batch = rollouts.sample(0)
+        passive_masks = full_model.check_passive_mask(batch.tarinter_state)
+        trace_diff = np.sum(batch.trace - passive_masks, axis= -1).astype(bool)
+        weights = get_trace_weights(full_model, trace_diff, args.inter_baselines.sample_trace)
+
     passive_likelihoods = list()
     active_likelihoods = list()
     outputs = list()
     for i in range(args.train.num_iters):
         start = time.time()
-        full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollout, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
+        full_batch, batch, idxes = get_batch(args.train.batch_size, full_model.form == "all", rollouts, object_rollout, weights = weights, num_inter=full_model.num_inter, predict_valid=None if full_model.predict_next_state else full_model.valid_indices)
         # weight_rate = np.sum(weights[idxes]) / len(idxes) if weights is not None else 1.0
         valid = get_valid(batch.valid, full_model.valid_indices) # valid is batch x num target indices binary vector indicating which targets are valid (NOT the full batch x num instances)
         done_flags = np.expand_dims(1-full_batch.done.squeeze(), -1)

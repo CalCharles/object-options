@@ -169,17 +169,17 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
 
     print("awliwl", awl, iwl, olls, lws, lasso_schedule(100))
 
-    uw = pytorch_model.unwrap
-    if full_model.name == "all":
-        full_vals, idxes = rollouts.sample(0, weights=active_weights)
-        vals = full_vals
-        tarinter_all = full_vals.obs
-    else:
-        full_vals, idxes = rollouts.sample(0, weights=active_weights)
-        vals = object_rollouts[idxes]
-        tarinter_all = np.concatenate([vals.obs, full_vals.obs], axis=-1)
 
 
+    # uw = pytorch_model.unwrap
+    # if full_model.name == "all":
+    #     full_vals, idxes = rollouts.sample(0, weights=active_weights)
+    #     vals = full_vals
+    #     tarinter_all = full_vals.obs
+    # else:
+    #     full_vals, idxes = rollouts.sample(0, weights=active_weights)
+    #     vals = object_rollouts[idxes]
+    #     tarinter_all = np.concatenate([vals.obs, full_vals.obs], axis=-1)
     # print_errors(full_model, rollouts, object_rollouts, error_types=[error_types.ACTIVE_OPEN_RAW, error_types.ACTIVE_RAW, 
     #                                                                  error_types.ACTIVE, error_types.ACTIVE_OPEN, 
     #                                                                  error_types.ACTIVE_OPEN_LIKELIHOOD, error_types.PASSIVE_LIKELIHOOD,
@@ -279,8 +279,8 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             print("lasso, inline, active", lasso_lambda, inline_iters, interaction_schedule(i))
             print("converged_loss", args.full_inter.converged_active_loss_value)
 
-            check_error = error_types.INTERACTION_HOT if full_model.cluster_mode else error_types.INTERACTION_RAW
-            mask_binary = (np.sum(np.round(full_model.apply_mask(get_error(full_model, rollouts, object_rollout=object_rollouts, error_type = check_error), x=tarinter_all)), axis=-1) > 1).astype(int)
+            # check_error = error_types.INTERACTION_HOT if full_model.cluster_mode else error_types.INTERACTION_RAW
+            # mask_binary = (np.sum(np.round(full_model.apply_mask(get_error(full_model, rollouts, object_rollout=object_rollouts, error_type = check_error), x=tarinter_all)), axis=-1) > 1).astype(int)
             # TODO: no schedule update for inter weights either
             # inter_bin = ((object_rollouts if full_model.form == "full" else rollouts).weight_binary[:len(rollouts)].squeeze() + mask_binary.squeeze())
             # inter_bin[inter_bin> 1] = 1
@@ -289,7 +289,7 @@ def train_combined(full_model, rollouts, object_rollouts, test_rollout, test_obj
             if args.full_inter.log_gradients:
                 grad_variables = get_masking_gradients(full_model, args, rollouts, object_rollouts, lasso_oneloss_lambda,
                     lasso_halfloss_lambda, lasso_lambda, entropy_lambda, interaction_weights, inter_loss, normalize=normalize)
-            test_dict = test_full(full_model, test_rollout, test_object_rollout, args, None)
+            test_dict = test_full(full_model, test_rollout, test_object_rollout, args, None, sample_num=1024)
             logger.log_testing(test_dict)
         time_stamps["log_time"] = time.time()
 

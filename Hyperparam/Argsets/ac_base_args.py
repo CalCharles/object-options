@@ -63,6 +63,7 @@ ac_base_args = {
         "attention_threshold": -1.0,
         "counterfactual_threshold": -1.0,
         "num_counterfactual": -1,
+        "trace_weighting": -1.0,
     },
     "collect": {
         "buffer_len": 100000,

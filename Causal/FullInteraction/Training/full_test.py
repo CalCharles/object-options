@@ -3,12 +3,16 @@ import time
 from Causal.Utils.get_error import get_error, error_types
 import logging
 
-def test_full(full_model, test_full_buffer, test_object_buffer, args, environment, printouts=False):
+def test_full(full_model, test_full_buffer, test_object_buffer, args, environment, sample_num=-1, printouts=False):
 	''' train, test| prediction l1 per-element
 	train, test| max, min, mean per-element likelihood
 	interaction binary, true FP, FN
 	samples of 128: target, binary, trace, passive error, prediction means
 	'''
+	if sample_num > 0: # use sampling instead of taking all
+		print("testing", sample_num)
+		test_full_buffer, idxes = test_full_buffer.sample(sample_num)
+		test_object_buffer = test_object_buffer[idxes]
 	# start = time.time()
 	# next target or target diff predicted
 	# if full_model.form == "all": test_full_buffer.tarinter_state = test_full_buffer.obs

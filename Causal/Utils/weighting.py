@@ -13,13 +13,23 @@ def passive_binary(passive_error, weighting, proximity, done):
     passive_error_cutoff, passive_error_upper, weighting_ratio, weighting_schedule = weighting
     if len(passive_error) < 1000: binaries = copy.deepcopy(passive_error) # in case we want to preserve passive error, but don't copy if this is too large
     else: binaries = passive_error
-    binaries[binaries<=passive_error_cutoff] = 0
-    binaries[binaries>passive_error_upper] = 0 # if the error is too high, this might be an anomaly
-    binaries[binaries>passive_error_cutoff] = 1
+    # print(binaries[:30], passive_error_cutoff, binaries[:30] > passive_error_cutoff)
+    greater = binaries>passive_error_cutoff
+    lesser = binaries<=passive_error_cutoff
+    over = binaries>passive_error_upper
+    binaries[greater] = 1
+    # print(binaries[:30].squeeze())
+    binaries[lesser] = 0
+    # print(binaries[:30].squeeze())
+    binaries[over] = 0 # if the error is too high, this might be an anomaly
+    # print(binaries[:30].squeeze())
     binaries[done == 1] = 0 # if done, disregard
+    # print(binaries[:30].squeeze())
 
     # use proximity to narrow the range of weights, if proximity is not used, these should be ones TODO: replace with feasibility?
-    binaries = (binaries.astype(int) * proximity.astype(int)).astype(np.float128).squeeze()
+    # print(binaries[:30].squeeze(), proximity[:30].squeeze())
+    binaries = (binaries.astype(int) * (proximity).astype(int)).astype(np.float128).squeeze()
+    # print(binaries[:30].squeeze())
     return binaries
 
 def proximity_binary(full_model, rollouts,object_rollouts=None, full=False, pall=False):
@@ -34,6 +44,12 @@ def proximity_binary(full_model, rollouts,object_rollouts=None, full=False, pall
     p_binaries = proximal.sum(axis=-1).astype(bool).astype(int)
     return np_binaries, p_binaries, non_proximal, proximal
 
+def get_trace_weights(full_model, trace, weighting_ratio):
+    passive_error = trace.copy()
+    binaries = torch.max(trace, dim=1)[0].squeeze() if full_model.multi_instanced else trace
+    weights = get_weights(weighting_ratio, binaries)
+    return passive_error, binaries, weights
+
 def separate_weights(weighting, full_model, rollouts, proximity, trace=None, object_rollouts=None): # this should work for all cases because passive_likelihood reduces, the only difference is the passive error threshold
     '''
     Generates weights either based on the passive error, the trace, or returns a single vector. This value is shared across the training computation
@@ -43,11 +59,11 @@ def separate_weights(weighting, full_model, rollouts, proximity, trace=None, obj
         passive_error =  - get_error(full_model, rollouts, object_rollouts, error_type = error_types.PASSIVE_LIKELIHOOD).astype(int)
         done =  np.expand_dims(get_error(full_model, rollouts, object_rollouts, error_type = error_types.DONE).squeeze(), -1)
         # print(object_rollouts.target_diff.shape, done.shape, passive_error.shape)
-        print(np.concatenate([passive_error, rollouts.target_diff if object_rollouts is None else object_rollouts.target_diff, done], axis=-1))
+        # weighting hyperparameters, if passive_error_cutoff > 0 then using passive weighting
+        print("all", passive_error_cutoff, np.concatenate([passive_error, rollouts.target_diff if object_rollouts is None else object_rollouts.target_diff, passive_error > passive_error_cutoff, done], axis=-1)[:100])
         print("passive", np.concatenate([passive_error, rollouts.target_diff if object_rollouts is None else object_rollouts.target_diff, done], axis=-1)[(passive_error > passive_error_cutoff).squeeze()][:100])
         print("passive", np.concatenate([passive_error, rollouts.target_diff if object_rollouts is None else object_rollouts.target_diff, done], axis=-1)[(passive_error > passive_error_cutoff).squeeze()][100:200])
         print(np.concatenate([passive_error, rollouts.target_diff if object_rollouts is None else object_rollouts.target_diff, done], axis=-1)[(passive_error > passive_error_cutoff).squeeze()][200:300])
-        # weighting hyperparameters, if passive_error_cutoff > 0 then using passive weighting
         binaries = passive_binary(passive_error, weighting, proximity, done)
         if len(binaries.shape) > 1 and binaries.shape[-1] > 1: 
             binaries = np.sum(binaries, axis=-1)
@@ -58,9 +74,7 @@ def separate_weights(weighting, full_model, rollouts, proximity, trace=None, obj
             passive_error, weights, binaries = uni_weights(rollouts)
         print("assive error", np.sum(binaries), np.nonzero(binaries)[0][:10], passive_error[passive_error > 0], binaries, weights)
     elif trace is not None:
-        passive_error = trace.copy()
-        binaries = torch.max(trace, dim=1)[0].squeeze() if full_model.multi_instanced else trace
-        weights = get_weights(weighting_ratio, binaries)
+        passive_error, binaries, weights = get_trace_weights(full_model, trace, weighting_ratio)
     else: # no special weighting on the samples
         passive_error, weights, binaries = uni_weights(rollouts)
     print(passive_error.shape, weights.shape, binaries.shape, object_rollouts is not None,
