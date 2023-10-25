@@ -81,8 +81,8 @@
       reduce_function: sum
       num_pair_layers: 1
     optimizer:
-      lr: .0001
-      alt_lr: .00001
+      lr: .0003
+      alt_lr: .00002
       eps: .00001
       alpha: 0.99
       betas: 0.9 0.999

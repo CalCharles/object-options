@@ -1,11 +1,11 @@
 ---
 metaparam: 
-  multi_filename: dag_3_c_trials2_
-  log_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam_logs/dag_3_c_trials2/
-  yaml_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam_yamls/dag_3_c_trials2/
-  save_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam/dag_3_c_trials2/
-  graph_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam_graphs/dag_3_c_trials2/
-  bash_path: bashes/dag_3_c_trials2.sh
+  multi_filename: dag_3_c_trials4_
+  log_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam_logs/dag_3_c_trials4/
+  yaml_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam_yamls/dag_3_c_trials4/
+  save_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam/dag_3_c_trials4/
+  graph_endpoint: /data/calebc/object_data/full/hyperparam/hyperparam_graphs/dag_3_c_trials4/
+  bash_path: bashes/dag_3_c_trials4.sh
   base_config: configs/full_training/DAG/3_chain/3_c_small.yaml
   runfile: train_full_interaction.py
   gpu: 3
@@ -13,8 +13,8 @@ metaparam:
   simul_run: 8
   num_trials: 5
   cycle_gpu: 4
-# full_inter:
-#   adaptive_lasso: 3 1,5 1,9 1
 full_inter:
-  mixed_interaction: relaxed
+  adaptive_lasso: 3 1,5 1
+# full_inter:
+#   mixed_interaction: relaxed
 ...

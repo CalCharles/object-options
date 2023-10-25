@@ -1,6 +1,6 @@
 ---
   # alter_base: configs/full_training/DAG/3_chain/base.yaml
-  alter_base: configs/full_training/DAG/3_chain/attn.yaml
+  alter_base: configs/full_training/DAG/3_chain/base.yaml
   record:
     # record_rollouts: ""
     record_recycle: -1

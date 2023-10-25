@@ -251,6 +251,7 @@ def group_assess(read_fn, folder):
         for ltype in new_aggregated[key].keys():
             if ltype == "flat error:1":
                 print(key, ltype, np.mean(np.array(new_aggregated[key][ltype]), axis=0))
+                print(key, ltype, np.std(np.array(new_aggregated[key][ltype]), axis=0))
                 print(np.array(new_aggregated[key][ltype]))
             if ltype == "trace rate:1":
                 print(key, ltype, np.mean(np.array(new_aggregated[key][ltype]), axis=0))

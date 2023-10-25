@@ -55,7 +55,7 @@
     use_active_as_passive: False
     train_names: $C
     predict_next_state: False
-    adaptive_lasso: 1 1
+    adaptive_lasso: 5 1
   interaction_net:
     hidden_sizes: 512
     net_type: maskattn
