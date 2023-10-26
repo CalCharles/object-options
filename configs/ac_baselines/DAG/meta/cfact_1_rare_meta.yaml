@@ -14,5 +14,5 @@ metaparam:
   num_trials: 5
   cycle_gpu: 4
 inter_baselines:
-  counterfactual_threshold: 35
+  counterfactual_threshold: 0.1
 ...

@@ -43,7 +43,7 @@
     train_names: $C
   inter_baselines:
     attention_threshold: 0.333
-    attention_lambda: 10
+    attention_lambda: 3
   interaction_net:
     hidden_sizes: 256
     net_type: parattn

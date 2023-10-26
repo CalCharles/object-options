@@ -192,6 +192,83 @@ def read_full_inter(filename):
 
     return test_at, vals
 
+TRBASE = "train_baseline_"
+TESTBASE = "test_baseline_"
+ACL = "active loss:"
+SP = "soft Positive:"
+SN = "soft Negative:"
+TRW = "trace weight"
+
+
+def read_full_acbase(filename):
+    # reads a file for the performance the the iterations
+    file = open(filename, 'r')
+    test_at = list()
+    vals = {"act": list()}
+    training_mode = False
+    test_mode = False
+    for line in file.readlines():
+        try:
+            if line.find(TRBASE) != -1:
+                training_mode = True
+                test_mode = False
+            if line.find(TESTBASE) != -1:
+                test_mode = True
+                training_mode = False
+            if training_mode:
+                if line.find(ACL) != -1 and line.find(IAT) != -1:
+                    itr_at = int(line.split(", ")[0].split(" ")[-1])
+                    test_at.append(itr_at)
+                    score = float(line.split(", ")[2].split(": ")[-1])
+                    vals["act"].append(score)
+                if line.find(FERR) != -1:
+                    rex = re.compile(r'\s+')
+                    nline = rex.sub(' ', line)
+                    ferrs = nline.split(' ')
+                    for i, v in enumerate(ferrs[2:]):
+                        try:
+                            if FERR + str(i) in vals: vals[FERR + str(i)].append(float(v.strip("[]")))
+                            else: vals[FERR + str(i)] = [float(v.strip("[]"))]
+                        except ValueError as e:
+                            pass
+                if line.find(SP) != -1:
+                    rex = re.compile(r'\s+')
+                    nline = rex.sub(' ', line)
+                    sfps = nline.split(' ')
+                    for i, v in enumerate(sfps[2:]):
+                        try:
+                            if SP + str(i) in vals: vals[SP + str(i)].append(float(v.strip("[]")))
+                            else: vals[SP + str(i)] = [float(v.strip("[]"))]
+                        except ValueError as e:
+                            continue
+                if line.find(SN) != -1:
+                    rex = re.compile(r'\s+')
+                    nline = rex.sub(' ', line)
+                    sfns = nline.split(' ')
+                    for i, v in enumerate(sfns[2:]):
+                        try:
+                            if SN + str(i) in vals: vals[SN + str(i)].append(float(v.strip("[]")))
+                            else: vals[SN + str(i)] = [float(v.strip("[]"))]
+                        except ValueError as e:
+                            continue
+            if test_mode:
+                if line.find(TRW) != -1:
+                    rex = re.compile(r'\s+')
+                    nline = rex.sub(' ', line)
+                    trtes = nline.split(' ')
+                    for i, v in enumerate(trtes[2:]):
+                        try:
+                            if TRW + str(i) in vals: vals[TRW + str(i)].append(float(v.strip("[]")))
+                            else: vals[TRW + str(i)] = [float(v.strip("[]"))]
+                        except ValueError as e:
+                            continue
+        except ValueError as e:
+            continue
+
+    return test_at, vals
+
+
+
 def group_assess(read_fn, folder):
     results = list()
     aggregated = dict()
@@ -215,6 +292,8 @@ def group_assess(read_fn, folder):
                 result = read_iterations_cdl(file_path)
             elif read_fn.find("full") != -1:
                 result = read_full_inter(file_path)
+            elif read_fn.find("acbase") != -1:
+                result = read_full_acbase(file_path)
             else:
                 result = read_iterations(file_path)
             mml = dict()
@@ -226,7 +305,7 @@ def group_assess(read_fn, folder):
                 mml[k] = (min_r, max_r, last_r, num_steps)
             results.append((file_path, mml))
             print(file_path, mml)
-            if file_path.find("trial_") != -1 and file_path.find(".log") != -1:
+            if file_path.find("trial_") != -1 and file_path.find(".txt") != -1:
                 file_keys.append(file_path)
                 key = file_path.split("/")[-1]
                 key = key[:key.find("trial_")]
