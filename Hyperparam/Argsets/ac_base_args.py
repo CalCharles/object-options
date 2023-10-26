@@ -63,7 +63,7 @@ ac_base_args = {
         "grad_lasso_lambda": 0.0,
         "attention_threshold": -1.0,
         "attention_lambda": 0.0,
-        "dist_distance": "likelihood",
+        "dist_distance": "mean",
         "counterfactual_threshold": -1.0,
         "counterfactual_lambda": 0.0,
         "num_counterfactual": -1,
