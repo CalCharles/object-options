@@ -23,17 +23,23 @@ def compute_likelihood_adaptive_lasso(active_nlikelihood, args, lasso_lambda):
     #                                                   if args.full_inter.adaptive_lasso > 0 else lasso_lambda)
 
 def compute_mean_adaptive_lasso(means, target, args, lasso_lambda):
-    mean_difference = pytorch_model.unwrap(torch.linalg.norm(means - target, p=2, dim=-1))
+    mean_difference = np.mean(pytorch_model.unwrap(torch.linalg.norm(means - target, p=2, dim=-1)))
     return (args.full_inter.adaptive_lasso[0] * np.exp(-mean_difference / args.full_inter.adaptive_lasso[1])
                 if args.full_inter.adaptive_lasso[0] > 0 else lasso_lambda)
 
 
 def compute_mean_var_adaptive_lasso(active_params, target, args, lasso_lambda):
-    mean_difference = pytorch_model.unwrap(torch.linalg.norm(active_params[0] - target, ord=1, dim=-1))
-    confidence = pytorch_model.unwrap(torch.linalg.norm(active_params[1], ord=1, dim=-1))
+    mean_difference = np.mean(pytorch_model.unwrap(torch.linalg.norm(active_params[0] - target, ord=1, dim=-1)))
+    confidence = np.mean(pytorch_model.unwrap(torch.linalg.norm(active_params[1], ord=1, dim=-1)))
+    print(mean_difference.shape, confidence.shape, torch.linalg.norm(active_params[1], ord=1, dim=-1).shape, torch.linalg.norm(active_params[0] - target, ord=1, dim=-1).shape)
     return (args.full_inter.adaptive_lasso[0] * np.exp(-(mean_difference + confidence) / args.full_inter.adaptive_lasso[1])
                 if args.full_inter.adaptive_lasso[0] > 0 else lasso_lambda)
 
+def compute_adaptive_lasso(active_nlikelihood, active_params, target, done_flags, args, lasso_lambda):
+    if args.full_inter.adaptive_lasso_type == "likelihood": lasso_lambda = compute_likelihood_adaptive_lasso(active_nlikelihood[done_flags.nonzero()[:,0]], args, lasso_lambda)
+    elif args.full_inter.adaptive_lasso_type == "mean": lasso_lambda = compute_mean_adaptive_lasso(active_params[0][done_flags.nonzero()[:,0]], target[done_flags.nonzero()[:,0]], args, lasso_lambda)
+    elif args.full_inter.adaptive_lasso_type == "meanvar": lasso_lambda = compute_mean_var_adaptive_lasso((active_params[0][done_flags.nonzero()[:,0]], active_params[1][done_flags.nonzero()[:,0]]), target[[done_flags.nonzero()[:,0]]], args, lasso_lambda)
+    return lasso_lambda
 
 def evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambda, lasso_lambda, entropy_lambda, active_params, interaction_likelihood, interaction_mask, active_log_probs, done_flags, proximity, target):
     active_nlikelihood = compute_likelihood(full_model, len(active_log_probs), - active_log_probs, done_flags=done_flags, reduced=False, is_full = True)
@@ -41,9 +47,7 @@ def evaluate_active_interaction(full_model, args, onemask_lambda, halfmask_lambd
     # passive_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - passive_log_probs, done_flags=done_flags, reduced=False, is_full = True)
     # adapts the lasso_lambda based on the input. If the active nlikelihood is low (large negative), it will approach e^{-0} = 1 if the error is high, it will approach e^-inf = 0
     # TODO: adaptive weighting value 3.0 is environment specific based on the level of natural stochasticity
-    if args.full_inter.adaptive_lasso_type == "likelihood": lasso_lambda = compute_likelihood_adaptive_lasso(active_nlikelihood[done_flags.nonzero()[:,0]], args, lasso_lambda)
-    elif args.full_inter.adaptive_lasso_type == "mean": lasso_lambda = compute_mean_adaptive_lasso(active_params[0][done_flags.nonzero()[:,0]], target[done_flags.nonzero()[:,0]], args, lasso_lambda)
-    elif args.full_inter.adaptive_lasso_type == "meanvar": lasso_lambda = compute_mean_var_adaptive_lasso((active_params[0][done_flags.nonzero()[:,0]], active_params[1][done_flags.nonzero()[:,0]]), target[[done_flags.nonzero()[:,0]]], args, lasso_lambda)
+    lasso_lambda = compute_adaptive_lasso(active_nlikelihood, active_params, target, done_flags, args, lasso_lambda)
     mask_loss = (interaction_likelihood - full_model.check_passive_mask(interaction_likelihood)).norm(p=args.full_inter.lasso_order, dim=-1).unsqueeze(-1) # penalize for deviating from the passive mask
     zero_mask_loss = (interaction_likelihood).norm(p=args.full_inter.lasso_order, dim=-1).unsqueeze(-1) # penalize for deviating from the passive mask
     one_mask_loss = (1-interaction_likelihood).norm(p=args.full_inter.lasso_order, dim=-1).unsqueeze(-1)
@@ -68,7 +72,7 @@ def evaluate_active_interaction_expert(full_model, args, onemask_lambda, halfmas
     active_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - active_log_probs, 
                                             done_flags=done_flags, reduced=False, is_full = True)
     # passive_nlikelihood = compute_likelihood(full_model, args.train.batch_size, - passive_log_probs, done_flags=done_flags, reduced=False, is_full = True)
-    lasso_lambda = compute_adaptive_lasso(active_nlikelihood, args, lasso_lambda)
+    lasso_lambda = compute_adaptive_lasso(active_nlikelihood, active_params, target, done_flags, args, lasso_lambda)
     mean_mask_loss =  (hot_likelihood - (1./full_model.num_clusters)).unsqueeze(-1) * halfmask_lambda # make the agent select more diverse masks (to prevent mode collapse early)
     mask_loss = (interaction_mask).unsqueeze(-1) * lasso_lambda # penalize the selection of interaction masks
     entropy_loss = torch.sum(-interaction_mask*torch.log(interaction_mask), dim=-1).unsqueeze(-1) * entropy_lambda

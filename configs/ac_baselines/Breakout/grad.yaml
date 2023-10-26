@@ -3,17 +3,17 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /hdd/datasets/object_data/base/Breakout/tiny/attn/log/inter.log
-    # load_dir: /hdd/datasets/object_data/base/Breakout/tiny/testrun/
-    save_dir: /hdd/datasets/object_data/base/Breakout/tiny/attn/
-    # log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/tiny/log/inter.log
-    # # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/base/Breakout/tiny/testrun/
-    # save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/base/Breakout/tiny/attn/
+    log_filename: /mnt/Data/calebc/object_data/base/Breakout/rand_tiny/attn/log/inter.log
+    # load_dir: /mnt/Data/calebc/object_data/base/Breakout/rand_tiny/testrun/
+    save_dir: /mnt/Data/calebc/object_data/base/Breakout/rand_tiny/attn/
+    # log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/rand_tiny/log/inter.log
+    # # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/base/Breakout/rand_tiny/testrun/
+    # save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/base/Breakout/rand_tiny/attn/
   environment:
     env: Breakout
     variant: rand_tiny
-    # load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/Breakout/tiny/
-    load_environment: /hdd/datasets/object_data/Breakout/tiny/
+    # load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/Breakout/rand_tiny/
+    load_environment: /mnt/Data/calebc/object_data/Breakout/rand_tiny/
   torch:
     gpu: 0
     no_cuda: False
@@ -21,15 +21,16 @@
     train: True
     num_frames: 500000
     train_test_order: time
-    # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/Breakout/tiny/
-    load_rollouts: /hdd/datasets/object_data/Breakout/tiny/
+    # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/Breakout/rand_tiny/
+    load_rollouts: /mnt/Data/calebc/object_data/Breakout/rand_tiny/
     num_iters: 100000
     batch_size: 512
   inter:
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
-    # load_intermediate: /hdd/datasets/object_data/base/Breakout/1_hdim/attn/temp/
-    # save_intermediate: /hdd/datasets/object_data/base/Breakout/1_hdim/attn/temp/
+    load_intermediate: /mnt/Data/calebc/object_data/baselines/Breakout/rand_tiny
+    # save_intermediate: /mnt/Data/calebc/object_data/baselines/Breakout/rand_tiny
+    # save_intermediate: /mnt/Data/calebc/object_data/base/Breakout/1_hdim/attn/temp/
     compare_trace: True
     passive:
       passive_log_interval: 100

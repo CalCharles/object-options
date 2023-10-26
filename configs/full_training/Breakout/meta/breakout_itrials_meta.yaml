@@ -14,6 +14,7 @@ metaparam:
   num_trials: 8
   cycle_gpu: 4
 full_inter:
-  adaptive_lasso: 1.5 1
+  # adaptive_lasso: 1 1
+  cap_probability: 0.03 0.03
   # adaptive_lasso_bias: 0 -1
 ...

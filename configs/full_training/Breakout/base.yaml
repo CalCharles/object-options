@@ -66,7 +66,9 @@
     # use_active_as_passive: True
     train_names: Ball
     adaptive_lasso: 2 1
-    adaptive_lasso_bias: 2 -1
+    adaptive_lasso_type: meanvar
+    adaptive_lasso_bias: 1 -1
+    cap_probability: 0.03 0.03 # possibly not
     reset_caloss: True
     delay_inter_train: 10000
   interaction_net:

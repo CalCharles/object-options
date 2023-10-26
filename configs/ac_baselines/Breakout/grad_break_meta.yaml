@@ -1,0 +1,18 @@
+---
+metaparam: 
+  multi_filename: grad_break_
+  log_endpoint: /mnt/Data/calebc/object_data/ac_base/hyperparam/hyperparam_logs/grad_break/
+  yaml_endpoint: /mnt/Data/calebc/object_data/ac_base/hyperparam/hyperparam_yamls/grad_break/
+  save_endpoint: /mnt/Data/calebc/object_data/ac_base/hyperparam/hyperparam/grad_break/
+  graph_endpoint: /mnt/Data/calebc/object_data/ac_base/hyperparam/hyperparam_graphs/grad_break/
+  bash_path: bashes/grad_break.sh
+  base_config: configs/ac_baselines/Breakout/grad.yaml
+  runfile: train_full_baselines.py
+  gpu: 1
+  match: 0
+  simul_run: 3
+  num_trials: 5
+  cycle_gpu: 0
+inter_baselines:
+  gradient_threshold: 0.3
+...

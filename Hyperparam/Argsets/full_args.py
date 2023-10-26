@@ -155,7 +155,7 @@ full_args = {
         "delay_inter_train": -1, # delays starting interaciton training for this number of batches
         "partial_active_reset": [-1,-1,-1], # the number of layers to reset, the frequency of interactions (num iters), the iteration to stop resetting at
         "partial_inter_reset": [-1,-1,-1],
-        "cap_probability": 1e-5, # 1-s cannot be higher confidence than this probability in interaction training
+        "cap_probability": [1e-5, 1e-5], # 1-s cannot be higher confidence than this probability in interaction training
     },
     "inter": {
         "predict_dynamics": False,
