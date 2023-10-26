@@ -36,7 +36,7 @@ def train_basic_model(full_model, args, rollouts, object_rollout, test_rollouts,
             passive_masks = np.zeros((1,6))
             passive_masks[0,2] = 1
         if args.environment.env == "Pusher2D":
-            passive_masks = np.zeros((1,5))
+            passive_masks = np.zeros((1,7))
             passive_masks[0,2] = 1
         print(batch.trace, passive_masks)
         trace_diff = np.sum(batch.trace - passive_masks, axis= -1).astype(bool)
