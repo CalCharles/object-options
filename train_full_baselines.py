@@ -60,5 +60,4 @@ if __name__ == '__main__':
     # saving the passive models and weights
     if len(args.inter.save_intermediate) > 0:
         save_to_pickle(os.path.join(create_directory(args.inter.save_intermediate), environment.name +  "_inter_model.pkl"), full_models)
-        save_to_pickle(os.path.join(args.inter.save_intermediate, environment.name +  "_passive_outputs.pkl"), outputs)
 

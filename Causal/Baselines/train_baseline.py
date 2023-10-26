@@ -31,10 +31,16 @@ def train_basic_model(full_model, args, rollouts, object_rollout, test_rollouts,
 
     weights = None
     if args.inter_baselines.trace_weighting > 0:
-        idxes, batch = rollouts.sample(0)
-        passive_masks = full_model.check_passive_mask(batch.tarinter_state)
+        batch, idxes = object_rollout.sample(0)
+        if args.environment.env == "Breakout":
+            passive_masks = np.zeros((1,6))
+            passive_masks[0,2] = 1
+        if args.environment.env == "Pusher2D":
+            passive_masks = np.zeros((1,5))
+            passive_masks[0,2] = 1
+        print(batch.trace, passive_masks)
         trace_diff = np.sum(batch.trace - passive_masks, axis= -1).astype(bool)
-        weights = get_trace_weights(full_model, trace_diff, args.inter_baselines.trace_weighting)
+        passive_error, binaries, weights = get_trace_weights(full_model, trace_diff, args.inter_baselines.trace_weighting)
 
     passive_likelihoods = list()
     active_likelihoods = list()
