@@ -60,8 +60,12 @@ ac_base_args = {
     },
     "inter_baselines": {
         "gradient_threshold": -1.0,
+        "grad_lasso_lambda": 0.0,
         "attention_threshold": -1.0,
+        "attention_lambda": 0.0,
+        "dist_distance": "mean",
         "counterfactual_threshold": -1.0,
+        "counterfactual_lambda": 0.0,
         "num_counterfactual": -1,
         "trace_weighting": -1.0,
     },
@@ -69,6 +73,7 @@ ac_base_args = {
         "buffer_len": 100000,
         "prioritized_replay": list(),
         "display_frame": 0,
+        "omit_done": False,
     },
     "inter": {
         "predict_dynamics": False,
@@ -87,6 +92,14 @@ ac_base_args = {
     },
     "full_inter": {
         "object_id": True, # appends a 1 hot identifier of the object class to the object
+        "lasso_lambda": [1, 0, 0, -1, -1], # lasso_lambda, open mask forcing, 0.5 mask forcing, one mask schedule, masking schedule
+        "lasso_order": 1,
+        "adaptive_lasso": [-1.0, -1.0], # adapts the lasso value according to the magnitude of the active interaction loss (multiplied by this hyperparameter), flattens the decay rate (exp(-\|perf diff\| / adaptive[1]))
+        "adaptive_lasso_bias": [0.0, -1.0], # biases the adaptive lasso baseline constant by negative the adaptive bias, decayed at the schedule
+        "adaptive_lasso_type": "likelihood", # different ways of computing adaptive lasso, uses: likelihood, l2 mean, l1 mean and variance
+        "reset_caloss": False, # resets the converged active loss after passive training 
+        "dual_lasso": [0,0],
+        "entropy_lambda": [0,0], # penalizes the individual values of the binary mask for having high entropy (close to 0.5)
         "soft_distribution": "Identity",
         "dist_temperature": 1, # distribution temperature for relaxed distributions on the interaction mask
         "selection_temperature": 1, # distribution temperature for relaxed distributions on the selection network
@@ -103,6 +116,10 @@ ac_base_args = {
         "selection_train": "",
         "nextstate_interaction": False, # uses the outcome for the interaction network
         "predict_next_state": True, # predicts the next state, otherwise, predicts the current state (useful for DAG methods)
+        "delay_inter_train": -1, # delays starting interaciton training for this number of batches
+        "partial_active_reset": [-1,-1,-1], # the number of layers to reset, the frequency of interactions (num iters), the iteration to stop resetting at
+        "partial_inter_reset": [-1,-1,-1],
+        "cap_probability": 1e-5, # 1-s cannot be higher confidence than this probability in interaction training
     },
     "EMFAC": {
         "full_train": "",

@@ -1,0 +1,7 @@
+---
+  alter_base: configs/ac_baselines/Pusher/grad.yaml
+  inter_baselines:
+    gradient_threshold: -1.0
+    num_counterfactual: 30
+    counterfactual_threshold: 10
+...

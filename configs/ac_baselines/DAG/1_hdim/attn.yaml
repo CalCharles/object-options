@@ -3,17 +3,17 @@
   record:
     # record_rollouts: ""
     record_recycle: -1
-    log_filename: /hdd/datasets/object_data/base/DAG/3_in/attn/log/inter.log
-    # load_dir: /hdd/datasets/object_data/base/DAG/3_in/testrun/
-    save_dir: /hdd/datasets/object_data/base/DAG/3_in/attn/
-    # log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/3_in/log/inter.log
-    # # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/base/DAG/3_in/testrun/
-    # save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/base/DAG/3_in/attn/
+    log_filename: /hdd/datasets/object_data/base/DAG/1_hdim/attn/log/inter.log
+    # load_dir: /hdd/datasets/object_data/base/DAG/1_hdim/testrun/
+    save_dir: /hdd/datasets/object_data/base/DAG/1_hdim/attn/
+    # log_filename:  /work/pi_sniekum_umass_edu/calebc/object_data/1_hdim/log/inter.log
+    # # load_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/base/DAG/1_hdim/testrun/
+    # save_dir:  /work/pi_sniekum_umass_edu/calebc/object_data/base/DAG/1_hdim/attn/
   environment:
     env: RandomDAG
-    variant: 3-in
-    # load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/3_in/
-    load_environment: /hdd/datasets/object_data/RandomDAG/3_in/
+    variant: 1-in-hdim
+    # load_environment: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/1_hdim/
+    load_environment: /hdd/datasets/object_data/RandomDAG/1_hdim/
   torch:
     gpu: 0
     no_cuda: False
@@ -21,15 +21,15 @@
     train: True
     num_frames: 100000
     train_test_order: time
-    # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/3_in/
-    load_rollouts: /hdd/datasets/object_data/RandomDAG/3_in/
+    # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/1_hdim/
+    load_rollouts: /hdd/datasets/object_data/RandomDAG/1_hdim/
     num_iters: 10000
     batch_size: 512
   inter:
     predict_dynamics: True
     interaction_testing: 0.9 -1 -10 -1
-    # load_intermediate: /hdd/datasets/object_data/base/DAG/3_in/attn/temp/
-    # save_intermediate: /hdd/datasets/object_data/base/DAG/3_in/attn/temp/
+    # load_intermediate: /hdd/datasets/object_data/base/DAG/1_hdim/attn/temp/
+    # save_intermediate: /hdd/datasets/object_data/base/DAG/1_hdim/attn/temp/
     compare_trace: True
     passive:
       passive_log_interval: 100
@@ -40,7 +40,7 @@
     mixed_interaction: mixed
     soft_distribution: Identity
     use_active_as_passive: True
-    train_names: $E
+    train_names: $C
   inter_baselines:
     attention_threshold: 0.333
     attention_lambda: 1000
@@ -53,7 +53,7 @@
       repeat_layers: True
       final_layers: 256 256
     mask_attn:
-      model_dim: 128
+      model_dim: 256
       num_heads: 16
       num_layers: 1
       cluster: False

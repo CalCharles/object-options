@@ -42,7 +42,8 @@
     use_active_as_passive: True
     train_names: $D
   inter_baselines:
-    attention_threshold: 1.0
+    attention_threshold: 0.333
+    attention_lambda: 1000
   interaction_net:
     hidden_sizes: 256
     net_type: parattn

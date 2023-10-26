@@ -33,7 +33,7 @@ def compute_counterfactual_cause(full_model, full_batch, batch, args):
             reassign_batch = generate_counterfactual_perturbation([i], full_model, full_batch, batch, args)
             active_full, inter, hot_mask, full_mask, target, _, active_full_log_probs, active_full_inputs = full_model.active_open_likelihoods(reassign_batch)
             # log_probs.append(pytorch_model.unwrap(active_full_log_probs.mean(dim=-1).unsqueeze(-1) * done_flags).squeeze()) # don't use batch size of 1
-            log_probs.append(pytorch_model.unwrap(compute_distributional_distance(actual_full, actual_active_full_log_probs, active_full, active_full_log_probs) * done_flags).squeeze()) # don't use batch size of 1
+            log_probs.append(pytorch_model.unwrap(compute_distributional_distance(args, actual_full, actual_active_full_log_probs, active_full, active_full_log_probs) * done_flags).squeeze()) # don't use batch size of 1
         log_probs = np.stack(log_probs, axis=1) # shapes: batch -> batch x num_counterfactuals
         counterfactual_variance[:,i] = np.std(log_probs, axis=-1)
         bins[:,i] = counterfactual_variance[:,i] > args.inter_baselines.counterfactual_threshold
@@ -41,11 +41,23 @@ def compute_counterfactual_cause(full_model, full_batch, batch, args):
 
 def compute_counterfactual_loss(full_model, full_batch, batch, args):
     return 0
+    done_flags = pytorch_model.wrap(1-full_batch.done, cuda = full_model.iscuda).squeeze().unsqueeze(-1)
+    valid = get_valid(batch.valid, full_model.valid_indices)
+    bins, counterfactual_variance = np.zeros((len(batch), full_model.num_inter)), np.zeros((len(batch), full_model.num_inter))
+    for i in range(full_model.num_inter):
+        reassign_batch = copy.deepcopy(batch)
+        log_probs = list()
+        actual_full, _, _, _, _, _, actual_active_full_log_probs, _ = full_model.active_open_likelihoods(reassign_batch)
+        for j in range(args.inter_baselines.num_counterfactual):
+            reassign_batch = generate_counterfactual_perturbation([i], full_model, full_batch, batch, args)
+            active_full, inter, hot_mask, full_mask, target, _, active_full_log_probs, active_full_inputs = full_model.active_open_likelihoods(reassign_batch)
 
 
-def compute_distributional_distance(actual_full, actual_log_probs, reassign_full, reassign_log_probs):
+def compute_distributional_distance(args, actual_full, actual_log_probs, reassign_full, reassign_log_probs):
     # TODO: add  other distributional distances
-    return (actual_log_probs.mean(dim=-1).unsqueeze(-1) - reassign_log_probs.mean(dim=-1).unsqueeze(-1)).abs()
+    if args.inter_baselines.dist_distance == "likelihood": return (actual_log_probs.mean(dim=-1).unsqueeze(-1) - reassign_log_probs.mean(dim=-1).unsqueeze(-1)).abs()
+    elif args.inter_baselines.dist_distance == "mean": return (actual_full[0] - reassign_full[0]).abs().mean()
+    elif args.inter_baselines.dist_distance == "meanvar": return (actual_full[0] - reassign_full[0]).abs().mean() + (actual_full[1] - reassign_full[1]).abs().mean()
 
 def compute_splitting(full_model, inter_masks, full_batch, batch, args, is_zero=False):
     # generates counterfactuals on the ones/zeros, computes the splitting comparison with the actual distribution

@@ -30,11 +30,11 @@ def train_basic_model(full_model, args, rollouts, object_rollout, test_rollouts,
     test_baseline_logger = baseline_interaction_logger("test_baseline_" + get_baseline_type(args.inter_baselines), args.record.record_graphs, args.inter.passive.passive_log_interval, full_model)
 
     weights = None
-    if args.inter_baselines.sample_trace > 0:
+    if args.inter_baselines.trace_weighting > 0:
         idxes, batch = rollouts.sample(0)
         passive_masks = full_model.check_passive_mask(batch.tarinter_state)
         trace_diff = np.sum(batch.trace - passive_masks, axis= -1).astype(bool)
-        weights = get_trace_weights(full_model, trace_diff, args.inter_baselines.sample_trace)
+        weights = get_trace_weights(full_model, trace_diff, args.inter_baselines.trace_weighting)
 
     passive_likelihoods = list()
     active_likelihoods = list()
@@ -52,16 +52,16 @@ def train_basic_model(full_model, args, rollouts, object_rollout, test_rollouts,
         active_loss = compute_likelihood(full_model, args.train.batch_size, active_likelihood_full, done_flags=done_flags, is_full = True, valid = valid)
         
         additional_losses = 0
-        if args.inter_baselines.gradient_threshold > 0:
+        if args.inter_baselines.gradient_threshold > 0 and args.inter_baselines.grad_lasso_lambda != 0:
             additional_losses = compute_gradient_loss(full_model, full_batch, batch, args) * args.inter_baselines.grad_lasso_lambda
-        elif args.inter_baselines.attention_threshold > 0:
+        elif args.inter_baselines.attention_threshold > 0 and args.inter_baselines.attention_lambda != 0:
             additional_losses = compute_attention_loss(full_model, batch, args) * args.inter_baselines.attention_lambda
-        elif args.inter_baselines.counterfactual_threshold > 0:
+        elif args.inter_baselines.counterfactual_threshold > 0 and args.inter_baselines.counterfactual_lambda != 0:
             additional_losses = compute_counterfactual_loss(full_model, batch, args) * args.inter_baselines.counterfactual_lambda
 
         
-        run_optimizer(active_optimizer, full_model.active_model, active_loss * 0.01 + additional_losses)
-        active_logger.log(i, active_loss, None, None, active_likelihood_full * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), None, 1.0, batch.done,
+        run_optimizer(active_optimizer, full_model.active_model, active_loss + additional_losses)
+        active_logger.log(i, active_loss, None, None, active_likelihood_full * pytorch_model.wrap(done_flags, cuda=full_model.iscuda), batch.trace, 1.0, batch.done,
                             active_prediction_params, target, None, full_model, valid=valid)
         if i % args.inter.passive.passive_log_interval == 0:
             if args.inter_baselines.gradient_threshold > 0:

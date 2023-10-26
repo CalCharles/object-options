@@ -19,11 +19,11 @@
     no_cuda: False
   train:
     train: True
-    num_frames: 10000
+    num_frames: 100000
     train_test_order: time
     # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/RandomDAG/1_in/
     load_rollouts: /hdd/datasets/object_data/RandomDAG/1_in/
-    num_iters: 10000
+    num_iters: 100000
     batch_size: 512
   inter:
     predict_dynamics: True
@@ -42,22 +42,23 @@
     use_active_as_passive: True
     train_names: $C
   inter_baselines:
-    attention_threshold: 0.3
+    attention_threshold: 0.333
+    attention_lambda: 100
   interaction_net:
-    hidden_sizes: 256
+    # hidden_sizes: 256
     net_type: parattn
     init_form: xnorm
-    embed_inputs: 128
+    embed_inputs: 512
     # activation: crelu
     pair:
       repeat_layers: True
-      final_layers: 64
+      final_layers: 256
     mask_attn:
-      model_dim: 128
+      model_dim: 256
       num_heads: 16
       num_layers: 1
       attention_dropout: 0.1
-      merge_function: cat
+      merge_function: sum
       mask_mode: query
       gumbel_attention: -1
       append_keys: False

@@ -12,7 +12,7 @@ from Causal.Utils.instance_handling import compute_likelihood, get_batch, get_va
 from Causal.Utils.weighting import proximity_binary, get_weights
 from Network.network_utils import pytorch_model, run_optimizer, get_gradient
 
-def get_gradient(full_model, full_batch, batch, args):
+def get_inter_gradient(full_model, full_batch, batch, args):
     active_full, inter, hot_mask, full_mask, target, _, active_full_log_probs, active_full_inputs = full_model.active_open_likelihoods(batch, input_grad=True)
     # done flags
     done_flags = pytorch_model.wrap(1-full_batch.done, cuda = full_model.iscuda).squeeze().unsqueeze(-1)
@@ -31,11 +31,11 @@ def get_gradient(full_model, full_batch, batch, args):
 
 
 def compute_gradient_cause(full_model, full_batch, batch, args):
-    inter_grads = pytorch_model.unwrap(get_gradient(full_model, full_batch, batch, args))
+    inter_grads = pytorch_model.unwrap(get_inter_gradient(full_model, full_batch, batch, args))
     bins = (inter_grads > args.inter_baselines.gradient_threshold).astype(int)
     return bins, inter_grads
 
 def compute_gradient_loss(full_model, full_batch, batch, args):
-    inter_grads = get_gradient(full_model, full_batch, batch, args)
+    inter_grads = get_inter_gradient(full_model, full_batch, batch, args)
     grad_loss = inter_grads.mean()
     return grad_loss
