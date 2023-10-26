@@ -35,7 +35,7 @@ def compute_counterfactual_cause(full_model, full_batch, batch, args):
             # log_probs.append(pytorch_model.unwrap(active_full_log_probs.mean(dim=-1).unsqueeze(-1) * done_flags).squeeze()) # don't use batch size of 1
             log_probs.append(pytorch_model.unwrap(compute_distributional_distance(args, actual_full, actual_active_full_log_probs, active_full, active_full_log_probs) * done_flags).squeeze()) # don't use batch size of 1
         log_probs = np.stack(log_probs, axis=1) # shapes: batch -> batch x num_counterfactuals
-        counterfactual_variance[:,i] = np.std(log_probs, axis=-1)
+        counterfactual_variance[:,i] = np.mean(log_probs, axis=-1)
         bins[:,i] = counterfactual_variance[:,i] > args.inter_baselines.counterfactual_threshold
     return bins, counterfactual_variance
 

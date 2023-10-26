@@ -3,5 +3,5 @@
   inter_baselines:
     gradient_threshold: -1.0
     num_counterfactual: 30
-    counterfactual_threshold: 10
+    counterfactual_threshold: 35
 ...
