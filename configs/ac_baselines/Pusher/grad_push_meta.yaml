@@ -6,13 +6,13 @@ metaparam:
   save_endpoint: /data/calebc/object_data/ac_base/hyperparam/hyperparam/grad_push/
   graph_endpoint: /data/calebc/object_data/ac_base/hyperparam/hyperparam_graphs/grad_push/
   bash_path: bashes/grad_push.sh
-  base_config: configs/ac_baselines/DAG/Pusher2D/grad.yaml
+  base_config: configs/ac_baselines/Pusher/grad.yaml
   runfile: train_full_baselines.py
   gpu: 1
   match: 0
   simul_run: 3
   num_trials: 5
-  cycle_gpu: 0
+  cycle_gpu: 4
 inter_baselines:
-  gradient_threshold: 0.1
+  gradient_threshold: 0.05
 ...

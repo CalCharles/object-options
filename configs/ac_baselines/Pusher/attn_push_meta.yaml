@@ -6,13 +6,13 @@ metaparam:
   save_endpoint: /data/calebc/object_data/ac_base/hyperparam/hyperparam/attn_robopush/
   graph_endpoint: /data/calebc/object_data/ac_base/hyperparam/hyperparam_graphs/attn_robopush/
   bash_path: bashes/attn_robopush.sh
-  base_config: configs/ac_baselines/DAG/Pusher2D/attn.yaml
+  base_config: configs/ac_baselines/Pusher/attn.yaml
   runfile: train_full_baselines.py
   gpu: 2
   match: 0
   simul_run: 2
   num_trials: 5
-  cycle_gpu: 0
+  cycle_gpu: 4
 inter_baselines:
   attention_threshold: 0.1428
 ...

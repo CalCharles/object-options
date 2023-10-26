@@ -32,7 +32,7 @@ def compute_attention_loss(full_model, batch, args):
     active_full, weights = full_model.return_weights(batch)
     done_flags = pytorch_model.wrap(1-batch.done, cuda = full_model.iscuda).squeeze().unsqueeze(-1)
     valid = get_valid(batch.valid, full_model.valid_indices)
-    input_weights = weights.mean(dim=1) * done_flags.unsqueeze(-1).unsqueeze(-1) # average layers dimension
+    input_weights = weights.mean(dim=1).mean(dim=1) * done_flags.unsqueeze(-1) # average layers dimension AND head dimension
     input_weights = input_weights.reshape(-1,full_model.num_inter) # assumes only one key
     # print(input_weights)
     entropy_loss = (-input_weights * torch.log(input_weights + 1e-6)).sum(axis = -1).mean()

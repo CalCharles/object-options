@@ -6,13 +6,13 @@ metaparam:
   save_endpoint: /data/calebc/object_data/ac_base/hyperparam/hyperparam/cfact_push/
   graph_endpoint: /data/calebc/object_data/ac_base/hyperparam/hyperparam_graphs/cfact_push/
   bash_path: bashes/cfact_push.sh
-  base_config: configs/ac_baselines/DAG/Pusher2D/cfact.yaml
+  base_config: configs/ac_baselines/Pusher/cfact.yaml
   runfile: train_full_baselines.py
   gpu: 3
   match: 0
   simul_run: 3
   num_trials: 10
-  cycle_gpu: 0
+  cycle_gpu: 4
 inter_baselines:
   counterfactual_threshold: 137
 ...
