@@ -706,9 +706,7 @@ class NeuralInteractionForwardModel(nn.Module):
         if normalize: batch = self.normalize_batch(batch)
         active_input = pytorch_model.wrap(batch.tarinter_state, cuda=self.iscuda)
         valid = pytorch_model.wrap(batch.valid, cuda=self.iscuda)
-        # if mask is None:
-        #     mask = self.active_model.get_all_mask(len(batch), -1, -1) if self.cluster_mode else pytorch_model.wrap(torch.ones(len(self.all_names) * self.target_num), cuda = self.iscuda)
-        # else:
-        #     mask = pytorch_model.wrap(mask, cuda = self.iscuda)
+        if mask is not None:
+            mask = pytorch_model.wrap(mask, cuda = self.iscuda)
         mean, std, weights = self.active_model.weights(active_input, mask, valid=valid)
         return (mean, std), weights

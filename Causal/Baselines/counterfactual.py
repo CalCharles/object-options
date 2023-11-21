@@ -40,7 +40,6 @@ def compute_counterfactual_cause(full_model, full_batch, batch, args):
     return bins, counterfactual_variance
 
 def compute_counterfactual_loss(full_model, full_batch, batch, args):
-    return 0
     done_flags = pytorch_model.wrap(1-full_batch.done, cuda = full_model.iscuda).squeeze().unsqueeze(-1)
     valid = get_valid(batch.valid, full_model.valid_indices)
     bins, counterfactual_variance = np.zeros((len(batch), full_model.num_inter)), np.zeros((len(batch), full_model.num_inter))

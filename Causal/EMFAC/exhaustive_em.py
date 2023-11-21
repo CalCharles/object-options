@@ -130,10 +130,10 @@ def binary_state_compatibility(all_binaries, all_states, all_outcomes, environme
     print(cost)
     return compatibility
 
-def compute_possible_efficient(environment, one_constant, zero_constant, save_path="", use_invariant=True):
+def compute_possible_efficient(environment, one_constant, zero_constant, save_path="", use_invariant=True, use_zero=False):
     # a binary includes the object, or does not
     all_binaries = np.array(np.meshgrid(*[[0,1] for i in range(environment.num_objects)])).T.reshape(-1,environment.num_objects)
-    use_zero = environment.use_zero
+    use_zero = use_zero
     if not use_zero: all_binaries = all_binaries[1:]
     all_states = environment.all_states
     outcomes = environment.outcomes

@@ -1,19 +1,20 @@
-variants = {"2-chain": (False, True, "2-chain", -1, 1, 4,4, True, False, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", 0.0, 50),
-            "3-chain": (False, True, "3-chain", -1, 1, 4,4, True, False, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", 0.0, 50),
-            "3-c-small": (False, True, "3-chain", -1, 1, 4,4, True, False, True, 0.0, "Gaussian", 0.000, False, -1, -1, "$C", 0.0, 50),
-            "4-chain": (False, True, "4-chain", -1, 1, 4,4, True, False, True, 0.0, "Gaussian", 0.007, False, -1, -1, "$D", 0.5, 50),
-            "1-in": (False, False, "3-chain", -1, 1, 4,4, False, True, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", 0.0, 50),
-            "2-in": (False, False, "2-inchain", -1, 1, 4,4, False, True, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", 0.0, 50),
-            "3-in": (False, False, "3-inchain", -1, 1, 4,4, False, True, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", 0.0, 50),
-            "1-in-ndym": (False, False, "3-chain", -1, 1, 4,4, False, False, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", 0.0, 50),
-            "1-in-nt": (False, False, "3-chain", -1, 1, 4,4, False, True, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", 0.0, 2),
-            "1-hdim": (False, False, "3-chain", -1, 1, 20,20, False, True, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", 0.0, 50),
-            "1-rare": (False, False, "3-chain", -1, 1, 4,4, False, True, True, 0.23, "Gaussian", 0.000, True, -1, -1, "", 0.0, 50),
-            "multi-in": (False, False, "2-multi", -1, 1, 4,4, True, True, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", 0.0, 50)}
+variants = {"2-chain": (False, True, "2-chain", -1, 1, 4,4, True, False, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", "", 0.0, 50),
+            "3-chain": (False, True, "3-chain", -1, 1, 4,4, True, False, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", "", 0.0, 50),
+            "3-c-small": (False, True, "3-chain", -1, 1, 4,4, True, False, True, 0.0, "Gaussian", 0.000, False, -1, -1, "", "$C", 0.0, 50),
+            "4-chain": (False, True, "4-chain", -1, 1, 4,4, True, False, True, 0.0, "Gaussian", 0.007, False, -1, -1, "", "$D", 0.5, 50),
+            "1-in": (False, False, "3-chain", -1, 1, 4,4, False, True, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", "", 0.0, 50),
+            "2-in": (False, False, "2-inchain", -1, 1, 4,4, False, True, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", "", 0.0, 50),
+            "3-in": (False, False, "3-inchain", -1, 1, 4,4, False, True, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", "", 0.0, 50),
+            "1-in-ndym": (False, False, "3-chain", -1, 1, 4,4, False, False, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", "", 0.0, 50),
+            "1-in-nt": (False, False, "3-chain", -1, 1, 4,4, False, True, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", "", 0.0, 2),
+            "1-hdim": (False, False, "3-chain", -1, 1, 20,20, False, True, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", "", 0.0, 50),
+            "1-rare": (False, False, "3-chain", -1, 1, 4,4, False, True, True, 0.23, "Gaussian", 0.000, True, -1, -1, "", "", 0.0, 50),
+            "multi-in": (False, False, "2-multi", -1, 1, 4,4, True, True, True, 0.0, "Gaussian", 0.000, True, -1, -1, "", "", 0.0, 50),
+            "1-null": (False, False, "3-chain", -1, 1, 4,4, False, True, True, 0.0, "Gaussian", 0.000, True, 1, 2, "$C", "", 0.0, 50)}
 
 # discrete_actions, allow uncontrollable, graph_skeleton, num_nodes (only used for random graph skeleton), 
 # multi_instanced, min dim, max dim, instant_update, relate_dynamics, conditional, conditional_value
-# distribution, noise_percentage, require_passive (dynamics), min live, max live, intervention_state, intervention_rate, horizon
+# distribution, noise_percentage, require_passive (dynamics), min live, max live, keep_live, intervention_state, intervention_rate, horizon
 
 def parse_edges(graph_skeleton):
     if graph_skeleton == "rand":

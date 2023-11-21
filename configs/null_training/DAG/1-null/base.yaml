@@ -1,0 +1,73 @@
+---
+  record:
+    # record_rollouts: ""
+    record_recycle: -1
+    # log_filename: /nfs/data/calebc/object_data/all/randomdist/default/attn/log/inter.log
+    # load_dir: /nfs/data/calebc/object_data/all/breakout/attn/testrun/
+    # save_dir: /nfs/data/calebc/object_data/all/randomdist/attn/default/
+  environment:
+    env: RandomDistribution
+    load_environment: /hdd/datasets/object_data/RandomDAG/1-null
+    gym_to_gymnasium: False
+  torch:
+    gpu: 0
+    no_cuda: False
+  train:
+    train: True
+    num_frames: 300000
+    train_test_order: time
+    load_rollouts: /hdd/datasets/object_data/RandomDAG/1-null
+    num_iters: 40
+    batch_size: 256
+    # batch_size: 2
+  multi_inter:
+    # evaluate: True
+    max_combination: 1
+    dist_epsilon: 0.1
+  inter:
+    predict_dynamics: True
+    interaction_testing: 0.9 -1 -10 -1
+    interaction_iters: 0
+    load_intermediate: /hdd/datasets/object_data/null/randdag/base/temp/
+    # save_intermediate: /hdd/datasets/object_data/null/randdag/base/temp/
+    compare_trace: True
+    proximity_epsilon: 7
+    use_active_as_passive: True
+    passive:
+      passive_iters: 50000
+      # passive_iters: 100
+      passive_log_interval: 100
+      pretrain_active: True
+      train_passive: False
+  full_inter:
+    object_id: True
+    lasso_lambda: 3 0 0 0 1000
+    mixed_interaction: mixed
+    soft_distribution: Identity
+    use_active_as_passive: True
+    train_names: $C
+    adaptive_lasso: 7 1
+  interaction_net:
+    hidden_sizes: 256 256 256
+    net_type: keypair
+    init_form: xnorm
+    embed_inputs: 512
+    activation: crelu
+    pair:
+      reduce_function: sum
+    optimizer:
+      lr: .0001
+      alt_lr: .00001
+      eps: .00001
+      alpha: 0.99
+      betas: 0.9 0.999
+      weight_decay: 0.000
+  EMFAC:
+    full_train: $C
+    num_masks: 3
+    E_step_iters: 100
+    M_step_iters: 10
+    refine_iters: 10
+    binary_cost: 1
+    model_mask_weights: 0.0 0.0 0.0
+...

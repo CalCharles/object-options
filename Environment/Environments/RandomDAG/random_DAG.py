@@ -21,7 +21,7 @@ class RandomDAG(RandomDistribution):
         self.discrete_actions, self.allow_uncontrollable, self.graph_skeleton, self.num_nodes,\
             self.multi_instanced, self.min_dim, self.max_dim, self.instant_update, self.relate_dynamics,\
             self.conditional, self.conditional_weight, self.distribution, self.noise_percentage, self.require_passive,\
-            self.num_valid_min, self.num_valid_max, self.intervention_state, self.intervention_rate, self.horizon = variants[self.variant]
+            self.num_valid_min, self.num_valid_max, self.keep_live, self.intervention_state, self.intervention_rate, self.horizon = variants[self.variant]
         if self.debug_mode: 
             self.max_dim = self.min_dim = 1 # use one dimension to have obvious split points
             self.noise_percentage = 0

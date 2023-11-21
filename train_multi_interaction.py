@@ -34,6 +34,7 @@ if __name__ == '__main__': # TODO: combine with the train_all/train_full code
     args.EMFAC.is_emfac = False
     args.full_inter.object_id = args.EMFAC.full_train
     all_train = len(args.EMFAC.full_train) == 0 # only supports full model training for one name at a time, TODO: implement full model training
+    if len(args.EMFAC.full_train) > 0: args.full_inter.train_names = [args.EMFAC.full_train]
     extractor, normalization = regenerate_all(True, environment, all=all_train) if all_train else regenerate_full(True, environment, all=all_train)
     args.pad_size = extractor.object_size
     args.target_select, args.inter_select = extractor.get_selectors(all=all_train)

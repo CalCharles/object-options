@@ -354,12 +354,21 @@ class RandomDistribution(Environment):
         self.objects = list()
         if self.num_valid_max > 0:
             num_valid = np.random.randint(self.num_valid_min, self.num_valid_max + 1 ) 
+            kept = []
             if self.allow_uncontrollable:
-                valid_choices = np.random.choice(np.arange(len(self.all_names) - 2), replace=False, size = (num_valid, ))
-                self.valid_names = np.array(self.all_names)[valid_choices].tolist() + ["Done", "Reward"]
+                use_names = np.arange(len(self.all_names) - 2).tolist()
+                if hasattr(self, "keep_live") and len(self.keep_live) > 0: 
+                    use_names.pop(self.all_names.index(self.keep_live)) 
+                    kept = [self.keep_live]
+                valid_choices = np.random.choice(use_names, replace=False, size = (num_valid, ))
+                self.valid_names = np.array(self.all_names)[valid_choices].tolist() + kept + ["Done", "Reward"]
             else:
-                valid_choices = np.random.choice(np.arange(len(self.all_names))[1:], replace=False, size = (num_valid - 1, ))
-                self.valid_names = ["Action"] + np.array(self.all_names)[valid_choices].tolist() + ["Done", "Reward"]
+                use_names = np.arange(len(self.all_names) - 2).tolist()
+                if hasattr(self, "keep_live") and len(self.keep_live) > 0: 
+                    use_names.pop(self.all_names.index(self.keep_live))
+                    kept = [self.keep_live]
+                valid_choices = np.random.choice(use_names[1:], replace=False, size = (num_valid - 1, ))
+                self.valid_names = ["Action"] + np.array(self.all_names)[valid_choices].tolist() + kept + ["Done", "Reward"]
         else:
             object_names = self.object_names
             self.valid_names = self.all_names
@@ -418,11 +427,11 @@ class RandomDistribution(Environment):
             updated = dict()
             for target in self.all_names:
                 if target in self.target_counter:
-                    if self.require_passive and self.instant_update:
+                    if self.require_passive and instant_update:
                         self.object_name_dict[passive_name(target)].state = copy.deepcopy(self.object_name_dict[target].get_state()) # passive state recorded
                         self.object_name_dict[passive_name(target)].next_state = copy.deepcopy(self.object_name_dict[target].get_state()) # passive state recorded
                         self.object_name_dict[target].interaction_trace += [passive_name(target)]
-                    if (self.instant_update and (intervening_except is None or target == intervening_except)) and (not self.relate_dynamics):
+                    if (instant_update and (intervening_except is None or target == intervening_except)) and (not self.relate_dynamics):
                         self.object_name_dict[target].next_state = np.zeros(self.object_name_dict[target].get_state().shape)
                     else:
                         self.object_name_dict[target].next_state = copy.deepcopy(self.object_name_dict[target].get_state())

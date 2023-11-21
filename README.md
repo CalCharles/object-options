@@ -83,6 +83,7 @@ python generate_random.py --env Pusher2D --num-frames 1000000 --variant tiny --r
 
 # multi random conditionals
 python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/multi_random/ --num-frames 1000 --variant multi_passive
+python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1-null/ --num-frames 1000 --variant 1-null
 
 
 

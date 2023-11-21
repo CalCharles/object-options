@@ -59,27 +59,32 @@ def create_histogram(env, names, string_values):
     plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
 
 
-if __name__ == "__main__":
+def create_table(pth, names):
     string_values = list()
-    with open(sys.argv[1], 'r') as f:
+    with open(pth, 'r') as f:
         for line in f.readlines():
             string_values.append(line)
     hist_values = list()
-    hist_str = copy.copy(sys.argv[1])
+    hist_str = copy.copy(pth)
     hist_str = hist_str[:hist_str.find(".txt")] + "_hist.txt"
     with open(hist_str, 'r') as f:
         for line in f.readlines():
             hist_values.append(line)
-    names = sys.argv[2:]
-    env_name = sys.argv[1].replace("_", " ")
+    env_name = pth.replace("_", " ")
     create_bar(env_name, names, hist_values)
     table_strings = list()
     for line in string_values:
         table_strings.append(generate_latex_from_string(env_name, names, line, tabular=True))
-    folder_path = os.path.join(*sys.argv[1].split("/")[:-1])
-    with open(os.path.join(folder_path, "tables", sys.argv[1].split("/")[-1][:-4] + "tables.txt"), 'w') as f:
+    folder_path = os.path.join(*pth.split("/")[:-1])
+    with open(os.path.join(folder_path, "tables", pth.split("/")[-1][:-4] + "tables.txt"), 'w') as f:
         for table_str in table_strings:
             f.write(table_str)
+
+
+if __name__ == "__main__":
+    pth = sys.argv[1]
+    names = sys.argv[2:]
+    create_table(pth, names)
 
 
     # python create_table.py logs/exhaustive/ForestFire_0.5_0.2.txt April May June Fire
