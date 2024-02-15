@@ -125,6 +125,7 @@ python generate_random.py --env TaxiCar --record-rollouts /hdd/datasets/object_d
 python generate_random.py --env AirHockey --record-rollouts /hdd/datasets/object_data/airhockey/ --demonstrate --num-frames 5000
 
 
+<!---
 todos:
 Asteroids: change action space to choose angle instead of sin-cos space
 Existence hindsight
@@ -164,5 +165,6 @@ Both: Train iterations immediately after random --DONE
 	Penalize no-movement
 	Action entropy reward
 	Learned Sampling for temporal proximity
+-->
 
 
