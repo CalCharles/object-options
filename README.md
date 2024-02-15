@@ -51,34 +51,34 @@ Asteroids: get ship policy
 CT asteroids: get ship policy
 
 # Run Random conditionals
-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random/ --num-frames 1000
-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional/ --num-frames 100000 --variant conditional
-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional_passive/ --num-frames 100000 --variant conditional_passive
-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional_rare/ --num-frames 200000 --variant conditional_rare
-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional_common/ --num-frames 200000 --variant conditional_common
-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_cp_many/ --num-frames 100000 --variant cp_many
-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_cp_multi/ --num-frames 100000 --variant cp_multi
-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_cp_multi_small/ --num-frames 100000 --variant cp_multi_small
-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_passive_only/ --num-frames 1000 --variant passive_only
-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_passive_only_noise/ --num-frames 1000 --variant passive_only_noise
+-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random/ --num-frames 1000
+-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional/ --num-frames 100000 --variant conditional
+-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional_passive/ --num-frames 100000 --variant conditional_passive
+-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional_rare/ --num-frames 200000 --variant conditional_rare
+-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional_common/ --num-frames 200000 --variant conditional_common
+-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_cp_many/ --num-frames 100000 --variant cp_many
+-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_cp_multi/ --num-frames 100000 --variant cp_multi
+-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_cp_multi_small/ --num-frames 100000 --variant cp_multi_small
+-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_passive_only/ --num-frames 1000 --variant passive_only
+-python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_passive_only_noise/ --num-frames 1000 --variant passive_only_noise
 
 # Run Random DAGs
-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1_in/ --num-frames 1000 --variant 1-in
-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/3_chain/ --num-frames 1000 --variant 3-chain
-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/2_in/ --num-frames 1000 --variant 2-in
-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/multi_in/ --num-frames 1000 --variant multi-in
-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/3_in/ --num-frames 1000 --variant 3-in
-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1_hdim/ --num-frames 1000 --variant 1-hdim
-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1_rare/ --num-frames 1000 --variant 1-rare
-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1_in_ndym/ --num-frames 1000 --variant 1-in-ndym
-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1_in_nt/ --num-frames 1000 --variant 1-in-nt
-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/2_chain/ --num-frames 1000 --variant 2-chain
+-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1_in/ --num-frames 1000 --variant 1-in
+-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/3_chain/ --num-frames 1000 --variant 3-chain
+-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/2_in/ --num-frames 1000 --variant 2-in
+-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/multi_in/ --num-frames 1000 --variant multi-in
+-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/3_in/ --num-frames 1000 --variant 3-in
+-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1_hdim/ --num-frames 1000 --variant 1-hdim
+-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1_rare/ --num-frames 1000 --variant 1-rare
+-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1_in_ndym/ --num-frames 1000 --variant 1-in-ndym
+-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1_in_nt/ --num-frames 1000 --variant 1-in-nt
+-python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/2_chain/ --num-frames 1000 --variant 2-chain
 
 # create data for Breakout interaction
-python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/Breakout/rand_small --num-frames 1000000 --variant rand_small --policy RandAngle > logs/full/breakout/small_gen.txt
-python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/Breakout/rand_tiny --num-frames 1000000 --variant rand_tiny --policy RandAngle > logs/full/breakout/tiny_gen.txt
-python generate_random.py --env Pusher2D --num-frames 1000000 --variant small --record-rollouts /hdd/datasets/object_data/Pusher2D/rand_greedy_sticky --policy RandGreedySticky > logs/full/pusher2d/gen.txt
-python generate_random.py --env Pusher2D --num-frames 1000000 --variant tiny --record-rollouts /hdd/datasets/object_data/Pusher2D/rand_greedy_tiny --policy RandGreedy > logs/full/pusher2d/gen_tiny.txt
+-python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/Breakout/rand_small --num-frames 1000000 --variant rand_small --policy RandAngle > logs/full/breakout/small_gen.txt
+-python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/Breakout/rand_tiny --num-frames 1000000 --variant rand_tiny --policy RandAngle > logs/full/breakout/tiny_gen.txt
+-python generate_random.py --env Pusher2D --num-frames 1000000 --variant small --record-rollouts /hdd/datasets/object_data/Pusher2D/rand_greedy_sticky --policy RandGreedySticky > logs/full/pusher2d/gen.txt
+-python generate_random.py --env Pusher2D --num-frames 1000000 --variant tiny --record-rollouts /hdd/datasets/object_data/Pusher2D/rand_greedy_tiny --policy RandGreedy > logs/full/pusher2d/gen_tiny.txt
 
 
 # multi random conditionals
@@ -87,18 +87,18 @@ python generate_random.py --env RandomDistribution --record-rollouts /hdd/datase
 
 
 # Run Breakout Training:
-python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/breakout/random/ --variant drop_stopping
-python main.py --main-train BreakoutStack
-python main.py --main-train BreakoutVariants
+-python generate_random.py --env Breakout --record-rollouts /hdd/datasets/object_data/breakout/random/ --variant drop_stopping
+-python main.py --main-train BreakoutStack
+-python main.py --main-train BreakoutVariants
 
 # Run Robopushing training:
-python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/testrun/random --num-frames 5000
-python main.py --main-train RoboPushingStack
-python main.py --main-train RoboPushingObstacle
+-python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/testrun/random --num-frames 5000
+-python main.py --main-train RoboPushingStack
+-python main.py --main-train RoboPushingObstacle
 
 # Robopushing variants
-python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/fixed/testrun/random/ --num-frames 5000 --fixed-limits
-python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/discrete/random --variant discrete --num-frames 5000
+-python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/fixed/testrun/random/ --num-frames 5000 --fixed-limits
+-python generate_random.py --env RoboPushing --record-rollouts /hdd/datasets/object_data/robopushing/discrete/random --variant discrete --num-frames 5000
 
 
 # Run Full Breakout Training:
