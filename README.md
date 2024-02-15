@@ -1,66 +1,53 @@
-Implementation of HIntS
+# Implementation of COInS
 
 # Installation creating conda environment 
-conda create -n obj python=3.8
-conda activate obj
+- conda create -n obj python=3.8
+- conda activate obj
 # Installing Robosuite with pushing domain (from source)
-git clone https://github.com/kvablack/robosuite.git
-conda activate obj
-cd robosuite
-copy mujoco download to: ~/.mujoco/mujoco200
-copy mujoco key to ~/.mujoco/mjkey.txt
-pip install -r requirements.txt
-https://robosuite.ai/docs/installation.html
+- git clone https://github.com/kvablack/robosuite.git
+- conda activate obj
+- cd robosuite
+- copy mujoco download to: ~/.mujoco/mujoco200
+- copy mujoco key to ~/.mujoco/mjkey.txt
+- pip install -r requirements.txt
+- https://robosuite.ai/docs/installation.html
 # install remaining components
-conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
-conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
-pip install tianshou / pip install git+https://github.com/thu-ml/tianshou.git@master --upgrade
-conda install imageio
-pip install opencv-python
-conda install psutil
-pip install pyyaml
+- conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
+- conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
+- pip install tianshou / pip install git+https://github.com/thu-ml/tianshou.git@master --upgrade
+- conda install imageio
+- pip install opencv-python
+- conda install psutil
+- pip install pyyaml
 
 # installing for HYPE
-follow above install
-conda install -c anaconda scikit-learn
-pip -U install cma
+- follow above install
+- conda install -c anaconda scikit-learn
+- pip -U install cma
 
 # installing for cdl
-conda install pytorch=1.11=py3.8_cuda10.2_cudnn7.6.5_0 torchvision torchaudio cudatoolkit=10.2 -c pytorch
-conda install -c conda-forge tensorboard
-conda install -c anaconda scikit-image
-conda install -c conda-forge matplotlib
-git clone https://github.com/kvablack/robosuite.git
-cd robosuite
-pip install -r requirements.txt
-conda install -c conda-forge gym
-pip install opencv-python
-conda install -c anaconda seaborn
-
-Breakout: get perfect paddle policy
-get perfect ball bouncing policy with inline training
-
-Robopushing: retrain interaction
-get gripper policy
-get block policy
-
-Sokoban: get block policy
-
-Asteroids: get ship policy
-
-CT asteroids: get ship policy
+- conda install pytorch=1.11=py3.8_cuda10.2_cudnn7.6.5_0 torchvision torchaudio cudatoolkit=10.2 -c pytorch
+- conda install -c conda-forge tensorboard
+- conda install -c anaconda scikit-image
+- conda install -c conda-forge matplotlib
+- git clone https://github.com/kvablack/robosuite.git
+- cd robosuite
+- pip install -r requirements.txt
+- conda install -c conda-forge gym
+- pip install opencv-python
+- conda install -c anaconda seaborn
 
 # Run Random conditionals
--python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random/ --num-frames 1000
--python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional/ --num-frames 100000 --variant conditional
--python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional_passive/ --num-frames 100000 --variant conditional_passive
--python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional_rare/ --num-frames 200000 --variant conditional_rare
--python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional_common/ --num-frames 200000 --variant conditional_common
--python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_cp_many/ --num-frames 100000 --variant cp_many
--python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_cp_multi/ --num-frames 100000 --variant cp_multi
--python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_cp_multi_small/ --num-frames 100000 --variant cp_multi_small
--python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_passive_only/ --num-frames 1000 --variant passive_only
--python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_passive_only_noise/ --num-frames 1000 --variant passive_only_noise
+- python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random/ --num-frames 1000
+- python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional/ --num-frames 100000 --variant conditional
+- python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional_passive/ --num-frames 100000 --variant conditional_passive
+- python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional_rare/ --num-frames 200000 --variant conditional_rare
+- python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_conditional_common/ --num-frames 200000 --variant conditional_common
+- python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_cp_many/ --num-frames 100000 --variant cp_many
+- python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_cp_multi/ --num-frames 100000 --variant cp_multi
+- python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_cp_multi_small/ --num-frames 100000 --variant cp_multi_small
+- python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_passive_only/ --num-frames 1000 --variant passive_only
+- python generate_random.py --env RandomDistribution --record-rollouts /hdd/datasets/object_data/RandomDistribution/random_passive_only_noise/ --num-frames 1000 --variant passive_only_noise
 
 # Run Random DAGs
 -python generate_random.py --env RandomDAG --record-rollouts /hdd/datasets/object_data/RandomDAG/1_in/ --num-frames 1000 --variant 1-in
