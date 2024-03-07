@@ -6,6 +6,7 @@ from Environment.Environments.IGibson.igibson_specs import igibson_specs
 from omegaconf import DictConfig, OmegaConf
 import yaml, os
 from gymnasium.wrappers import FlattenObservation
+from gymnasium import spaces
 
 class FlattenDictObservation(FlattenObservation):
     def __init__(self, env: gym.Env):
@@ -93,7 +94,7 @@ class iGibson(Environment):
         super().__init__(frameskip, variant, fixed_limits)
         env_specific_config = igibson_specs[variant]
         
-        with open(os.path.join("Environment", "Environments", "iGibson", "igibson_config.yaml")) as file:
+        with open(os.path.join("Environment", "Environments", "IGibson", "igibson_config.yaml")) as file:
             try:
                 igibson_config = yaml.safe_load(file)
             except yaml.YAMLError as exception:
