@@ -2,10 +2,10 @@ import numpy as np
 import gymnasium as gym
 import copy
 from Environment.environment import Environment, Reward, Done, Action
-from Environment.Environments.iGibson.igibson_specs import igibson_specs
+from Environment.Environments.IGibson.igibson_specs import igibson_specs
 from omegaconf import DictConfig, OmegaConf
 import yaml, os
-
+from gymnasium.wrappers import FlattenObservation
 
 class FlattenDictObservation(FlattenObservation):
     def __init__(self, env: gym.Env):
