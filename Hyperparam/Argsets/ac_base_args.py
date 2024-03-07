@@ -30,6 +30,7 @@ ac_base_args = {
         "render": False,
         "frameskip": 1,
         "variant": "default",
+        "reward_variant": "",
         "horizon": -1,
         "seed": -1,
         "demonstrate": False,

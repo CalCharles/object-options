@@ -46,15 +46,16 @@ class ObservationExtractor():
         self.relative_obs_setting = state_extractor.relative_obs_setting
         self.obs_setting = self.single_obs_setting + self.relative_obs_setting
         self.norm = state_extractor.norm
+        min_partar_size = min(self.target_size, self.parent_size)
         self.size_index = {"param": self.target_size, "inter": self.inter_size, "parent": self.parent_size * self.max_parent_objects, 
                     "additional": [self.additional_sizes[i] * self.max_additional_objects[i] for i in range(len(self.additional_sizes))],
                     "target": self.target_size * self.max_target_objects, "inter": self.inter_size, "diff": self.target_size * self.max_target_objects,
-                    "parent_relative": self.target_size * self.max_partar, "additional_relative": [self.target_size * max(self.max_target_objects, mao) for mao in self.max_additional_objects],
+                    "parent_relative": min_partar_size * self.max_partar, "additional_relative": [self.target_size * max(self.max_target_objects, mao) for mao in self.max_additional_objects],
                     "parent_additional": [self.parent_size * max(self.max_parent_objects, mao) for mao in self.max_additional_objects], "parent_param": self.target_size * self.max_parent_objects, "param_relative": self.target_size * self.max_target_objects}
         self.single_size_index = {"param": self.target_size, "inter": self.inter_size, "parent": self.parent_size, 
                     "additional": [self.additional_sizes[i] for i in range(len(self.additional_sizes))],
                     "target": self.target_size, "inter": self.inter_size, "diff": self.target_size,
-                    "parent_relative": self.target_size, "additional_relative": [self.target_size for mao in self.max_additional_objects],
+                    "parent_relative": min_partar_size, "additional_relative": [self.target_size for mao in self.max_additional_objects],
                     "parent_additional": [self.parent_size for mao in self.max_additional_objects], "parent_param": self.target_size, "param_relative": self.target_size}
         param, parent, additional, target, inter, diff = self.single_obs_setting
         parent_relative, parent_additional, additional_relative, parent_param, param_relative = self.relative_obs_setting
@@ -77,6 +78,7 @@ class ObservationExtractor():
         self.target_multi = self.max_target_objects > 1
         either_multi = (self.parent_multi or self.target_multi)
         self.additional_multi = (self.max_additional_objects > 1)
+        min_size = min(self.parent_size, self.target_size)
 
         # first_obj_dim is all single element components
         first_obj_dim =  int(param * self.target_size 
@@ -85,14 +87,14 @@ class ObservationExtractor():
                     + target * int(not self.target_multi) * self.target_size
                     + inter * self.inter_size # in general, don't use inter because it does not handle multiinstanced
                     + diff * int(not self.target_multi) * self.target_size
-                    + parent_relative * int(not either_multi) * self.target_size
+                    + parent_relative * int(not either_multi) * min_size
                     + parent_additional * int(not self.parent_multi) * np.sum((self.max_additional_objects == 1).astype(int) * self.parent_size)
                     + additional_relative * int(not self.target_multi) * np.sum((self.max_additional_objects == 1).astype(int) * self.target_size)
                     + parent_param * int(not self.parent_multi) * self.target_size # parent_size == target size for this to work
                     + param_relative * int(not self.target_multi) * self.target_size)
         if not (self.parent_multi or self.target_multi or self.additional_multi): # not multi instanced
             # don't include the target, used in inexp networks
-            first_obj_dim = first_obj_dim - target * self.target_size - parent_relative * self.target_size - param_relative * self.target_size
+            first_obj_dim = first_obj_dim - target * self.target_size - parent_relative * min_size - param_relative * self.target_size
 
         parent_obj_dim = int(parent * int(self.parent_multi) * self.parent_size
                     + parent_param * int(self.parent_multi) * self.parent_size)
@@ -100,7 +102,7 @@ class ObservationExtractor():
         target_obj_dim = int(target * int(self.target_multi) * self.target_size
                     + diff * int(self.target_multi) * self.target_size
                     + param_relative * int(self.target_multi) * self.target_size)
-        rel_obj_dim = int(np.max([parent_relative * either_multi * self.target_size]
+        rel_obj_dim = int(np.max([parent_relative * either_multi * min_size]
                     + [additional_relative * (self.additional_multi[i] or self.target_multi) * self.target_size for i in range(len(self.additional_multi))]
                     + [parent_additional * (self.additional_multi[i] or self.parent_multi) * self.parent_size for i in range(len(self.additional_multi))]))
         obj_dim = int(np.max([target_obj_dim + rel_obj_dim] + [parent_obj_dim + rel_obj_dim] + [a + rel_obj_dim for a in additional_obj_dims])) # obj_dim is invalid for both_multi
@@ -267,7 +269,7 @@ class ObservationExtractor():
             return state_index["diff_norm"][...,idx*self.target_size: (idx+1)*self.target_size]
         elif form == "parent_relative":
             min_size = min(self.target_size, self.parent_size)
-            if idx == -1: return self.norm(state_index["parent_raw"] - state_index["target_raw"], form="rel")
+            if idx == -1: return self.norm(state_index["parent_raw"][...,:min_size] - state_index["target_raw"][...,:min_size], form="rel")
             if self.parent_multi:
                 return self.norm(state_index["parent_raw"][...,idx*min_size:(idx+1)*min_size] - state_index["target_raw"][...,:min_size], form="rel")
             elif self.target_multi:

@@ -97,6 +97,7 @@ full_args = {
         "render": False,
         "frameskip": 1,
         "variant": "default",
+        "reward_variant": "", # special variant for reward optimization
         "horizon": -1,
         "seed": -1,
         "demonstrate": False,
@@ -245,7 +246,8 @@ full_args = {
         "interaction_as_termination": False,
         "temporal_extend": -1,
         "time_cutoff": 0,
-        "between_terminate": 1
+        "between_terminate": 1,
+        "zero_epsilon_test": True,
     },
     "action": {
         "use_relative_action": False,

@@ -35,6 +35,7 @@ def train_mask(args):
             args.padi_selector, args.parent_select, args.inter_select = full_model.extractor.get_selectors()
 
     print(args.inter.load_intermediate)
+    # print(object_names.primary_parent, graph.nodes[object_names.primary_parent].option)
     print(graph.nodes[object_names.primary_parent].option, graph.nodes[object_names.primary_parent].interaction.active_mask, graph.nodes[object_names.primary_parent].interaction.mask.active_mask)
 
     if args.inter.load_intermediate: buffer = load_from_pickle("/hdd/datasets/object_data/temp/rollouts.pkl")

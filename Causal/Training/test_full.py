@@ -39,7 +39,7 @@ def test_full_train(full_model, train_buffer, args, object_names, environment, n
 	train_like_full = np.sum(np.mean(train_like, axis=0), axis=-1)
 	train_like_mean = np.mean(train_like, axis=0)
 	train_bin = get_error(full_model, train_buffer, error_type = error_types.INTERACTION_BINARIES, prenormalize=normalize)[train_valid]
-	train_trace = train_buffer.trace[train_valid]
+	train_trace = train_buffer.inst_trace[train_valid]
 	train_likev = get_error(full_model, train_buffer, error_type = error_types.INTERACTION_RAW, prenormalize=normalize)[train_valid]
 	train_likepred = full_model.test(train_likev)
 
@@ -79,6 +79,7 @@ def test_full_train(full_model, train_buffer, args, object_names, environment, n
 	log_string += f'\nFN: {FN_train.squeeze()}'
 
 	rv = lambda x: full_model.norm.reverse(x, form="dyn" if full_model.predict_dynamics else "target", name=full_model.name)
+	print((train_likepred.squeeze(), train_trace.squeeze()), train_bin.squeeze(), train_trace.squeeze(), (train_bin.squeeze() != train_trace.squeeze()))
 	inter_points = ((train_likepred.squeeze() != train_trace.squeeze()) + (train_bin.squeeze() != train_trace.squeeze())).astype(bool).squeeze() # high passive error could be added
 	passive_samp = np.concatenate([rv(train_target[train_valid]), train_raw_passive, train_l1_passive, train_passive_var, train_likev], axis=-1)[inter_points]
 	active_samp = np.concatenate([rv(train_target[train_valid]), train_raw_active, train_l1_active, train_active_var, train_likev], axis=-1)[inter_points]
@@ -166,7 +167,7 @@ def test_full(full_model, test_buffer, args, object_names, environment, normaliz
 	# interaction binaries
 	test_bin = get_error(full_model, test_buffer, error_type = error_types.INTERACTION_BINARIES, prenormalize=normalize)[test_valid]
 	# interaction trace
-	test_trace = test_buffer.trace[:len(test_buffer)][test_valid]
+	test_trace = test_buffer.inst_trace[:len(test_buffer)][test_valid]
 	# interaction likelihood values
 	test_likev = get_error(full_model, test_buffer, error_type = error_types.INTERACTION_RAW, prenormalize=normalize)[test_valid]
 	# interaction likelihood values predictive binary 

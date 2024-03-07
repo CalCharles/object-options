@@ -21,6 +21,8 @@ if __name__ == '__main__':
                         help='max number of frames to keep, default: -1 not used')
     parser.add_argument('--use-zero', action ='store_true', default=False,
                         help='uses the zero binary')
+    parser.add_argument('--use-witness', action ='store_true', default=False,
+                        help='uses the witness set')
     parser.add_argument('--use-counterfactual', action ='store_true', default=False,
                         help='uses counterfactual vs possible splitting')
     parser.add_argument('--variant', default = "",
@@ -47,7 +49,22 @@ if __name__ == '__main__':
         env = Voting(cf_states = use_counterfactual)
     elif env_name == "ModDAG":
         env = ModDAG(variant=variant,cf_states = use_counterfactual)
-    compute_possible_efficient(env, one_constant, zero_constant, use_zero = args.use_zero, save_path=os.path.join("logs", "exhaustive", env_name + "_" + variant + str(one_constant) + "_" + str(zero_constant) + ".txt"), use_invariant=True )
-    # python eval_exhaustive.py --env Pusher1D --use-counterfactual --use-zero --alpha 0.01 0.4
-    # python eval_exhaustive.py --env ForestFire --use-counterfactual --use-zero --alpha 0.5 0.2
-    # python eval_exhaustive.py --env GangShoot --use-counterfactual --use-zero --alpha 0.2 0.2
+    compute_possible_efficient(env, one_constant, zero_constant, use_zero = args.use_zero, use_witness = args.use_witness, save_path=os.path.join("logs", "exhaustive", env_name + "_" + variant + str(one_constant) + "_" + str(zero_constant) + ".txt"), use_invariant=True )
+    # python eval_exhaustive.py --env Pusher1D --use-counterfactual --use-zero --alpha 0.01 0.4 --use-witness
+    #   python create_table.py logs/exhaustive/Pusher1D_0.01_0.4.txt Mover Obstacle Outcome
+    # python eval_exhaustive.py --env ForestFire --use-counterfactual --use-zero --alpha 0.01 0.2 --use-witness
+    #   python create_table.py logs/exhaustive/ForestFire_0.01_0.2.txt April May June Fire
+    # python eval_exhaustive.py --env GangShoot --use-counterfactual --use-zero --alpha 0.01 1.0 --use-witness
+    #   python create_table.py logs/exhaustive/GangShoot_0.01_1.0.txt Gang Leader Death
+    # python eval_exhaustive.py --env RockThrowing --alpha 0.01 1.0 --use-witness
+    #   python create_table.py logs/exhaustive/RockThrowing_0.01_1.0.txt SH ST BH BT BoS
+    # python eval_exhaustive.py --env HaltCharge --use-counterfactual --use-zero --alpha 0.01 0.3 --use-witness
+    #   python create_table.py logs/exhaustive/HaltCharge_0.01_0.3.txt Major Sergeant Corporal
+    # python eval_exhaustive.py --env ModDAG --variant and --use-counterfactual --use-zero --alpha 0.01 1.0 --use-witness
+    #   python create_table.py logs/exhaustive/ModDAG_and0.01_1.0.txt A B C
+    # python eval_exhaustive.py --env ModDAG --variant or --use-counterfactual --use-zero --alpha 0.01 1.0 --use-witness
+    #   python create_table.py logs/exhaustive/ModDAG_or0.01_1.0.txt A B C
+    # python eval_exhaustive.py --env ModDAG --variant xor --use-counterfactual --use-zero --alpha 0.01 1.0 --use-witness
+    #   python create_table.py logs/exhaustive/ModDAG_xor0.01_1.0.txt A B C
+    # python eval_exhaustive.py --env Train --use-zero --alpha 0.01 1.0 --use-witness
+    #   python create_table.py logs/exhaustive/Train_0.01_1.0.txt Break Switch Track Arrive

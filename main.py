@@ -1,5 +1,5 @@
 from train_option import train_option
-from config_list import breakout_configs, breakout_variant_configs, robopushing_configs, obstacle_config
+from config_list import *
 from arguments import get_args
 from Hyperparam.read_config import read_config
 from train_interaction import train_interaction
@@ -20,6 +20,33 @@ def robo_random(config_choice, uid):
     rand_args.env = "RoboPushing"
     generate_random(rand_args)
 
+def printer_random(config_choice, uid):
+    printer_path = config_choice.pop(0)
+    rand_args = generate_args()
+    rand_args.record_rollouts = printer_path + uid
+    print(rand_args.record_rollouts)
+    rand_args.env = "MiniBehavior"
+    rand_args.variant = "installing_printer"
+    generate_random(rand_args)
+
+def thawing_random(config_choice, uid):
+    thaw_path = config_choice.pop(0)
+    rand_args = generate_args()
+    rand_args.record_rollouts = thaw_path + uid
+    print(rand_args.record_rollouts)
+    rand_args.env = "MiniBehavior"
+    rand_args.variant = "thawing"
+    # generate_random(rand_args)
+
+def cleaning_random(config_choice, uid):
+    clean_path = config_choice.pop(0)
+    rand_args = generate_args()
+    rand_args.record_rollouts = clean_path + uid
+    print(rand_args.record_rollouts)
+    rand_args.env = "MiniBehavior"
+    rand_args.variant = "cleaning_car"
+    generate_random(rand_args)
+
 
 if __name__ == "__main__":
     args = get_args()
@@ -30,7 +57,10 @@ if __name__ == "__main__":
             train_option(args)
     elif args.main_train == "RoboPushingObstacle":
         args = read_config(obstacle_config)
-        train_option(obstacle_config)
+        train_option(args)
+    elif args.main_train == "Printer":
+        args = read_config(install_printer_config)
+        train_option(args)
     else:
         if args.main_train == "BreakoutStack":
             config_choice = breakout_configs
@@ -38,6 +68,19 @@ if __name__ == "__main__":
         elif args.main_train == "RoboPushingStack":
             config_choice = robopushing_configs
             robo_random(robopushing_configs, uid)
+        elif args.main_train == "PrinterStack":
+            config_choice = printer_configs
+            # config_choice.pop(0)
+            printer_random(printer_configs, uid)
+        elif args.main_train == "ThawStack":
+            config_choice = thaw_configs
+            # config_choice.pop(0)
+            thawing_random(thaw_configs, uid)
+        elif args.main_train == "CleanStack":
+            config_choice = clean_configs
+            # config_choice.pop(0)
+            cleaning_random(clean_configs, uid)
+            
         for i, config in enumerate(config_choice):
             # if i < 3: continue
             args = read_config(config)

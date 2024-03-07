@@ -125,6 +125,7 @@ class Policy(nn.Module):
         '''
         # batch = copy.deepcopy(batch) # make sure input norm does not alter the input batch
         vals = self.algo_policy(batch, state = state, input=input, **kwargs)
+        vals.sampled_act = self.algo_policy.exploration_noise(vals.act, batch)
         return vals
 
     def update_epsilon(self):

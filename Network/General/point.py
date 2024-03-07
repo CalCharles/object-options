@@ -1,6 +1,7 @@
 from Network.network import Network
 from Network.network_utils import reduce_function
-from Network.General.conv import BasicConvNetwork
+from Network.General.conv import ConvNetwork
+from Network.General.mlp import MLPNetwork
 import copy
 import torch
 import torch.nn as nn
@@ -22,11 +23,11 @@ class PointNetwork(Network):
         
         subnet_args = copy.deepcopy(kwargs)
         subnet_args["include_last"] = True
-        self.conv = BasicConvNetwork(**subnet_args)
+        self.conv = ConvNetwork(**subnet_args)
         if kwargs["aggregate_final"]:
             subnet_args["num_inputs"] = self.output_dim
             subnet_args["hidden_sizes"] = kwargs["post_process"] 
-            self.MLP = BasicMLPNetwork(**subnet_args)
+            self.MLP = MLPNetwork(**subnet_args)
             self.model = nn.Sequential(self.conv, self.MLP)
         else:
             self.model = nn.ModuleList([self.conv])

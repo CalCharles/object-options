@@ -19,6 +19,7 @@ def generate_args():
     args.display_frame = False
     args.frameskip = 1
     args.variant = "default"
+    args.reward_variant = ""
     args.load_environment = "" 
     args.horizon = -1
     args.num_frames = 10000 
@@ -69,7 +70,7 @@ def generate_random(args, save_state = False):
         if record is not None: record.save(full_state['factored_state'], full_state["raw_state"], environment.toString)
         if save_state: state_buffer.append(full_state)
         if i % 1000 == 0: print(i, "fps", i / (time.time() - start))
-    if args.env not in ["RoboPushing", "RoboStick", "AirHockey"] and len(args.record_rollouts) > 0: save_to_pickle(os.path.join(args.record_rollouts, "environment.pkl"), environment)
+    if args.env not in ["RoboPushing", "RoboStick", "AirHockey", "MiniBehavior"] and len(args.record_rollouts) > 0: save_to_pickle(os.path.join(args.record_rollouts, "environment.pkl"), environment)
     print("fps", args.num_frames / (time.time() - start))
     return environment, record, state_buffer
 
@@ -91,6 +92,8 @@ if __name__ == "__main__":
                         help='amount of frameskip, 1=no frameskip')
     parser.add_argument('--variant', default="default",
                         help='environment variant to use')
+    parser.add_argument('--reward-variant', default="",
+                        help='environment reward, empty string if unused or default')
     parser.add_argument('--load-environment', default="",
                         help='load the environment from here')
     parser.add_argument('--horizon', type=int, default=-1,

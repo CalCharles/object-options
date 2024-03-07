@@ -4,8 +4,11 @@ import numpy as np
 
 def fill_buffer(environment, data, args, object_names, norm, predict_dynamics):
     buffer = InterWeightedReplayBuffer(len(data), stack_num=1)
+    print(len(data))
     factored_state = data[0]
+    print(data[1])
     last_done = [0.0] # dones are shifted one back because we want to zero out the invalid frame (with the next state as the first state of the next episode)
+    seen_trace = np.any(["TRACE" in fs for fs in data[:100]])
     for i, next_factored_state in enumerate(data[1:]):
         act = next_factored_state["Action"][-1] if environment.discrete_actions else next_factored_state["Action"]
         factored_state["Action"] = next_factored_state["Action"]
@@ -23,12 +26,24 @@ def fill_buffer(environment, data, args, object_names, norm, predict_dynamics):
         additional_state = args.additional_select(factored_state)
 
         # compute trace should give back if there is a true interaction at a state
-        inst_trace = environment.get_trace(factored_state, act, object_names)
-        if len(inst_trace) > 1: trace = [np.sum(inst_trace)] # we don't store per-instance traces
-        else: trace = inst_trace.copy()
+        if "TRACE" not in factored_state and not seen_trace:
+            inst_trace = environment.get_trace(factored_state, act, object_names)
+            if len(inst_trace) > 1: trace = [np.sum(inst_trace)] # we don't store per-instance traces
+            else: trace = inst_trace.copy()
+        else:
+            if "TRACE" not in factored_state:
+                trace = np.zeros((environment.num_objects-2) * environment.num_objects)
+            else:
+                trace = np.array(factored_state["TRACE"])
+            target_idx = environment.all_names.index(object_names.target)
+            # inst_trace = np.array(factored_state["TRACE"][target_idx * (environment.num_objects - 2):(target_idx+1) * (environment.num_objects - 2)])
+            idx = target_idx * (environment.num_objects - 2) + environment.all_names.index(object_names.primary_parent)
+            inst_trace = np.array(trace[idx:idx+1])
+
 
         # add one step to the buffer
-        use_done = factored_state["Done"] if object_names.primary_parent == "Action" else next_factored_state["Done"] # collect shifts dones late
+        use_done = factored_state["Done"] or next_factored_state["Done"]# factored_state["Done"] if object_names.primary_parent == "Action" else next_factored_state["Done"] # collect shifts dones late
+        # print(use_done, trace)
         # use_done = factored_state["Done"] if predict_dynamics else last_done
         # print(i, target, next_target, args.target_select(factored_state), target_diff, use_done, factored_state["Done"], factored_state["Action"])
         # if np.linalg.norm(target) > 0: print(last_done, use_done, next_factored_state["Done"], args.target_select(next_factored_state) - args.target_select(factored_state), target_diff, factored_state["Target"],factored_state["Block"])
@@ -44,7 +59,7 @@ def fill_buffer(environment, data, args, object_names, norm, predict_dynamics):
         buffer.add(Batch(act=act, done=use_done, terminated=use_done, truncated=False, true_done=use_done, rew=rew, target=target, next_target=next_target, target_diff=target_diff,
                         trace=trace, inst_trace = inst_trace, obs=inter_state, inter_state=inter_state, parent_state=parent_state, additional_state=additional_state,
                         inter=0.0, proximity=False, proximity_inst=np.zeros(np.array(inst_trace).shape).astype(bool), mask=np.ones(target.shape).astype(float), weight_binary=0)) # the last row are dummy placeholders
-        # print(buffer.done.shape, factored_state["Done"], buffer.true_done.shape)
+        if np.sum(target_diff) > 0: print(act, use_done, factored_state["Done"], target_diff, args.target_select(next_factored_state) - args.target_select(factored_state))
         last_done = factored_state["Done"]
         factored_state = next_factored_state
     return buffer

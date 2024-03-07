@@ -1,0 +1,1 @@
+igibson_specs = {}

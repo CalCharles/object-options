@@ -1,0 +1,91 @@
+---
+record:
+  # record_rollouts: /nfs/data/calebc/object_data/minibehavior/cleaning_car/run/paddle/
+  record_rollouts: /hdd/datasets/object_data/minibehavior/cleaning_car/run/agent
+  record_recycle: -1
+  log_filename: logs/temp/paddle_train.log
+  load_dir: /hdd/datasets/object_data/minibehavior/cleaning_car/run
+  save_dir: /hdd/datasets/object_data/minibehavior/cleaning_car/run
+  # checkpoint_dir: /nfs/data/calebc/object_data/minibehavior/cleaning_car/run/action_paddle_checkpoint
+  # load_checkpoint: /nfs/data/calebc/object_data/minibehavior/cleaning_car/run_inline/action_paddle_checkpoint
+  save_interval: 100
+environment:
+  env: MiniBehavior
+  variant: cleaning_car
+torch:
+  gpu: 0
+  no_cuda: False
+train:
+  train: True
+  # pretrain_frames: 2000
+  pretrain_frames: 10000
+  num_steps: 90
+  num_frames: 1000
+  train_edge: Action agent
+  load_rollouts: /hdd/datasets/object_data/minibehavior/cleaning_car/random
+  num_iters: 2000
+  batch_size: 64
+critic_net:
+actor_net:
+network:
+  hidden_sizes: 512 512 512
+  activation_final: tanh
+  scale_logits: 30
+  optimizer:
+    lr: .0004
+    alt_lr: .0001
+    eps: .00001
+    alpha: 0.99
+    betas: 0.9 0.999
+    weight_decay: 0.00
+sample:
+  sample_type: cent
+  sample_distance: 1.8
+  # sample_schedule: 200
+  param_recycle: 0
+extract:
+  single_obs_setting: 1 0 0 1 0 0
+  relative_obs_setting: 0 0 0 0 1
+option:
+  term_form: param
+  term_as_done: True
+  epsilon_close: 0.6 0.6 1.3
+  param_norm: 1
+  constant_lambda: -1
+  param_lambda: 1
+  inter_lambda: 0
+  temporal_extend: 20
+  time_cutoff: 30
+  zero_epsilon_test: False
+collect:
+  # prioritized_replay: 0.4 0.4
+  buffer_len : 100000
+  test_episode: True
+  max_steps: 1000
+  stream_print_file: logs/minibehavior/aa_option_stream.txt
+  time_check: True
+hindsight:
+  use_her: True
+  early_stopping: 1
+  select_positive: 0.4
+policy:
+  epsilon_random: 0.2
+  primacy:
+    reset_layers: 4
+    reset_frequency: 125
+    primacy_iters: 50
+    stop_resets: 500
+  learning_type: rainbow
+  max_min_critic: -30 0
+  tau: 1000
+  logging:
+    log_interval: 10
+    train_log_maxlen: 5
+    test_log_maxlen: 50
+    initial_trials: 20
+    test_trials: 10
+    max_terminate_step: 1 30
+  learn:
+    grad_epoch: 200
+    sample_form: merged
+...

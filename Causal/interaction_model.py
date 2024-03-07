@@ -116,6 +116,7 @@ class NeuralInteractionForwardModel(nn.Module):
         self.multi_instanced = environment.object_instanced[self.names.target] > 1 # TODO: might need multi-instanced for parents also, but defined differently
         self.multi_parents = environment.object_instanced[self.names.primary_parent] > 1
         self.multi_additional = environment.object_instanced[self.names.additional[0]] > 1 if len(self.names.additional) > 0 else False
+        print(list(args.keys()))
         self.active_model_args, self.passive_model_args, self.interaction_model_args = get_params(self, args, args.interaction_net.net_type in ["pair", "keypair"], environment.object_instanced[self.names.target], self.extractor.total_inter_size, self.extractor.total_target_size)
 
         # set the distributions

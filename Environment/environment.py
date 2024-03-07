@@ -186,6 +186,8 @@ class Environment(gym.Env):
             estring += obj.name + ":" + " ".join(map(str, extracted_state[obj.name])) + "\t" # TODO: attributes are limited to single floats
         if "VALID_NAMES" in extracted_state: # TODO: stores valid names in the factored state for now
             estring += "VALID_NAMES:" + " ".join(map(str, extracted_state['VALID_NAMES'])) + "\t"
+        if "TRACE" in extracted_state: # TODO: stores valid names in the factored state for now
+            estring += "TRACE:" + " ".join(map(str, extracted_state['TRACE'])) + "\t"
         # estring += "Reward:" + str(float(extracted_state["Reward"])) + "\t"
         # estring += "Done:" + str(int(extracted_state["Done"])) + "\t"
         return estring
@@ -222,3 +224,13 @@ class Reward():
 
     def interact (self, other):
         self.interaction_trace.append(other.name)
+
+class Action():
+    def __init__(self,discrete_actions, action_shape):
+        self.name = "Action"
+        self.discrete_actions = discrete_actions
+        self.attr = np.array(0) if self.discrete_actions else np.zeros(action_shape)
+        self.interaction_trace = list()
+
+    def get_state(self):
+        return np.array(self.attr).astype(float)

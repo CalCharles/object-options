@@ -1,7 +1,7 @@
 import numpy as np
 import gymnasium as gym
 from Environment.environment import Environment
-import copy
+import copy, itertools
 
 class ACDomain(Environment):
     def __init__(self, frameskip = 1, variant="", fixed_limits=False, cf_states=False):
@@ -60,7 +60,6 @@ class ACDomain(Environment):
         return self.return_state(), 0.0, True, dict()
 
     def reset(self, name_dict_assignment = None):
-        
         if name_dict_assignment is None:
             for n in self.objects.keys():
                 self.objects[n].attribute = np.random.randint(self.objects[n].num_values) 
@@ -82,6 +81,7 @@ class ACDomain(Environment):
             state, reward, done, info = self.step(1, frozen_relations=frozen_relations)
             state = tuple(state.tolist())
             # by construction, there should never be a double mapping
+
             sos[state] = self.objects[self.outcome_variable].attribute
             print(name_dict_assignment, sos[state], frozen_relations)
         return sos, len(combinations)
@@ -104,7 +104,7 @@ class ACDomain(Environment):
         self.reset(name_dict_assignment=name_dict_assignment)
 
 
-    def evaluate_split_counterfactuals(self, binary, state, state_outcome):
+    def evaluate_split_counterfactuals(self, binary, state, state_outcome, use_witness=False):
         # takes in a state-binary pair and determines the magnitude the 1s in the binary split the state
         # and the magnitude the 0s in the binary split the state
         # binary is a length object_num binary vector
@@ -118,23 +118,41 @@ class ACDomain(Environment):
         # set the environment to the current state, we only need to do this once because any state
         # changed from getting the counterfactuals would be assigned for EVERY counterfactual
         # either by observational value, or by the counterfactual
-        print(binary, state)
-        def _evaluate_split(names, default=1):
+        def _evaluate_split(ac_names, freeze_names, default=1):
             self.set_state(state)
 
             # get all the counterfactuals 
             # counterfactuals, cost = self._get_counterfactuals(names, frozen_relations=one_check_names if default == 1 else zero_check_names)
-            counterfactuals, cost = self._get_counterfactuals(names, frozen_relations=one_check_names if default == 1 else zero_check_names)
+            counterfactuals, cost = self._get_counterfactuals(ac_names, frozen_relations=freeze_names)
             if len(counterfactuals) == 0: # the zero mask
-                return default, 0
-            print(counterfactuals, one_check_names, state)
+                return 0, 0
+            print(counterfactuals, ac_names, freeze_names, state)
             # state_outcome = counterfactuals[state_tuple]
             state_diff = np.sum([1 for outcome in counterfactuals.values() if outcome != state_outcome]).astype(float)
             return state_diff / len(counterfactuals), cost
+
+        # witnesses as every combination of the state
+        possible_witnesses = list()
+        if use_witness:
+            for i in range(len(zero_indices) + 1):
+                possible_witnesses += list(itertools.combinations(zero_indices, i))
+        else:
+            possible_witnesses += [[]]
+
+        print("eval witness", binary, state, possible_witnesses)
+        # for every witness, compute the counterfactual split
+        one_highest, zero_lowest, onecost_total, zerocost_total = -100, 100, 0, 0
+        for w in possible_witnesses:
+            witness_names = [self.all_names[i] for i in w]
+            one_split_diff, onecost = _evaluate_split(one_check_names, one_check_names+witness_names, default=1)
+            zero_split_diff, zerocost = _evaluate_split(zero_check_names, zero_check_names+witness_names, default=0)
+            one_highest, zero_lowest = max(one_split_diff, one_highest), min(zero_split_diff, zero_lowest)
+            onecost_total, zerocost_total = onecost_total + onecost, zerocost_total + zerocost
+
         
-        one_split_diff, onecost = _evaluate_split(one_check_names, default=1)
-        zero_split_diff, zerocost = _evaluate_split(zero_check_names, default=0)
-        return one_split_diff, zero_split_diff, onecost + zerocost
+        # one_split_diff, onecost = _evaluate_split(one_check_names, default=1)
+        # zero_split_diff, zerocost = _evaluate_split(zero_check_names, default=0)
+        return one_highest, zero_lowest, onecost_total + zerocost_total
 
 
 

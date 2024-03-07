@@ -61,7 +61,6 @@ class ActiveMasking():
 
                 # evaluate on the new values
                 inter_sam, pred = interaction_model.predict_next_state((sampled_states, broad_target), normalized=True, difference = difference)
-                # print(pred, broad_target, difference)
                 # if at least one interaction occurs, appends the maximum change seen
                 if inter + inter_sam.sum() > 1:
                     # print(np.max(np.abs(pred - broad_target), axis=0), pred, tar_val, interaction_model.norm(pred, form="dyn"), interaction_model.norm(tar_val, form="dyn"))

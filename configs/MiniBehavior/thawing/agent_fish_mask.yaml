@@ -1,0 +1,22 @@
+---
+  record:
+    load_dir: /hdd/datasets/object_data/minibehavior/thawing/run
+    save_dir: /hdd/datasets/object_data/minibehavior/thawing/run
+    refresh: False
+  environment:
+    env: MiniBehavior
+    variant: thawing
+  torch:
+    gpu: 0
+    no_cuda: False
+  train:
+    train_edge: agent Action fish
+    load_rollouts: /hdd/datasets/object_data/minibehavior/thawing/run/agent/
+    num_frames: 100000
+  mask:
+    min_sample_difference: 0.1
+    var_cutoff: 0.1
+    num_samples: 60
+    sample_grid: False
+    dynamics_difference: True
+...

@@ -43,6 +43,7 @@ class Option():
         self.test_sampler = models.test_sampler # a specialized sampler for testing
         self.inline_trainer = models.inline_trainer # a trainer for the interaction model
         self.reset_timer = 0 # storage for the temporal extension timer
+        self.zero_epsilon_test = args.option.zero_epsilon_test
 
         # debugging mode stores intermediate state
         self.set_debug(debug)
@@ -92,7 +93,7 @@ class Option():
         if test:
             # self.set_epsilon(self.test_epsilon)
             # self.set_epsilon(0.5)
-            self.zero_epsilon()
+            if self.zero_epsilon_test: self.zero_epsilon()
             self.sampler, self.test_sampler = self.test_sampler, self.sampler # use test_sampler to keep train sampler
             self.reset_timer = self.terminate_reward.compute_done.timer
         else:
@@ -172,7 +173,7 @@ class Option():
             policy_batch = self.policy.forward(batch, state_chain[-1] if state_chain is not None else None)
             state = policy_batch.state
             # print("forward", time.time() - start)
-            act, mapped_act = pytorch_model.unwrap(policy_batch.act[0]), self.action_map.map_action(policy_batch.act[0], batch[0])
+            act, mapped_act = pytorch_model.unwrap(policy_batch.sampled_act[0]), self.action_map.map_action(policy_batch.sampled_act[0], batch[0])
         # if self.name == "Block": print("actions", act, mapped_act)
         chain = [mapped_act.squeeze()]
         # recursively propagate action up the chain

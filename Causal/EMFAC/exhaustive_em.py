@@ -12,6 +12,8 @@ from Environment.Environments.ACDomains.Domains.voting import Voting
 from Environment.Environments.ACDomains.Domains.mod_DAG import ModDAG
 import sys, os
 import time
+from math import comb
+
 
 def get_all_subsets(n):
     # returns all combinations up to length n, including the empty set
@@ -114,9 +116,26 @@ def get_all_disjoint_sets(iterable):
     l = list(iterable)
     return chain.from_iterable(list(partition(l, i)) for i in range(1, len(l)+1))
 
+def yield_all_disjoint_sets(iterable):
+    l = list(iterable)
+    for k in range(1,len(l)):
+        if k == 1:  # base case 1: k == 1, just yield itself as a list
+            yield [l]
+        elif k == len(l):  # base case 2: k == len(list_), yield each item in the list wrapped in a list
+            yield [[s] for s in l]
+        else:
+            head, *tail = l  # head = the first element, tail = the rest
+            for p in partition(tail, k-1):  # case 1: head -> 1, partition(tail, k-1) -> k-1.
+                                            # head + partition(tail, k-1) -> 1+k-1 -> k
+                yield [[head], *p]
+            for p in partition(tail, k):  # case 2: head -> 1, partition(tail, k) -> k.
+                                        # bloat x to [e1, e2, e3] -> [[x+e1, e2, e3], [e1, x+e2, e3], [e1, e2, x+e3]]
+                for i in range(len(p)):
+                    yield p[:i] + [[head] + p[i]] + p[i+1:]  # bloat head to partition(tail, k) -> k
+
 global counter
 
-def binary_state_compatibility(all_binaries, all_states, all_outcomes, environment):
+def binary_state_compatibility(all_binaries, all_states, all_outcomes, environment, use_witness=False):
     # returns the compatibility (measure of necessity) between the
     # binary and every other state
     cost = 0
@@ -124,13 +143,23 @@ def binary_state_compatibility(all_binaries, all_states, all_outcomes, environme
     for i, binary in enumerate(all_binaries):
         compatibility[i] = list()
         for j, (state, outcome) in enumerate(zip(all_states, all_outcomes)):
-            pos_comp, neg_comp, cf_cost = environment.evaluate_split_counterfactuals(binary, state, outcome)
+            pos_comp, neg_comp, cf_cost = environment.evaluate_split_counterfactuals(binary, state, outcome, use_witness=use_witness)
             compatibility[i].append((pos_comp, neg_comp))
             cost += cf_cost
     print(cost)
     return compatibility
 
-def compute_possible_efficient(environment, one_constant, zero_constant, save_path="", use_invariant=True, use_zero=False):
+def bell_number(n):
+    bell_numbers = [1]
+    for i in range(1,n+1):
+        next_bell_number = 0
+        for j, b in enumerate(bell_numbers):
+            print(i,j)
+            next_bell_number += comb(i,j+1) * b
+        bell_numbers.append(next_bell_number)
+    return bell_numbers[-1]
+
+def compute_possible_efficient(environment, one_constant, zero_constant, use_witness= False, save_path="", use_invariant=True, use_zero=False):
     # a binary includes the object, or does not
     all_binaries = np.array(np.meshgrid(*[[0,1] for i in range(environment.num_objects)])).T.reshape(-1,environment.num_objects)
     use_zero = use_zero
@@ -141,7 +170,7 @@ def compute_possible_efficient(environment, one_constant, zero_constant, save_pa
     all_subsets = get_all_subsets(len(all_states))
     
     print(np.concatenate([np.array(all_states), np.expand_dims(np.array(outcomes), axis=-1)], axis=-1))
-    compatibility = binary_state_compatibility(all_binaries, all_states, outcomes, environment)
+    compatibility = binary_state_compatibility(all_binaries, all_states, outcomes, environment, use_witness=use_witness)
     for k in compatibility.keys():
         for s, c in enumerate(compatibility[k]):
             print(all_binaries[int(k)], all_states[s], c)
@@ -192,9 +221,10 @@ def compute_possible_efficient(environment, one_constant, zero_constant, save_pa
         subset_binary[i] = check_compatible(subset, valid_binaries, compatibility, one_constant, zero_constant)
         subset_index_mapping[tuple(subset)] = i
     # create all disjoint, complete partitionings of the subsets
-    disjoint_sets = list(get_all_disjoint_sets(range(len(all_states))))
-    print("num disjoint", len(disjoint_sets))
-    print("num valid binaries", len(list(subset_binary.keys())))
+    disjoint_sets = yield_all_disjoint_sets(range(len(all_states)))
+    print("total djs", bell_number(len(all_states)))
+    # print("num disjoint", len(disjoint_sets))
+    # print("num valid binaries", len(list(subset_binary.keys())))
 
     def all_assignments(disjoint_subset, unusable_binaries): # returns all mappings of unusable binaries to a particular disjoint subset
         if len(disjoint_subset) == 1:
@@ -222,11 +252,13 @@ def compute_possible_efficient(environment, one_constant, zero_constant, save_pa
     assigned_binaries = list()
     assigned_subsets = list()
     counter = 0
-    for ds in disjoint_sets:
+    for idx, ds in enumerate(disjoint_sets):
         ab, asub, count  = all_assignments(ds, [])
         counter += count
         assigned_binaries += ab
         assigned_subsets += asub
+        if idx % 10000 == 0: print(idx, count)
+    print(idx)
     print("cost counter, number of assigned binaries", counter, len(assigned_binaries))
     
     cost = list()

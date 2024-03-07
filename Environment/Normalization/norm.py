@@ -26,8 +26,9 @@ def generate_multiobject_norm(nl_dict, names, object_counts):
 	return (firstv, secondv) 
 
 def generate_relative_norm(norm1, norm2):
-	relative_norm = (norm1[0] - norm2[0], norm1[1] + norm2[1]  + 1e-6)
-	relative_lim = (relative_norm[0]-relative_norm[1], relative_norm[0] + relative_norm[1])
+	min_len = min(len(norm1[0]), len(norm2[0]))
+	relative_norm = (norm1[0][:min_len] - norm2[0][:min_len], norm1[1][:min_len] + norm2[1][:min_len] + 1e-6)
+	relative_lim = (relative_norm[0][:min_len]-relative_norm[1][:min_len], relative_norm[0][:min_len] + relative_norm[1][:min_len])
 	return relative_norm, relative_lim
 
 class NormalizationModule():
@@ -110,6 +111,7 @@ class MappedNorm(): # performs normalization for a masked out component
 		self.lim_dict = lim_dict
 		self.norm_dict = {n: ((self.lim_dict[n][1] + self.lim_dict[n][0])/2, (self.lim_dict[n][1] - self.lim_dict[n][0])/2 + 1e-6) for n in lim_dict.keys()}
 		mask = mask.astype(bool)
+		print(mask, target, dynamics_dict[target][0])
 		self.mapped_norm, self.mapped_lim = (self.norm_dict[target][0][mask], self.norm_dict[target][1][mask]), (self.lim_dict[target][0][mask], self.lim_dict[target][1][mask])
 		self.mapped_dynamics = dynamics_dict[target][1][mask] # assumes dynamics dict is symetric
 		self.mask = mask

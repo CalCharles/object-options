@@ -37,6 +37,10 @@ def initialize_environment(args, record_args, no_record=False):
         from Environment.Environments.Pusher2D.pusher_2D import Pusher2D
         environment = Pusher2D(frameskip = args.frameskip, variant=args.variant)
         environment.seed(args.seed)
+    elif args.env == "MiniBehavior":
+        from Environment.Environments.MiniBehavior.mini_behavior import MiniBehavior
+        environment = MiniBehavior(frameskip = args.frameskip, variant=args.variant, reward_variant=args.reward_variant)
+        environment.seed(args.seed)
     # elif args.env == "Nav2D":
         # environment = Nav2D()
     elif args.env[:6] == "gymenv":

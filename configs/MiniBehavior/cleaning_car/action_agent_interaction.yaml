@@ -1,0 +1,49 @@
+---
+  record:
+    record_rollouts: ""
+    record_recycle: -1
+    # load_dir: /hdd/datasets/object_data/minibehavior/cleaning_car/run/
+    save_dir: /hdd/datasets/object_data/minibehavior/cleaning_car/run
+  environment:
+    env: MiniBehavior
+    variant: cleaning_car
+  torch:
+    gpu: 0
+    no_cuda: False
+  train:
+    train: True
+    num_frames: 10000
+    train_edge: Action agent
+    load_rollouts: /hdd/datasets/object_data/minibehavior/cleaning_car/random
+    num_iters: 4000
+    # num_iters: 2000
+    batch_size: 64 
+  inter:
+    predict_dynamics: True
+    interaction_testing: 0.9 -5 -8 -1
+    interaction_iters: 0
+    # load_intermediate: /hdd/datasets/object_data/minibehavior/cleaning_car/temp/
+    save_intermediate: /hdd/datasets/object_data/minibehavior/cleaning_car/temp/
+    compare_trace: True
+    passive:
+      # passive_iters: 100
+      passive_iters: 5000
+      passive_log_interval: 100
+      pretrain_active: True
+    active:
+      active_log_interval: 100
+      interaction_schedule: -1
+      inline_iters: 5 1 1000
+      interaction_weighting: -1 -1
+      weighting: -13 1 1 -1
+  interaction_net:
+    hidden_sizes: 256 256
+    net_type: mlp
+    optimizer:
+      lr: .0001
+      alt_lr: .0001
+      eps: .00001
+      alpha: 0.99
+      betas: 0.9 0.999
+      weight_decay: 0.00
+...

@@ -334,7 +334,9 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             if debug_actions is not None: act, action_chain = debug_actions[itr]
             tc_action = time.time()
             self._policy_state_update(result)
-            self.data.update(true_action=[action_chain[0]], act=[act], mapped_act=[action_chain[-1]], option_resample=[resampled], action_chain = action_chain)
+            # print([action_chain[0]], [act], [action_chain[-1]], action_chain)
+            self.data.update(true_action=[action_chain[0]], act=[act], mapped_act=[action_chain[-1]], option_resample=[resampled])
+            self.data["action_chain"] = action_chain # TODO: problamatic line, but would have to rewrite logic
             # print(resampled, action_chain[0],self.data.full_state["factored_state"].Gripper, action_chain[-1], act)
             # step in env
             action_remap = self.data.true_action
@@ -373,7 +375,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             info[0]["TimeLimit.truncated"] = bool(self.trunc_true * true_done + info[0]["TimeLimit.truncated"]) # if we want to treat environment resets as truncations
             truncated = info[0]["TimeLimit.truncated"]
             self.option.update(act, action_chain, terminations, masks, update_policy=not self.test)
-            # print(parent_state, target, param, act)
+            print(act, parent_state, target, param)
             # print(inter_state, self.option.interaction_model.predict_next_state(self.data.full_state))
             tc_term = time.time()
             # update inline training values
@@ -386,13 +388,20 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             if term or done: hit, hit_count, miss_count, drop_count = self.update_statistics(hit_count, miss_count, drop_count, np.any(true_done) and not np.any(term))
 
             # update the current values TODO: next_full_state is time expensive (.001 sec per iteration). It should be stored separately
+            # print([next_full_state], last_true_done, true_done, true_reward, 
+            #     param,  mask,  info,  [inter], [1],  [np.any(self.environment.current_trace(self.names))],
+            #     [truncated], [done],
+            #     self.environment.current_trace(self.names), [proximity.squeeze()], 
+            #     [proximity_inst.squeeze()], [binaries.squeeze()],
+            #     [rew], [done], [term],  [ext_term], # all prior are stored, after are not 
+            #      terminations, rewards, masks, terminations[:len(terminations) - 1])
             self.data.update(next_full_state=[next_full_state], true_done=last_true_done, next_true_done=true_done, true_reward=true_reward, 
                 param=param, mask = mask, info = info, inter = [inter], time=[1], trace = [np.any(self.environment.current_trace(self.names))],
                 truncated=[truncated], terminated=[done],
                 inst_trace=self.environment.current_trace(self.names), proximity=[proximity.squeeze()], 
                 proximity_inst=[proximity_inst.squeeze()], weight_binary=[binaries.squeeze()],
                 rew=[rew], done=[done], terminate=[term], ext_term = [ext_term], # all prior are stored, after are not 
-                terminations= terminations, rewards=rewards, masks=masks, ext_terms=terminations[:len(terminations) - 1])
+                terminations= terminations, rewards=rewards, ext_terms=terminations[:len(terminations) - 1])
             # print(self.data.inter_state,type(self.data.inter_state))
             # print("term", terminations, inter, self.option.interaction_model.interaction(self.data, prenormalize=True))
             if self.preprocess_fn:
