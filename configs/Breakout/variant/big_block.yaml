@@ -16,7 +16,7 @@
     gpu: 0
     no_cuda: False
   train:
-    dummy: True
+    dummy: Block
     train: True
     pretrain_frames: 1000 # 
     num_steps: 300 #
@@ -42,7 +42,7 @@
     param_recycle: 0.1
   extract:
     single_obs_setting: 0 1 0 1 0 0
-    relative_obs_setting: 0 0 0 0
+    relative_obs_setting: 0 0 0 0 0
   option:
     term_form: reward
     term_as_done: True

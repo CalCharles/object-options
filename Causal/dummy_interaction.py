@@ -68,7 +68,7 @@ class DummyInteraction(): # general dummy interaction
         self.extractor = CausalExtractor(self.names, environment)
         self.target_select, self.full_parent_select, self.additional_select, self.additional_selectors, \
             self.padi_selector, self.parent_select, self.inter_select = self.extractor.get_selectors()
-        self.norm = NormalizationModule(environment.object_range, environment.object_dynamics, self.names, environment.object_instanced, self.extractor.active)
+        self.norm = NormalizationModule(environment.object_range, environment.object_range_true, environment.object_dynamics, self.names, environment.object_instanced, self.extractor.active)
         if hasattr(self, "mask") and self.mask is not None: self.mask.regenerate_norm(self.norm)
         return self.norm, self.extractor
 

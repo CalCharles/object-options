@@ -375,7 +375,7 @@ class OptionCollector(Collector): # change to line  (update batch) and line 12 (
             info[0]["TimeLimit.truncated"] = bool(self.trunc_true * true_done + info[0]["TimeLimit.truncated"]) # if we want to treat environment resets as truncations
             truncated = info[0]["TimeLimit.truncated"]
             self.option.update(act, action_chain, terminations, masks, update_policy=not self.test)
-            print(act, parent_state, target, param)
+            # print(act, parent_state, target, param)
             # print(inter_state, self.option.interaction_model.predict_next_state(self.data.full_state))
             tc_term = time.time()
             # update inline training values

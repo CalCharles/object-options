@@ -99,6 +99,7 @@ class FeatureSelector():
         target shape can be [batchlen, factored feature shape], or [factored feature shape] 
         '''
         if len(self.names) == 0: return np.zeros(states["Action"].shape) # return a dummy value
+        # print(self.factored_features, self.names, [states[name].shape for name in self.names])
         if self.multiinstanced and np.any([mi for mi in self.multiinstanced.values()]):
             cut_state = list()
             for name in self.names:

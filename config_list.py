@@ -15,6 +15,7 @@ printer_configs = [os.path.join("/hdd", "datasets", "object_data", "minibehavior
                 #    os.path.join("configs", "MiniBehavior", "installing_printer", "printer_table_mask.yaml"), 
                 #    os.path.join("configs", "MiniBehavior", "installing_printer", "printer_table_option.yaml")]
 install_printer_config = os.path.join("configs", "MiniBehavior", "installing_printer", "printer_install.yaml")
+
 thaw_configs = [os.path.join("/hdd", "datasets", "object_data", "minibehavior", "thawing", "random"), 
                    os.path.join("configs", "MiniBehavior", "thawing", "action_agent_interaction.yaml"), 
                    os.path.join("configs", "MiniBehavior", "thawing", "action_agent_mask.yaml"), 
@@ -38,3 +39,15 @@ clean_configs = [os.path.join("/hdd", "datasets", "object_data", "minibehavior",
 clean_soak_rag_config = os.path.join("configs", "MiniBehavior", "cleaning_car", "soak_rag.yaml")
 clean_car_config = os.path.join("configs", "MiniBehavior", "cleaning_car", "clean_car.yaml")
 clean_rag_config = os.path.join("configs", "MiniBehavior", "cleaning_car", "clean_rag.yaml")
+
+igibson_configs = [os.path.join("/hdd", "datasets", "object_data", "igibson", "random"), 
+                   os.path.join("configs", "iGibson", "action_agent_interaction.yaml"), 
+                   os.path.join("configs", "iGibson", "action_agent_mask.yaml"), 
+                   os.path.join("configs", "iGibson", "action_agent_option.yaml"), 
+                   os.path.join("configs", "iGibson", "agent_rag_interaction.yaml"), 
+                   os.path.join("configs", "iGibson", "agent_rag_mask.yaml"), 
+                   os.path.join("configs", "iGibson", "agent_rag_option.yaml"), ]
+# clean_soak_rag_config = os.path.join("configs", "iGibson", "soak_rag.yaml")
+# clean_car_config = os.path.join("configs", "iGibson", "clean_car.yaml")
+# clean_rag_config = os.path.join("configs", "iGibson", "clean_rag.yaml")
+

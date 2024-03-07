@@ -41,6 +41,10 @@ def initialize_environment(args, record_args, no_record=False):
         from Environment.Environments.MiniBehavior.mini_behavior import MiniBehavior
         environment = MiniBehavior(frameskip = args.frameskip, variant=args.variant, reward_variant=args.reward_variant)
         environment.seed(args.seed)
+    elif args.env == "iGibson":
+        from Environment.Environments.IGibson.igibson import iGibson
+        environment = iGibson(frameskip = args.frameskip, variant=args.variant, reward_variant=args.reward_variant) # TODO: gpu and render have to come in here
+        environment.seed(args.seed)
     # elif args.env == "Nav2D":
         # environment = Nav2D()
     elif args.env[:6] == "gymenv":

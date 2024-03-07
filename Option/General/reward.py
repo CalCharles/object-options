@@ -9,7 +9,8 @@ class RewardOptionControl(RTD):
         self.constant_lambda = kwargs['constant_lambda']
         self.true_lambda = kwargs['true_lambda']
         self.inter_term = kwargs['interaction_as_termination']
-        self.epsilon_close = kwargs['epsilon_close']
+        self.epsilon_close = np.array(kwargs['epsilon_close'])
+        self.norm_p = 1
 
     def compute_rew_term_done(self, inter_state, target, next_target, target_diff, param, mask, true_done, true_reward):
         inter = true_done.squeeze()

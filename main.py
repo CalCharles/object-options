@@ -36,7 +36,7 @@ def thawing_random(config_choice, uid):
     print(rand_args.record_rollouts)
     rand_args.env = "MiniBehavior"
     rand_args.variant = "thawing"
-    # generate_random(rand_args)
+    generate_random(rand_args)
 
 def cleaning_random(config_choice, uid):
     clean_path = config_choice.pop(0)
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     elif args.main_train == "RoboPushingObstacle":
         args = read_config(obstacle_config)
         train_option(args)
-    elif args.main_train == "Printer":
+    elif args.main_train == "InstallingPrinter":
         args = read_config(install_printer_config)
         train_option(args)
     else:

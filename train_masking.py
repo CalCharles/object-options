@@ -42,8 +42,8 @@ def train_mask(args):
     else: buffer = generate_buffers(environment, args, object_names, full_model, train=False)
     if args.inter.save_intermediate: save_to_pickle("/hdd/datasets/object_data/temp/rollouts.pkl", buffer)
 
-    buffer.inter[:len(buffer)] = get_error(full_model, buffer, error_type=error_types.INTERACTION_RAW).squeeze()
-    print(get_error(full_model, buffer, error_type=error_types.INTERACTION_RAW)[:10], buffer.inter[:10], len(buffer), len(get_error(full_model, buffer, error_type=error_types.INTERACTION_RAW)))
+    buffer.inter[:len(buffer)] = get_error(full_model, buffer, error_type=error_types.INTERACTION_BINARIES).squeeze()
+    print(get_error(full_model, buffer, error_type=error_types.INTERACTION_BINARIES)[:100], buffer.inter[:10], len(buffer), len(get_error(full_model, buffer, error_type=error_types.INTERACTION_RAW)))
 
     test_full(full_model, buffer, args, object_names, environment)
     print(object_names.primary_parent, graph.nodes[object_names.primary_parent].option)

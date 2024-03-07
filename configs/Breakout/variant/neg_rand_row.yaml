@@ -16,7 +16,7 @@
     gpu: 0
     no_cuda: False
   train:
-    dummy: True
+    dummy: Block
     train: True
     pretrain_frames: 10000 # 
     num_steps: 300 #

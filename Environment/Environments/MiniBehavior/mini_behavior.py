@@ -10,9 +10,9 @@ def init_object_state(room_size, discrete_obs, discrete_actions, action_space, e
     object_sizes = {**{n: env_state[n].shape[0] for n in env_state.keys()}, **{"Action": 1 if discrete_actions else action_space.shape, "Reward": 1, "Done": 1}}
     object_range = {**{n: (np.zeros((object_sizes[n])), np.ones((object_sizes[n])) ) if discrete_obs else
                      (-1 * np.ones((object_sizes[n])) * room_size / 2 , np.ones((object_sizes[n])) * room_size / 2 ) for n in env_state.keys()}, 
-                     **{"Action": (np.array([0]),np.array([action_space.n])) if discrete_actions else (action_space.low, action_space.high), "Reward": (-1,1), "Done": (0,1)}} # assumes continuous action space is box
+                     **{"Action": (np.array([0]),np.array([action_space.n])) if discrete_actions else (action_space.low, action_space.high), "Reward": (np.array([-1]), np.array([1])), "Done": (np.array([0]), np.array([1]))}} # assumes continuous action space is box
     object_dynamics = {**{n: (-1 * np.array([1] * 2 + [10] * (object_sizes[n] - 2)), np.array([1] * 2 + [10] * (object_sizes[n] - 2)) ) for n in env_state.keys()}, # assumes only movement by 1
-                     **{"Action": (np.array([-action_space.n]),np.array([action_space.n])) if discrete_actions else (action_space.low, action_space.high), "Reward": (-1,1), "Done": (0,1)}} # assumes continuous action space is box
+                     **{"Action": (np.array([-action_space.n]),np.array([action_space.n])) if discrete_actions else (action_space.low, action_space.high), "Reward": (np.array([-1]), np.array([1])), "Done": (np.array([0]), np.array([1]))}} # assumes continuous action space is box
     return object_sizes, object_range, object_dynamics
 
 class MiniBehaviorObject():
@@ -79,7 +79,7 @@ class MiniBehavior(Environment):
 
         # factorized state properties
         self.all_names = list(dos.keys())
-        self.all_names.sort() # ensure consistent order
+        # self.all_names.sort() # ensure consistent order
         self.all_names = ["Action"] + self.all_names + ["Reward", "Done"]
         self.valid_names = self.all_names # no invalids
         self.num_objects = len(self.all_names) 
@@ -118,7 +118,7 @@ class MiniBehavior(Environment):
         # print(state, state_names, self.all_names)
         for i, name in enumerate(state_names):
             self.object_name_dict[name].state = state[self.breakpoints[i]:self.breakpoints[i+1]]
-            # print(name, state[self.breakpoints[i]:self.breakpoints[i+1]])
+            # print(name, state[self.breakpoints[i]:self.breakpoints[i+1]], self.breakpoints[i], self.breakpoints[i+1])
         if action is not None: self.object_name_dict["Action"].attr = np.array([action]) if self.discrete_actions else action
         if rew is not None: 
             self.object_name_dict["Reward"].attribute = rew
