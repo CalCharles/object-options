@@ -11,8 +11,8 @@ metaparam:
   gpu: 3
   match: 0
   simul_run: 3
-  num_trials: 10
+  num_trials: 5
   cycle_gpu: 4
 inter_baselines:
-  counterfactual_threshold: 137
+  counterfactual_threshold: 0.022
 ...

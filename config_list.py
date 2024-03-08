@@ -4,7 +4,7 @@ breakout_configs = [os.path.join("/hdd", "datasets", "object_data", "breakout", 
 breakout_variant_configs = [os.path.join("configs", "Breakout", "center.yaml"), os.path.join("configs", "Breakout", "single.yaml"), os.path.join("configs", "Breakout", "neg.yaml"), os.path.join("configs", "Breakout", "prox.yaml"), os.path.join("configs", "Breakout", "big.yaml"), os.path.join("configs", "Breakout", "hard.yaml")]
 robopushing_configs = [os.path.join("/nfs", "data", "object_data", "robopush", "random"), os.path.join("configs", "RoboPushing", "action_gripper_interaction.yaml"), os.path.join("configs", "RoboPushing", "action_gripper_mask.yaml"), os.path.join("configs", "RoboPushing", "action_gripper_option.yaml"), os.path.join("configs", "RoboPushing", "gripper_block_interaction.yaml"), os.path.join("configs", "RoboPushing", "gripper_block_mask.yaml"), os.path.join("configs", "RoboPushing", "gripper_block_option.yaml")]
 obstacle_config = os.path.join("configs", "RoboPushing", "obstacles.yaml")
-printer_configs = [os.path.join("/hdd", "datasets", "object_data", "minibehavior", "installing_printer", "random"), 
+printer_configs = [os.path.join("/data", "calebc", "object_data", "minibehavior", "installing_printer", "random"), 
                    os.path.join("configs", "MiniBehavior", "installing_printer", "action_agent_interaction.yaml"), 
                    os.path.join("configs", "MiniBehavior", "installing_printer", "action_agent_mask.yaml"), 
                    os.path.join("configs", "MiniBehavior", "installing_printer", "action_agent_option.yaml"), 
@@ -40,13 +40,13 @@ clean_soak_rag_config = os.path.join("configs", "MiniBehavior", "cleaning_car", 
 clean_car_config = os.path.join("configs", "MiniBehavior", "cleaning_car", "clean_car.yaml")
 clean_rag_config = os.path.join("configs", "MiniBehavior", "cleaning_car", "clean_rag.yaml")
 
-igibson_configs = [os.path.join("/hdd", "datasets", "object_data", "igibson", "random"), 
-                   os.path.join("configs", "iGibson", "action_agent_interaction.yaml"), 
-                   os.path.join("configs", "iGibson", "action_agent_mask.yaml"), 
-                   os.path.join("configs", "iGibson", "action_agent_option.yaml"), 
-                   os.path.join("configs", "iGibson", "agent_rag_interaction.yaml"), 
-                   os.path.join("configs", "iGibson", "agent_rag_mask.yaml"), 
-                   os.path.join("configs", "iGibson", "agent_rag_option.yaml"), ]
+igibson_configs = [os.path.join("/data", "calebc", "object_data", "igibson", "random"), 
+                   os.path.join("configs", "iGibson", "action_proprioception_interaction.yaml"), 
+                   os.path.join("configs", "iGibson", "action_proprioception_mask.yaml"), 
+                   os.path.join("configs", "iGibson", "action_proprioception_option.yaml"), 
+                   os.path.join("configs", "iGibson", "proprioception_peach_62_multiplexer_interaction.yaml"), 
+                   os.path.join("configs", "iGibson", "proprioception_peach_62_multiplexer_mask.yaml"), 
+                   os.path.join("configs", "iGibson", "proprioception_peach_62_multiplexer_option.yaml"), ]
 # clean_soak_rag_config = os.path.join("configs", "iGibson", "soak_rag.yaml")
 # clean_car_config = os.path.join("configs", "iGibson", "clean_car.yaml")
 # clean_rag_config = os.path.join("configs", "iGibson", "clean_rag.yaml")

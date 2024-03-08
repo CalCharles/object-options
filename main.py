@@ -47,6 +47,15 @@ def cleaning_random(config_choice, uid):
     rand_args.variant = "cleaning_car"
     generate_random(rand_args)
 
+def igibson_random(config_choice, uid):
+    igibson_path = config_choice.pop(0)
+    rand_args = generate_args()
+    rand_args.record_rollouts = igibson_path + uid
+    print(rand_args.record_rollouts)
+    rand_args.env = "iGibson"
+    rand_args.variant = "default"
+    generate_random(rand_args)
+
 
 if __name__ == "__main__":
     args = get_args()
@@ -80,6 +89,10 @@ if __name__ == "__main__":
             config_choice = clean_configs
             # config_choice.pop(0)
             cleaning_random(clean_configs, uid)
+        elif args.main_train == "iGibsonStack":
+            config_choice = igibson_configs
+            # config_choice.pop(0)
+            igibson_random(igibson_configs, uid)
             
         for i, config in enumerate(config_choice):
             # if i < 3: continue

@@ -78,6 +78,10 @@ class TemporalAggregator():
                 added = True
                 # print(next_data.time, next_data.target, next_data.next_target, next_data.obs, next_data.obs_next)
                 # if np.any(data.done): print("####################", next_data.terminated, next_data.truncated, next_data.rew, next_data.terminate, next_data.done, next_data.true_done)
+                
+                if "terminations" in next_data: del next_data.terminations
+                if "action_chain" in next_data: del next_data.action_chain
+                if "rewards" in next_data: del next_data.rewards
                 self.ptr, ep_rew, ep_len, ep_idx = buffer.add(
                         next_data, buffer_ids=ready_env_ids)
             else: added = False

@@ -23,7 +23,7 @@
     train_test_order: time
     # load_rollouts: /work/pi_sniekum_umass_edu/calebc/object_data/Pusher2D/rand_tiny/
     load_rollouts: /data/calebc/object_data/Pusher2D/rand_tiny/
-    num_iters: 30000
+    num_iters: 100000
     batch_size: 512
   inter:
     predict_dynamics: True

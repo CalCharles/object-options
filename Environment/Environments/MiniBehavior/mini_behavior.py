@@ -183,7 +183,7 @@ class MiniBehavior(Environment):
         else: # get the current trace and use it
             trace = self.get_full_current_trace()
             bin_traces = np.stack([trace[n] for n in self.all_names]).flatten().astype(int)
-        raw_state = self.env.get_state()["grid"].render(2)
+        raw_state = np.array([0])# self.env.get_state()["grid"].render(2)
         return {"raw_state": raw_state, "factored_state": extracted_state}
 
     def get_info(self): # TODO: also return the graph

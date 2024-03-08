@@ -176,6 +176,9 @@ class Hindsight():
                                 # print("her", her_batch.time, her_batch.param, her_batch.next_target, her_batch.mapped_act, her_batch.rew, her_batch.terminate, her_batch.done, her_batch.true_done)
                                 # print(self.terminate_reward.inter_extract(full_state, norm=True)), pytorch_model.unwrap(self.terminate_reward.interaction_model.interaction(self.terminate_reward.inter_extract(full_state, norm=True))))
                                 # print("adding", her_batch.target, her_batch.next_target, her_batch.inter, her_batch.old_inter, her_batch.rew, her_batch.done, her_batch.param)
+                                if "terminations" in her_batch: del her_batch.terminations
+                                if "action_chain" in her_batch: del her_batch.action_chain
+                                if "rewards" in her_batch: del her_batch.rewards
                                 self.at, ep_rew, ep_len, ep_idx = her_buffer.add(her_batch, buffer_ids=[0])
                                 if debug: debug_list.append(copy.deepcopy(her_batch))
                                 early_stopping_counter += int(np.any(her_batch.done))
