@@ -7,6 +7,7 @@ from omegaconf import DictConfig, OmegaConf
 import yaml, os
 from gymnasium.wrappers import FlattenObservation
 from gymnasium import spaces
+from State.object_dict import ObjDict
 
 class FlattenDictObservation(FlattenObservation):
     def __init__(self, env: gym.Env):
@@ -63,7 +64,7 @@ class FlattenDictObservation(FlattenObservation):
 
 
 def init_object_state(room_size, discrete_obs, discrete_actions, action_space, env_state):
-    object_sizes = {**{n: env_state[n].shape[0] for n in env_state.keys()}, **{"Action": 1 if discrete_actions else action_space.shape, "Reward": 1, "Done": 1}}
+    object_sizes = {**{n: env_state[n].shape[0] for n in env_state.keys()}, **{"Action": 1 if discrete_actions else action_space.shape[0], "Reward": 1, "Done": 1}}
     object_range = {**{n: (np.zeros((object_sizes[n])), np.ones((object_sizes[n])) ) if discrete_obs else
                      (-1 * np.ones((object_sizes[n])) * room_size / 2 , np.ones((object_sizes[n])) * room_size / 2 ) for n in env_state.keys()}, 
                      **{"Action": (np.array([0]),np.array([action_space.n])) if discrete_actions else (action_space.low, action_space.high), "Reward": (-1,1), "Done": (0,1)}} # assumes continuous action space is box
@@ -77,7 +78,7 @@ class iGibsonObject():
         self.env = env
         self.state = None
         self.interaction_trace = list()
-        self.hroom_size = (room_size - 1) / 2.0
+        self.hroom_size = max(1, (room_size - 1) / 2.0)
         self.discrete_obs = discrete_obs
 
     def get_state(self):
@@ -101,7 +102,8 @@ class iGibson(Environment):
                 print("error: ", exception)
 
 
-        igibson_config = OmegaConf.to_container(igibson_config, resolve=True)
+        igibson_config = ObjDict(igibson_config) # OmegaConf.to_container(igibson_config, resolve=True)
+        # print(igibson_config)
         if render:
             mode = "gui_interactive"  # "headless"  #
         else:
@@ -118,9 +120,9 @@ class iGibson(Environment):
         self.room_size, self.discrete_obs = env_specific_config["room_size"], env_specific_config["discrete_obs"] 
         
         self.self_reset = True
+        self.discrete_actions = type(self.env.action_space) == gym.spaces.Discrete
         self.num_actions = self.num_actions = self.env.action_space.n if self.discrete_actions else -1 # this must be defined, -1 for continuous. Only needed for primitive actions
         self.name = "igibson" # required for an environment
-        self.discrete_actions = type(self.env.action_space) == gym.spaces.Discrete
 
         # spaces
         self.action_space = self.env.action_space # gym.spaces
@@ -134,8 +136,6 @@ class iGibson(Environment):
         self.action = Action(discrete_actions=self.discrete_actions, action_shape=self.action_shape)
         env_state = self.env.reset()[0]
         dos = self.env.dict_obs_space
-        objs = self.env.objs
-        agent = [self.env.agent_pos, self.env.agent_dir]
         self.breakpoints = self.env.breakpoints
         factored_state = {n: env_state[self.env.breakpoints[i]:self.env.breakpoints[i+1]] for n, i in zip(dos.keys(), range(len(self.env.breakpoints) - 1))}
         # running values
@@ -143,7 +143,7 @@ class iGibson(Environment):
 
         # factorized state properties
         self.all_names = list(dos.keys())
-        self.all_names.sort() # ensure consistent order
+        # self.all_names.sort() # ensure consistent order
         self.all_names = ["Action"] + self.all_names + ["Reward", "Done"]
         self.valid_names = self.all_names # no invalids
         self.num_objects = len(self.all_names) 
@@ -196,6 +196,7 @@ class iGibson(Environment):
         self.object_name_dict["Done"].attribute, self.object_name_dict["Reward"].attribute = False, 0
         for i in range(self.frameskip):
             state, rew, done, trunc, info = self.env.step(action)
+            # print(state)
             self.set_states(state,action, rew, done or trunc)
             info["Timelimit.truncated"] = trunc
             self.set_trace(info)
@@ -247,7 +248,7 @@ class iGibson(Environment):
         else: # get the current trace and use it
             trace = self.get_full_current_trace()
             bin_traces = np.stack([trace[n] for n in self.all_names]).flatten().astype(int)
-        raw_state = self.env.get_state()["grid"].render(2)
+        raw_state = np.array(0)
         return {"raw_state": raw_state, "factored_state": extracted_state}
 
     def get_info(self): # TODO: also return the graph

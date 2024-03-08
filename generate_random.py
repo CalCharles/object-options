@@ -70,7 +70,7 @@ def generate_random(args, save_state = False):
         if record is not None: record.save(full_state['factored_state'], full_state["raw_state"], environment.toString)
         if save_state: state_buffer.append(full_state)
         if i % 1000 == 0: print(i, "fps", i / (time.time() - start))
-    if args.env not in ["RoboPushing", "RoboStick", "AirHockey", "MiniBehavior"] and len(args.record_rollouts) > 0: save_to_pickle(os.path.join(args.record_rollouts, "environment.pkl"), environment)
+    if args.env not in ["RoboPushing", "RoboStick", "AirHockey", "MiniBehavior", "iGibson"] and len(args.record_rollouts) > 0: save_to_pickle(os.path.join(args.record_rollouts, "environment.pkl"), environment)
     print("fps", args.num_frames / (time.time() - start))
     return environment, record, state_buffer
 
