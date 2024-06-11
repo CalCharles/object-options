@@ -87,4 +87,5 @@ if __name__ == "__main__":
     create_table(pth, names)
 
 
-    # python create_table.py logs/exhaustive/ForestFire_0.5_0.2.txt April May June Fire
+    # python create_table.py logs/exhaustive/ForestFire_0.01_0.2.txt April May June Fire
+    # python create_table.py logs/exhaustive/ForestFire_0.01_0.2.txt April May June Fire

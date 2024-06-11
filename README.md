@@ -115,8 +115,25 @@ python generate_random.py --env TaxiCar --record-rollouts /hdd/datasets/object_d
 python generate_random.py --env AirHockey --record-rollouts /hdd/datasets/object_data/airhockey/ --demonstrate --num-frames 5000
 
 
-<!---
-todos:
+# todos:
+- Add documentation
+- Update the codebase so that tianshou can utilize the parallel components
+- Update the buffers so that each option carries its own buffer to allow for simultanious training
+- Modularize the causal prediction components
+
+# Code outline:
+- Iteratively calls train_interaction, train_masking and then train_option
+- train_option is the primary entry point if we use a ground truth interaction and masking component
+- Environments are expected to return a dictionary of the factor names to the factor values, see Environment.environment.py for an outline. I recently updated the environments, and this might mean things are no longer working.
+- the graph contains only the high level description of the options
+- each option contains a policy, which contains an tianshou policy. (option could be modified to hold on to the buffer, and restore it for training)
+- the state extracctor handles converting dictionaries into flat states and other state related operations
+- the sampler dictates how the goals are selected (sampler could be modified for better/intelligent sampling)
+- the TemporalExtensionManager dictates when to terminate an option based on the timesteps and flags
+- trainRL iteratively calls the collector, and collector handles the majority of the RL logic (Collector needs to be modified for parallel components)
+- Causal folder contains the interaction model and is already modularized, but I recently updated the API, and things might be broken now
+
+# Other Todos:
 Asteroids: change action space to choose angle instead of sin-cos space
 Existence hindsight
 Make alignment angles 
@@ -155,6 +172,5 @@ Both: Train iterations immediately after random --DONE
 	Penalize no-movement
 	Action entropy reward
 	Learned Sampling for temporal proximity
--->
 
 

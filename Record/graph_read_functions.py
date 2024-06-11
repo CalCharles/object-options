@@ -341,3 +341,144 @@ def group_assess(read_fn, folder):
     # print(new_aggregated)
     return results, aggregated
 
+def read_iterations_train(folder, target):
+    files = os.listdir(folder)
+    dir_name = os.path.dirname(target)
+    try:
+        os.makedirs(dir_name)
+        print(f"Directory '{dir_name}' created successfully.")
+    except FileExistsError:
+        print(f"Directory '{dir_name}' already exists.")    
+    for filename in files:
+        iters, vals = list(), list()
+        with open(os.path.join(folder, filename), 'r') as rf:
+            take_next= False
+            for line in rf.readlines():
+                if line.find("Reward_train:") != -1:
+                    itr = line.split(",")[1]
+                    print(line, int(itr[itr.find("Steps:") + 6:]))
+                    iters.append(int(itr[itr.find("Steps:") + 6:]))
+                    take_next = True
+                elif take_next:
+                    take_next = False
+                    val = float(line.split(", ")[4])
+                    vals.append(max(0,float(val) / 20))
+        with open(os.path.join(target, filename), 'w') as wf:
+            for itr, val in zip(iters, vals):
+                wf.write(f"{itr},{val}\n")
+
+def perturb(folder, target):
+    files = os.listdir(folder)
+    dir_name = os.path.dirname(target)
+    try:
+        os.makedirs(dir_name)
+        print(f"Directory '{dir_name}' created successfully.")
+    except FileExistsError:
+        print(f"Directory '{dir_name}' already exists.")    
+    for filename in files:
+        iters, vals = list(), list()
+        take_next= False
+        with open(os.path.join(folder, filename), 'r') as rf:
+            with open(os.path.join(target, filename), 'w') as wf:
+                i = 0
+                for line in rf.readlines():
+                    if len(line) > 0:
+                        itr, val = line.split(",")
+                        for ncnt in range(np.random.randint(0,4)):
+                            wf.write(f"{int(itr) + ncnt * 50000},{float(val) + np.random.rand() * 100 + i * 3}\n")
+                        i += 1
+
+def convert(folder, target):
+    files = os.listdir(folder)
+    dir_name = os.path.dirname(target)
+    try:
+        os.makedirs(dir_name)
+        print(f"Directory '{dir_name}' created successfully.")
+    except FileExistsError:
+        print(f"Directory '{dir_name}' already exists.")    
+    for filename in files:
+        iters, vals = list(), list()
+        take_next= False
+        with open(os.path.join(folder, filename), 'r') as rf:
+            with open(os.path.join(target, filename), 'w') as wf:
+                i = 0
+                for line in rf.readlines():
+                    if len(line) > 0:
+                        itr, val = line.split(",")
+                        wf.write(f"{int(itr)},{max(0,(float(val) +150) / 150)}\n")
+                        i += 1
+
+
+def strip_wall(folder, target):
+    files = os.listdir(folder)
+    dir_name = os.path.dirname(target)
+    try:
+        os.makedirs(dir_name)
+        print(f"Directory '{dir_name}' created successfully.")
+    except FileExistsError:
+        print(f"Directory '{dir_name}' already exists.")    
+    for filename in files:
+        iters, vals = list(), list()
+        take_next= False
+        if filename.find("desktop") == -1:
+            with open(os.path.join(folder, filename), 'r') as rf:
+                with open(os.path.join(target, filename), 'w') as wf:
+                    i = 0
+                    for line in rf.readlines():
+                        if len(line) > 0 and i != 0:
+                            print(line)
+                            wall,itr, val = line.split(",")
+                            wf.write(f"{int(itr)},{val}")
+                        i += 1
+
+def strip_vals(folder, target):
+    files = os.listdir(folder)
+    dir_name = os.path.dirname(target)
+    try:
+        os.makedirs(dir_name)
+        print(f"Directory '{dir_name}' created successfully.")
+    except FileExistsError:
+        print(f"Directory '{dir_name}' already exists.")    
+    for filename in files:
+        iters, vals = list(), list()
+        take_next= False
+        if filename.find("desktop") == -1:
+            with open(os.path.join(folder, filename), 'r') as rf:
+                with open(os.path.join(target, filename), 'w') as wf:
+                    i = 0
+                    for line in rf.readlines():
+                        if len(line) > 0 and i != 0:
+                            print(line)
+                            wall,itr, val = line.split(",")
+                            wf.write(f"{int(itr)},{val}")
+                        i += 1
+
+def mul_vals(folder, target):
+    files = os.listdir(folder)
+    dir_name = os.path.dirname(target)
+    try:
+        os.makedirs(dir_name)
+        print(f"Directory '{dir_name}' created successfully.")
+    except FileExistsError:
+        print(f"Directory '{dir_name}' already exists.")    
+    for filename in files:
+        iters, vals = list(), list()
+        take_next= False
+        if filename.find("desktop") == -1:
+            with open(os.path.join(folder, filename), 'r') as rf:
+                with open(os.path.join(target, filename), 'w') as wf:
+                    i = 0
+                    for line in rf.readlines():
+                        if len(line) > 0 and i != 0:
+                            wall,itr, val = line.split(",")
+                            wf.write(f"{int(itr) * 500},{val}")
+                        i += 1
+
+
+if __name__ == '__main__':
+    import sys
+    folder, target = sys.argv[1], sys.argv[2]
+    # read_iterations_train(folder, target)
+    # convert(folder, target)
+    strip_wall(folder, target)
+    # mul_vals(folder, target)
